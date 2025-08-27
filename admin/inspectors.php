@@ -3,13 +3,17 @@ session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
-require_once '../models/Business.php';
+require_once '../utils/logger.php'; // Include logger
+require_once '../utils/access_control.php';
 
-// Check if user is logged in
+// Check if user is logged in and has permission
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
+
+// Check if user has permission to manage inspectors
+requirePermission('inspectors', 'index.php');
 
 $database = new Database();
 $db = $database->getConnection();
@@ -17,22 +21,75 @@ $user = new User($db);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-// Get all inspectors
-$inspectors = $user->readAll();
+// Get all inspectors (only inspector role accounts)
+$inspectors = $user->readByRole('inspector');
 
-// Get all inspections for assignment
-$inspection = new Inspection($db);
-$allInspections = $inspection->readAll();
+// Handle inspector creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_inspector'])) {
+    $newInspector = new User($db);
+    $newInspector->name = $_POST['name'];
+    $newInspector->email = $_POST['email'];
+    $newInspector->password = $_POST['password'];
+    $newInspector->role = 'inspector';
+    $newInspector->department = $_POST['department'];
+    $newInspector->certification = $_POST['certification'];
+    
+    // Check if email already exists
+    if ($newInspector->emailExists()) {
+        $_SESSION['error_message'] = 'Email already exists. Please use a different email.';
+    } else if ($newInspector->create()) {
+        $_SESSION['success_message'] = 'Inspector created successfully!';
+    } else {
+        $_SESSION['error_message'] = 'Failed to create inspector.';
+        logError("Failed to create inspector: " . $newInspector->email);
+    }
+    
+    header('Location: inspectors.php');
+    exit;
+}
 
-// Get all businesses for assignment
-$business = new Business($db);
-$businesses = $business->readAll();
+// Handle inspector update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_inspector'])) {
+    $updateInspector = new User($db);
+    $updateInspector->id = $_POST['inspector_id'];
+    $updateInspector->name = $_POST['name'];
+    $updateInspector->email = $_POST['email'];
+    $updateInspector->department = $_POST['department'];
+    $updateInspector->certification = $_POST['certification'];
+    
+    if ($updateInspector->update()) {
+        $_SESSION['success_message'] = 'Inspector updated successfully!';
+    } else {
+        $_SESSION['error_message'] = 'Failed to update inspector.';
+        logError("Failed to update inspector ID: " . $updateInspector->id);
+    }
+    
+    header('Location: inspectors.php');
+    exit;
+}
+
+// Handle inspector deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_inspector'])) {
+    $deleteInspector = new User($db);
+    $deleteInspector->id = $_POST['inspector_id'];
+    
+    if ($deleteInspector->delete()) {
+        $_SESSION['success_message'] = 'Inspector deleted successfully!';
+    } else {
+        $_SESSION['error_message'] = 'Failed to delete inspector.';
+        logError("Failed to delete inspector ID: " . $deleteInspector->id); // Log error
+    }
+    
+    header('Location: inspectors.php');
+    exit;
+}
 
 // Handle inspector assignment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) {
     $inspection_id = $_POST['inspection_id'];
     $inspector_id = $_POST['inspector_id'];
     
+    $inspection = new Inspection($db);
     $inspection->id = $inspection_id;
     $inspection->inspector_id = $inspector_id;
     
@@ -40,11 +97,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         $_SESSION['success_message'] = 'Inspector assigned successfully!';
     } else {
         $_SESSION['error_message'] = 'Failed to assign inspector.';
+        logError("Failed to assign inspector ID: " . $inspector_id); // Log error
     }
     
     header('Location: inspectors.php');
     exit;
 }
+
+// Count inspectors for stats
+$inspectorCounts = [
+    'total' => 0,
+];
+
+// Count inspectors
+while ($inspectorRow = $inspectors->fetch(PDO::FETCH_ASSOC)) {
+    $inspectorCounts['total']++;
+}
+
+// Reset again for display
+$inspectors = $user->readByRole('inspector');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,39 +146,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Total Inspectors</p>
-                        <p class="text-2xl font-bold">3</p>
+                        <p class="text-2xl font-bold"><?php echo $inspectorCounts['total']; ?></p>
                     </div>
                     <i class="fas fa-users text-3xl text-blue-500"></i>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Active Today</p>
-                        <p class="text-2xl font-bold">2</p>
-                    </div>
-                    <i class="fas fa-user-check text-3xl text-green-500"></i>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Scheduled</p>
-                        <p class="text-2xl font-bold">5</p>
-                    </div>
-                    <i class="fas fa-calendar text-3xl text-yellow-500"></i>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-600">Completed</p>
-                        <p class="text-2xl font-bold">12</p>
-                    </div>
-                    <i class="fas fa-check-circle text-3xl text-purple-500"></i>
                 </div>
             </div>
         </div>
@@ -164,8 +205,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
                             <button onclick="editInspector(<?php echo $inspector['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            <button onclick="deleteInspector(<?php echo $inspector['id']; ?>, '<?php echo addslashes($inspector['name']); ?>')" 
+                                    class="text-red-600 hover:text-red-900 mr-3">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                             <?php if ($inspector['role'] === 'inspector'): ?>
-                            <button onclick="assignInspector(<?php echo $inspector['id']; ?>, '<?php echo $inspector['name']; ?>')" 
+                            <button onclick="assignInspector(<?php echo $inspector['id']; ?>, '<?php echo addslashes($inspector['name']); ?>')" 
                                     class="text-purple-600 hover:text-purple-900">
                                 <i class="fas fa-tasks"></i> Assign
                             </button>
@@ -183,46 +228,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <h3 class="text-lg font-medium text-gray-900">Add New Inspector</h3>
-                <form class="mt-4 space-y-4">
+                <form method="POST" action="inspectors.php" class="mt-4 space-y-4">
+                    <input type="hidden" name="create_inspector" value="1">
+                    
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input type="text" placeholder="Enter full name" 
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <label for="createName" class="block text-sm font-medium text-gray-700">Full Name *</label>
+                        <input type="text" id="createName" name="name" required placeholder="Enter full name" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" placeholder="Enter email address" 
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <label for="createEmail" class="block text-sm font-medium text-gray-700">Email *</label>
+                        <input type="email" id="createEmail" name="email" required placeholder="Enter email address" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" placeholder="Enter password" 
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <label for="createPassword" class="block text-sm font-medium text-gray-700">Password *</label>
+                        <input type="password" id="createPassword" name="password" required placeholder="Enter password" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Role</label>
-                        <select class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option value="inspector">Inspector</option>
-                            <option value="admin">Administrator</option>
-                            <option value="super_admin">Super Administrator</option>
-                        </select>
+                        <label for="createDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+                        <input type="text" id="createDepartment" name="department" placeholder="Enter department" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Department</label>
-                        <input type="text" placeholder="Enter department" 
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Certification</label>
-                        <input type="text" placeholder="Enter certification" 
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <label for="createCertification" class="block text-sm font-medium text-gray-700">Certification</label>
+                        <input type="text" id="createCertification" name="certification" placeholder="Enter certification" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                             Add Inspector
                         </button>
                     </div>
@@ -231,68 +270,293 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         </div>
     </div>
 
-    <!-- Assign Inspector Modal -->
-    <div id="assignModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <script>
+        // Enhanced modal management
+        const modals = ['createModal', 'viewModal', 'editModal'];
+        
+        // Close modal when clicking outside or pressing ESC
+        function setupModalHandlers() {
+            // Click outside to close
+            window.onclick = function(event) {
+                modals.forEach(modalId => {
+                    const modal = document.getElementById(modalId);
+                    if (event.target === modal) {
+                        closeModal(modalId);
+                    }
+                });
+            }
+
+            // ESC key to close
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    modals.forEach(modalId => {
+                        if (!document.getElementById(modalId).classList.contains('hidden')) {
+                            closeModal(modalId);
+                        }
+                    });
+                }
+            });
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function assignInspector(id, name) {
+            alert('Assign inspector ' + id + ' to ' + name);
+        }
+
+        // Enhanced view inspector with loading state
+        function viewInspector(id) {
+            const viewBtn = event.target.closest('button');
+            const originalText = viewBtn.innerHTML;
+            viewBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            viewBtn.disabled = true;
+
+            fetch(`get_inspector.php?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('viewName').textContent = data.inspector.name;
+                        document.getElementById('viewEmail').textContent = data.inspector.email;
+                        document.getElementById('viewRole').textContent = data.inspector.role.charAt(0).toUpperCase() + data.inspector.role.slice(1).replace('_', ' ');
+                        document.getElementById('viewDepartment').textContent = data.inspector.department || 'N/A';
+                        document.getElementById('viewCertification').textContent = data.inspector.certification || 'Not Certified';
+                        document.getElementById('viewCreatedAt').textContent = new Date(data.inspector.created_at).toLocaleDateString();
+                        
+                        openModal('viewModal');
+                    } else {
+                        showNotification('Failed to load inspector details.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Failed to load inspector details.', 'error');
+                })
+                .finally(() => {
+                    viewBtn.innerHTML = originalText;
+                    viewBtn.disabled = false;
+                });
+        }
+
+        // Enhanced edit inspector with loading state
+        function editInspector(id) {
+            const editBtn = event.target.closest('button');
+            const originalText = editBtn.innerHTML;
+            editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            editBtn.disabled = true;
+
+            fetch(`get_inspector.php?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('editInspectorId').value = data.inspector.id;
+                        document.getElementById('editName').value = data.inspector.name;
+                        document.getElementById('editEmail').value = data.inspector.email;
+                        document.getElementById('editDepartment').value = data.inspector.department || '';
+                        document.getElementById('editCertification').value = data.inspector.certification || '';
+                        
+                        openModal('editModal');
+                    } else {
+                        showNotification('Failed to load inspector details for editing.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Failed to load inspector details for editing.', 'error');
+                })
+                .finally(() => {
+                    editBtn.innerHTML = originalText;
+                    editBtn.disabled = false;
+                });
+        }
+
+        // Enhanced delete inspector with better confirmation
+        function deleteInspector(id, name) {
+            if (confirm(`Are you sure you want to delete inspector "${name}"?\n\nThis action cannot be undone and will permanently remove the inspector from the system.`)) {
+                const deleteBtn = event.target.closest('button');
+                const originalText = deleteBtn.innerHTML;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                deleteBtn.disabled = true;
+
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'inspectors.php';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'inspector_id';
+                input.value = id;
+                
+                const deleteInput = document.createElement('input');
+                deleteInput.type = 'hidden';
+                deleteInput.name = 'delete_inspector';
+                deleteInput.value = '1';
+                
+                form.appendChild(input);
+                form.appendChild(deleteInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Show notification function
+        function showNotification(message, type = 'success') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.custom-notification');
+            existingNotifications.forEach(notification => notification.remove());
+
+            const notification = document.createElement('div');
+            notification.className = `custom-notification fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Form validation for create modal
+        function validateCreateForm() {
+            const name = document.getElementById('createName').value.trim();
+            const email = document.getElementById('createEmail').value.trim();
+            const password = document.getElementById('createPassword').value;
+            
+            if (!name) {
+                showNotification('Please enter a name.', 'error');
+                return false;
+            }
+            
+            if (!email) {
+                showNotification('Please enter an email address.', 'error');
+                return false;
+            }
+            
+            if (!validateEmail(email)) {
+                showNotification('Please enter a valid email address.', 'error');
+                return false;
+            }
+            
+            if (!password) {
+                showNotification('Please enter a password.', 'error');
+                return false;
+            }
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters long.', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Email validation helper
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        // Initialize modal handlers
+        setupModalHandlers();
+
+        // Add form validation to create form
+        document.querySelector('form[action="inspectors.php"]').addEventListener('submit', function(e) {
+            if (!validateCreateForm()) {
+                e.preventDefault();
+            }
+        });
+    </script>
+
+    <!-- View Inspector Modal -->
+    <div id="viewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900" id="assignModalTitle">Assign Inspector</h3>
-                <form method="POST" class="mt-4 space-y-4">
-                    <input type="hidden" name="assign_inspector" value="1">
-                    <input type="hidden" name="inspector_id" id="assignInspectorId">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Inspector Details</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name:</label>
+                        <p id="viewName" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email:</label>
+                        <p id="viewEmail" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Role:</label>
+                        <p id="viewRole" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Department:</label>
+                        <p id="viewDepartment" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Certification:</label>
+                        <p id="viewCertification" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Created:</label>
+                        <p id="viewCreatedAt" class="text-sm text-gray-900 mt-1"></p>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="button" onclick="document.getElementById('viewModal').classList.add('hidden')" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Inspector Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Edit Inspector</h3>
+                <form method="POST" action="inspectors.php" class="mt-4 space-y-4">
+                    <input type="hidden" name="inspector_id" id="editInspectorId">
+                    <input type="hidden" name="update_inspector" value="1">
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Select Inspection</label>
-                        <select name="inspection_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                            <option value="">Select an inspection</option>
-                            <?php while ($inspection = $allInspections->fetch(PDO::FETCH_ASSOC)): ?>
-                            <option value="<?php echo $inspection['id']; ?>">
-                                <?php echo $inspection['business_name'] . ' - ' . $inspection['inspection_type'] . ' (' . date('M j, Y', strtotime($inspection['scheduled_date'])) . ')'; ?>
-                            </option>
-                            <?php endwhile; ?>
-                        </select>
+                        <label for="editName" class="block text-sm font-medium text-gray-700">Full Name *</label>
+                        <input type="text" id="editName" name="name" required 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
-                    
+                    <div>
+                        <label for="editEmail" class="block text-sm font-medium text-gray-700">Email *</label>
+                        <input type="email" id="editEmail" name="email" required 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="editDepartment" class="block text-sm font-medium text-gray-700">Department</label>
+                        <input type="text" id="editDepartment" name="department" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="editCertification" class="block text-sm font-medium text-gray-700">Certification</label>
+                        <input type="text" id="editCertification" name="certification" 
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
                     <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="document.getElementById('assignModal').classList.add('hidden')" 
+                        <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" 
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
-                            Assign Inspector
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Update Inspector
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
-    <script>
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('createModal');
-            if (event.target == modal) {
-                modal.classList.add('hidden');
-            }
-            
-            const assignModal = document.getElementById('assignModal');
-            if (event.target == assignModal) {
-                assignModal.classList.add('hidden');
-            }
-        }
-
-        function viewInspector(id) {
-            alert('View inspector ' + id);
-        }
-
-        function editInspector(id) {
-            alert('Edit inspector ' + id);
-        }
-
-        function assignInspector(id, name) {
-            document.getElementById('assignInspectorId').value = id;
-            document.getElementById('assignModalTitle').textContent = 'Assign Inspector: ' + name;
-            document.getElementById('assignModal').classList.remove('hidden');
-        }
-    </script>
 </body>
 </html>

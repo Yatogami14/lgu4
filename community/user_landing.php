@@ -2,8 +2,8 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
-require_once 'models/Inspection.php';
-require_once 'models/Business.php';
+require_once '../models/Inspection.php';
+require_once '../models/Business.php';
 
 // Check if user is logged in and is a regular user
 if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] != 'business_owner' && $_SESSION['user_role'] != 'community_user')) {
@@ -45,7 +45,7 @@ if ($_SESSION['user_role'] == 'business_owner') {
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <h2 class="text-2xl font-bold mb-4">Welcome, <?php echo $user->name; ?></h2>

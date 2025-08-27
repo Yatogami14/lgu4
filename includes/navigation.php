@@ -103,6 +103,13 @@ if (isset($_SESSION['user_id'])) {
             </a>
             <?php endif; ?>
             
+            <?php if (currentUserHasPermission('user_management')): ?>
+            <a href="user_management.php" class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-md text-sm font-medium <?php echo basename($_SERVER['PHP_SELF']) == 'user_management.php' ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:text-gray-900'; ?>">
+                <i class="fas fa-users-cog text-sm"></i>
+                <span class="hidden lg:inline">Community Users</span>
+            </a>
+            <?php endif; ?>
+            
             <?php if ($_SESSION['user_role'] === 'inspector'): ?>
             <a href="assigned_inspections.php" class="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-md text-sm font-medium <?php echo basename($_SERVER['PHP_SELF']) == 'assigned_inspections.php' ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:text-gray-900'; ?>">
                 <i class="fas fa-clipboard-list text-sm"></i>
