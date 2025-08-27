@@ -179,6 +179,27 @@ class Inspection {
         return false;
     }
 
+    // Assign inspector to inspection
+    public function assignInspector() {
+        $query = "UPDATE " . $this->table_name . "
+                SET inspector_id=:inspector_id, updated_at=NOW()
+                WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
+
+        // Sanitize input
+        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
+
+        // Bind parameters
+        $stmt->bindParam(":inspector_id", $this->inspector_id);
+        $stmt->bindParam(":id", $this->id);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+        return false;
+    }
+
     // Count all inspections
     public function countAll() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
@@ -235,6 +256,27 @@ class Inspection {
         $stmt->bindParam(1, $inspector_id);
         $stmt->execute();
         return $stmt;
+    }
+
+    // Get inspections by user ID
+    public function readByUserId($user_id, $limit = 5) {
+        $query = "SELECT i.*, b.name as business_name, it.name as inspection_type
+                  FROM " . $this->table_name . " i
+                  LEFT JOIN businesses b ON i.business_id = b.id
+                  LEFT JOIN inspection_types it ON i.inspection_type_id = it.id
+                  WHERE i.inspector_id = ?
+                  ORDER BY i.scheduled_date DESC LIMIT ?";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $user_id);
+        $stmt->bindParam(2, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $inspections = array();
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $inspections[] = $row;
+        }
+        return $inspections;
     }
 }
 ?>

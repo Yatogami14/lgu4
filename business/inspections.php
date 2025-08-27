@@ -1,0 +1,201 @@
+<?php
+session_start();
+require_once '../config/database.php';
+require_once '../models/User.php';
+require_once '../models/Inspection.php';
+require_once '../models/Business.php';
+
+require_once '../utils/access_control.php';
+
+// Check if user is logged in and has permission to access this page
+requirePermission('inspections');
+
+$database = new Database();
+$db = $database->getConnection();
+$user = new User($db);
+$user->id = $_SESSION['user_id'];
+$user->readOne();
+
+$inspection = new Inspection($db);
+$business = new Business($db);
+
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_POST['create_inspection'])) {
+        $inspection->business_id = $_POST['business_id'];
+        $inspection->inspector_id = $_POST['inspector_id'];
+        $inspection->inspection_type_id = $_POST['inspection_type_id'];
+        $inspection->scheduled_date = $_POST['scheduled_date'];
+        $inspection->status = $_POST['status'];
+        $inspection->priority = $_POST['priority'];
+        $inspection->notes = $_POST['notes'];
+
+        if ($inspection->create()) {
+            header('Location: inspections.php?success=Inspection created successfully');
+            exit;
+        }
+    }
+}
+
+// Get all inspections
+$inspections = $inspection->readAll();
+$businesses = $business->readAll();
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspections - Digital Health & Safety Inspection Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Include Navigation -->
+    <?php include 'includes/navigation.php'; ?>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Inspections Management</h2>
+            <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>New Inspection
+            </button>
+        </div>
+
+        <?php if (isset($_GET['success'])): ?>
+            <div class="bg-green-100 text-green-700 p-3 rounded-md mb-4">
+                <?php echo $_GET['success']; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Inspections Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php while ($row = $inspections->fetch(PDO::FETCH_ASSOC)): ?>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900"><?php echo $row['business_name']; ?></div>
+                            <div class="text-sm text-gray-500"><?php echo $row['business_address']; ?></div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo $row['inspection_type']; ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo date('M j, Y H:i', strtotime($row['scheduled_date'])); ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                <?php echo $row['status'] == 'scheduled' ? 'bg-blue-100 text-blue-800' : 
+                                       ($row['status'] == 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
+                                       ($row['status'] == 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')); ?>">
+                                <?php echo str_replace('_', ' ', $row['status']); ?>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                <?php echo $row['priority'] == 'high' ? 'bg-red-100 text-red-800' : 
+                                       ($row['priority'] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                                <?php echo $row['priority']; ?>
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="inspection_form.php?id=<?php echo $row['id']; ?>" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-green-600 hover:text-green-900">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create Inspection Modal -->
+    <div id="createModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Create New Inspection</h3>
+                <form method="POST" class="mt-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Business</label>
+                        <select name="business_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">Select Business</option>
+                            <?php while ($business_row = $businesses->fetch(PDO::FETCH_ASSOC)): ?>
+                                <option value="<?php echo $business_row['id']; ?>"><?php echo $business_row['name']; ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Inspection Type</label>
+                        <select name="inspection_type_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="1">Health & Sanitation</option>
+                            <option value="2">Fire Safety</option>
+                            <option value="3">Building Safety</option>
+                            <option value="4">Environmental</option>
+                            <option value="5">Food Safety</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Scheduled Date</label>
+                        <input type="datetime-local" name="scheduled_date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="status" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Priority</label>
+                        <select name="priority" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Notes</label>
+                        <textarea name="notes" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                    <input type="hidden" name="inspector_id" value="<?php echo $user->id; ?>">
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" name="create_inspection" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('createModal');
+            if (event.target == modal) {
+                modal.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

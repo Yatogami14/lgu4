@@ -39,7 +39,8 @@ class AccessControl {
             'analytics' => false,
             'profile' => true,
             'user_management' => false,
-            'system_config' => false
+            'system_config' => false,
+            'assigned_inspections' => true
         ],
         'business_owner' => [
             'dashboard' => true,

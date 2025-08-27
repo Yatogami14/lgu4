@@ -229,5 +229,24 @@ class Business {
         }
         return $inspections;
     }
+
+    // Get businesses by owner ID
+    public function readByOwnerId($owner_id) {
+        $query = "SELECT b.*, u.name as owner_name 
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
+                  WHERE b.owner_id = ?
+                  ORDER BY b.created_at DESC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $owner_id);
+        $stmt->execute();
+
+        $businesses = array();
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $businesses[] = $row;
+        }
+        return $businesses;
+    }
 }
 ?>
