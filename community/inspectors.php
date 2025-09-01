@@ -16,8 +16,8 @@ $user = new User($db);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-// Get all inspectors
-$inspectors = $user->readAll();
+// Get all inspectors (only inspector role accounts)
+$inspectors = $user->readByRole('inspector');
 ?>
 <!DOCTYPE html>
 <html lang="en">

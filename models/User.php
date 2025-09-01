@@ -77,11 +77,28 @@ class User {
     }
 
     // Read all users
-    public function readAll() {
-        $query = "SELECT * FROM " . $this->table_name . " ORDER BY created_at DESC";
+    public function readAll($role = null) {
+        $query = "SELECT * FROM " . $this->table_name;
+        
+        if ($role) {
+            $query .= " WHERE role = :role";
+        }
+        
+        $query .= " ORDER BY created_at DESC";
+        
         $stmt = $this->conn->prepare($query);
+        
+        if ($role) {
+            $stmt->bindParam(":role", $role);
+        }
+        
         $stmt->execute();
         return $stmt;
+    }
+
+    // Read users by specific role
+    public function readByRole($role) {
+        return $this->readAll($role);
     }
 
     // Update user
