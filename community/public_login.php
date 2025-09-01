@@ -17,8 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_role'] = $user->role;
             $_SESSION['user_name'] = $user->name;
             
-            // Redirect to user landing page
-            header('Location: user_landing.php');
+            // Redirect to appropriate landing page based on user role
+            if ($user->role == 'business_owner') {
+                header('Location: ../business/business_landing.php');
+            } else if ($user->role == 'community_user') {
+                header('Location: community_landing.php');
+            } else {
+                // Default fallback
+                header('Location: community_landing.php');
+            }
             exit;
         } else {
             $error_message = "Invalid email or password.";

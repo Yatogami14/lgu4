@@ -11,6 +11,12 @@ class Business {
     public $email;
     public $business_type;
     public $registration_number;
+    public $establishment_date;
+    public $inspection_frequency;
+    public $last_inspection_date;
+    public $next_inspection_date;
+    public $is_compliant;
+    public $compliance_score;
     public $created_at;
     public $updated_at;
 
@@ -23,7 +29,9 @@ class Business {
         $query = "INSERT INTO " . $this->table_name . "
                 SET name=:name, address=:address, owner_id=:owner_id, 
                     contact_number=:contact_number, email=:email, 
-                    business_type=:business_type, registration_number=:registration_number";
+                    business_type=:business_type, registration_number=:registration_number,
+                    establishment_date=:establishment_date, inspection_frequency=:inspection_frequency,
+                    is_compliant=:is_compliant, compliance_score=:compliance_score";
 
         $stmt = $this->conn->prepare($query);
 
@@ -35,6 +43,21 @@ class Business {
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->business_type = htmlspecialchars(strip_tags($this->business_type));
         $this->registration_number = htmlspecialchars(strip_tags($this->registration_number));
+        $this->establishment_date = htmlspecialchars(strip_tags($this->establishment_date));
+        $this->inspection_frequency = htmlspecialchars(strip_tags($this->inspection_frequency));
+        $this->is_compliant = htmlspecialchars(strip_tags($this->is_compliant));
+        $this->compliance_score = htmlspecialchars(strip_tags($this->compliance_score));
+
+        // Set default values if not provided
+        if (empty($this->inspection_frequency)) {
+            $this->inspection_frequency = 'monthly';
+        }
+        if (empty($this->is_compliant)) {
+            $this->is_compliant = true;
+        }
+        if (empty($this->compliance_score)) {
+            $this->compliance_score = 100;
+        }
 
         // Bind parameters
         $stmt->bindParam(":name", $this->name);
@@ -44,6 +67,10 @@ class Business {
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":business_type", $this->business_type);
         $stmt->bindParam(":registration_number", $this->registration_number);
+        $stmt->bindParam(":establishment_date", $this->establishment_date);
+        $stmt->bindParam(":inspection_frequency", $this->inspection_frequency);
+        $stmt->bindParam(":is_compliant", $this->is_compliant);
+        $stmt->bindParam(":compliance_score", $this->compliance_score);
 
         if ($stmt->execute()) {
             return true;
@@ -72,6 +99,12 @@ class Business {
             $this->email = $row['email'];
             $this->business_type = $row['business_type'];
             $this->registration_number = $row['registration_number'];
+            $this->establishment_date = $row['establishment_date'];
+            $this->inspection_frequency = $row['inspection_frequency'];
+            $this->last_inspection_date = $row['last_inspection_date'];
+            $this->next_inspection_date = $row['next_inspection_date'];
+            $this->is_compliant = $row['is_compliant'];
+            $this->compliance_score = $row['compliance_score'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             return $row;
@@ -96,7 +129,10 @@ class Business {
         $query = "UPDATE " . $this->table_name . "
                 SET name=:name, address=:address, owner_id=:owner_id, 
                     contact_number=:contact_number, email=:email, 
-                    business_type=:business_type, registration_number=:registration_number
+                    business_type=:business_type, registration_number=:registration_number,
+                    establishment_date=:establishment_date, inspection_frequency=:inspection_frequency,
+                    last_inspection_date=:last_inspection_date, next_inspection_date=:next_inspection_date,
+                    is_compliant=:is_compliant, compliance_score=:compliance_score
                 WHERE id=:id";
 
         $stmt = $this->conn->prepare($query);
@@ -109,6 +145,12 @@ class Business {
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->business_type = htmlspecialchars(strip_tags($this->business_type));
         $this->registration_number = htmlspecialchars(strip_tags($this->registration_number));
+        $this->establishment_date = htmlspecialchars(strip_tags($this->establishment_date));
+        $this->inspection_frequency = htmlspecialchars(strip_tags($this->inspection_frequency));
+        $this->last_inspection_date = htmlspecialchars(strip_tags($this->last_inspection_date));
+        $this->next_inspection_date = htmlspecialchars(strip_tags($this->next_inspection_date));
+        $this->is_compliant = htmlspecialchars(strip_tags($this->is_compliant));
+        $this->compliance_score = htmlspecialchars(strip_tags($this->compliance_score));
 
         // Bind parameters
         $stmt->bindParam(":name", $this->name);
@@ -118,6 +160,12 @@ class Business {
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":business_type", $this->business_type);
         $stmt->bindParam(":registration_number", $this->registration_number);
+        $stmt->bindParam(":establishment_date", $this->establishment_date);
+        $stmt->bindParam(":inspection_frequency", $this->inspection_frequency);
+        $stmt->bindParam(":last_inspection_date", $this->last_inspection_date);
+        $stmt->bindParam(":next_inspection_date", $this->next_inspection_date);
+        $stmt->bindParam(":is_compliant", $this->is_compliant);
+        $stmt->bindParam(":compliance_score", $this->compliance_score);
         $stmt->bindParam(":id", $this->id);
 
         if ($stmt->execute()) {
@@ -240,6 +288,122 @@ class Business {
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $owner_id);
+        $stmt->execute();
+
+        $businesses = array();
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $businesses[] = $row;
+        }
+        return $businesses;
+    }
+
+    // Calculate next inspection date based on frequency
+    public function calculateNextInspectionDate($last_inspection_date = null) {
+        if (!$last_inspection_date) {
+            $last_inspection_date = date('Y-m-d');
+        }
+
+        $next_date = new DateTime($last_inspection_date);
+        
+        switch ($this->inspection_frequency) {
+            case 'weekly':
+                $next_date->modify('+1 week');
+                break;
+            case 'monthly':
+                $next_date->modify('+1 month');
+                break;
+            case 'quarterly':
+                $next_date->modify('+3 months');
+                break;
+            default:
+                $next_date->modify('+1 month');
+        }
+
+        return $next_date->format('Y-m-d');
+    }
+
+    // Get inspection frequency based on business type
+    public function getInspectionFrequencyByType($business_type) {
+        $frequency_map = [
+            'Restaurant' => 'monthly',
+            'Food Establishment' => 'monthly',
+            'Hotel' => 'quarterly',
+            'Hospital' => 'monthly',
+            'School' => 'quarterly',
+            'Factory' => 'monthly',
+            'Office Building' => 'quarterly',
+            'Shopping Mall' => 'quarterly',
+            'Construction Site' => 'weekly',
+            'Gas Station' => 'monthly'
+        ];
+
+        return $frequency_map[$business_type] ?? 'monthly';
+    }
+
+    // Create inspection reminder notification
+    public function createInspectionReminderNotification($days_before = 7) {
+        require_once 'Notification.php';
+        $notification = new Notification($this->conn);
+        
+        $next_inspection = $this->next_inspection_date;
+        $days_remaining = floor((strtotime($next_inspection) - time()) / (60 * 60 * 24));
+        
+        if ($days_remaining <= $days_before) {
+            $message = "Upcoming inspection for " . $this->name . " in " . $days_remaining . " days";
+            $notification->user_id = $this->owner_id;
+            $notification->message = $message;
+            $notification->type = 'alert';
+            $notification->related_entity_type = 'business';
+            $notification->related_entity_id = $this->id;
+            
+            return $notification->create();
+        }
+        
+        return false;
+    }
+
+    // Update compliance status based on inspection results
+    public function updateComplianceStatus($compliance_score) {
+        $this->compliance_score = $compliance_score;
+        $this->is_compliant = ($compliance_score >= 80);
+        $this->last_inspection_date = date('Y-m-d');
+        $this->next_inspection_date = $this->calculateNextInspectionDate($this->last_inspection_date);
+        
+        return $this->update();
+    }
+
+    // Get businesses due for inspection
+    public function getBusinessesDueForInspection($limit = 10) {
+        $query = "SELECT b.*, u.name as owner_name, u.email as owner_email
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
+                  WHERE b.next_inspection_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                  AND b.next_inspection_date >= CURDATE()
+                  ORDER BY b.next_inspection_date ASC
+                  LIMIT ?";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $businesses = array();
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $businesses[] = $row;
+        }
+        return $businesses;
+    }
+
+    // Get overdue inspections
+    public function getOverdueInspections($limit = 10) {
+        $query = "SELECT b.*, u.name as owner_name, u.email as owner_email
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
+                  WHERE b.next_inspection_date < CURDATE()
+                  ORDER BY b.next_inspection_date ASC
+                  LIMIT ?";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
         $stmt->execute();
 
         $businesses = array();

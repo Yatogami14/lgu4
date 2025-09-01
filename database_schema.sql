@@ -30,11 +30,19 @@ CREATE TABLE businesses (
     email VARCHAR(255) NULL,
     business_type VARCHAR(100) NULL,
     registration_number VARCHAR(100) NULL,
+    establishment_date DATE NULL,
+    inspection_frequency ENUM('weekly', 'monthly', 'quarterly') DEFAULT 'monthly',
+    last_inspection_date DATE NULL,
+    next_inspection_date DATE NULL,
+    is_compliant BOOLEAN DEFAULT TRUE,
+    compliance_score INT DEFAULT 100,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_name (name),
-    INDEX idx_business_type (business_type)
+    INDEX idx_business_type (business_type),
+    INDEX idx_compliance (is_compliant),
+    INDEX idx_next_inspection (next_inspection_date)
 );
 
 -- Inspection types
@@ -138,6 +146,22 @@ CREATE TABLE violations (
     INDEX idx_inspection (inspection_id),
     INDEX idx_status (status),
     INDEX idx_severity (severity)
+);
+
+-- Inspector specializations table
+CREATE TABLE inspector_specializations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    inspection_type_id INT NOT NULL,
+    proficiency_level ENUM('beginner', 'intermediate', 'expert') DEFAULT 'intermediate',
+    certification_date DATE NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspection_type_id) REFERENCES inspection_types(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_specialization (user_id, inspection_type_id),
+    INDEX idx_user (user_id),
+    INDEX idx_inspection_type (inspection_type_id)
 );
 
 -- Notifications table

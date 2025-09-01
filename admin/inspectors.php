@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Business.php';
+require_once '../models/InspectionType.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -28,6 +29,10 @@ $allInspections = $inspection->readAll();
 $business = new Business($db);
 $businesses = $business->readAll();
 
+// Get all inspection types
+$inspectionType = new InspectionType($db);
+$inspectionTypes = $inspectionType->readAll();
+
 // Handle inspector assignment
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) {
     $inspection_id = $_POST['inspection_id'];
@@ -40,6 +45,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         $_SESSION['success_message'] = 'Inspector assigned successfully!';
     } else {
         $_SESSION['error_message'] = 'Failed to assign inspector.';
+    }
+    
+    header('Location: inspectors.php');
+    exit;
+}
+
+// Handle specialization assignment
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_specialization'])) {
+    $inspector_id = $_POST['inspector_id'];
+    $inspection_type_id = $_POST['inspection_type_id'];
+    $proficiency_level = $_POST['proficiency_level'];
+    $certification_date = $_POST['certification_date'] ?: null;
+    
+    $inspector = new User($db);
+    $inspector->id = $inspector_id;
+    
+    if ($inspector->addSpecialization($inspection_type_id, $proficiency_level, $certification_date)) {
+        $_SESSION['success_message'] = 'Specialization added successfully!';
+    } else {
+        $_SESSION['error_message'] = 'Failed to add specialization.';
+    }
+    
+    header('Location: inspectors.php');
+    exit;
+}
+
+// Handle specialization removal
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_specialization'])) {
+    $specialization_id = $_POST['specialization_id'];
+    $inspector_id = $_POST['inspector_id'];
+    
+    $inspector = new User($db);
+    $inspector->id = $inspector_id;
+    
+    if ($inspector->removeSpecialization($specialization_id)) {
+        $_SESSION['success_message'] = 'Specialization removed successfully!';
+    } else {
+        $_SESSION['error_message'] = 'Failed to remove specialization.';
     }
     
     header('Location: inspectors.php');
@@ -231,6 +274,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         </div>
     </div>
 
+    <!-- View Inspector Modal -->
+    <div id="viewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Inspector Details</h3>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <p class="mt-1 text-sm text-gray-900" id="viewInspectorName"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <p class="mt-1 text-sm text-gray-900" id="viewInspectorEmail"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Department</label>
+                        <p class="mt-1 text-sm text-gray-900" id="viewInspectorDepartment"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Certification</label>
+                        <p class="mt-1 text-sm text-gray-900" id="viewInspectorCertification"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Role</label>
+                        <p class="mt-1 text-sm text-gray-900" id="viewInspectorRole"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Specializations</label>
+                        <ul class="border border-gray-200 rounded-md p-2" id="viewInspectorSpecializations">
+                            <!-- Specializations will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="document.getElementById('viewModal').classList.add('hidden')" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Assign Inspector Modal -->
     <div id="assignModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -281,7 +367,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
         }
 
         function viewInspector(id) {
-            alert('View inspector ' + id);
+            // Fetch inspector details via AJAX
+            fetch(`get_inspector_details.php?id=${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const inspector = data.inspector;
+                        const specializations = data.specializations;
+                        
+                        // Populate view modal
+                        document.getElementById('viewInspectorName').textContent = inspector.name;
+                        document.getElementById('viewInspectorEmail').textContent = inspector.email;
+                        document.getElementById('viewInspectorDepartment').textContent = inspector.department || 'N/A';
+                        document.getElementById('viewInspectorCertification').textContent = inspector.certification || 'Not Certified';
+                        document.getElementById('viewInspectorRole').textContent = inspector.role.charAt(0).toUpperCase() + inspector.role.slice(1).replace('_', ' ');
+                        
+                        // Populate specializations
+                        const specializationsList = document.getElementById('viewInspectorSpecializations');
+                        specializationsList.innerHTML = '';
+                        
+                        if (specializations.length > 0) {
+                            specializations.forEach(spec => {
+                                const li = document.createElement('li');
+                                li.className = 'py-2 border-b border-gray-100';
+                                li.innerHTML = `
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <span class="font-medium">${spec.inspection_type_name}</span>
+                                            <span class="text-sm text-gray-600 ml-2">(${spec.proficiency_level})</span>
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            ${spec.certification_date ? 'Certified: ' + new Date(spec.certification_date).toLocaleDateString() : 'No certification date'}
+                                        </div>
+                                    </div>
+                                `;
+                                specializationsList.appendChild(li);
+                            });
+                        } else {
+                            const li = document.createElement('li');
+                            li.className = 'py-2 text-gray-500';
+                            li.textContent = 'No specializations assigned';
+                            specializationsList.appendChild(li);
+                        }
+                        
+                        // Show modal
+                        document.getElementById('viewModal').classList.remove('hidden');
+                    } else {
+                        alert('Failed to load inspector details');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load inspector details');
+                });
         }
 
         function editInspector(id) {
@@ -292,6 +430,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
             document.getElementById('assignInspectorId').value = id;
             document.getElementById('assignModalTitle').textContent = 'Assign Inspector: ' + name;
             document.getElementById('assignModal').classList.remove('hidden');
+        }
+
+        function addSpecialization(id, name) {
+            document.getElementById('addSpecializationInspectorId').value = id;
+            document.getElementById('addSpecializationTitle').textContent = 'Add Specialization for: ' + name;
+            document.getElementById('addSpecializationModal').classList.remove('hidden');
         }
     </script>
 </body>

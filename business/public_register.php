@@ -2,6 +2,7 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
+require_once '../models/Business.php';
 
 // Check if user is already logged in
 if (isset($_SESSION['user_id'])) {
@@ -12,6 +13,7 @@ if (isset($_SESSION['user_id'])) {
 $database = new Database();
 $db = $database->getConnection();
 $user = new User($db);
+$business = new Business($db);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -33,9 +35,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user->certification = 'User';
     }
 
+    // Create user account
     if ($user->create()) {
-        $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
-        $success_message = "$role_name account created successfully! You can now login.";
+        // If business owner, create business record
+        if ($_POST['role'] == 'business_owner' && !empty($_POST['business_name'])) {
+            $business->name = $_POST['business_name'];
+            $business->address = $_POST['business_address'];
+            $business->owner_id = $user->id;
+            $business->contact_number = $_POST['business_contact'];
+            $business->email = $_POST['business_email'];
+            $business->business_type = $_POST['business_type'];
+            $business->registration_number = $_POST['registration_number'];
+            $business->establishment_date = $_POST['establishment_date'];
+            $business->inspection_frequency = $_POST['inspection_frequency'];
+            
+            // Set default compliance values
+            $business->is_compliant = true;
+            $business->compliance_score = 100;
+            
+            if ($business->create()) {
+                $success_message = "Business Owner account and business registration created successfully! You can now login.";
+            } else {
+                $error_message = "User account created but business registration failed. Please contact support.";
+            }
+        } else {
+            $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
+            $success_message = "$role_name account created successfully! You can now login.";
+        }
     } else {
         $error_message = "Failed to create account. Email might already exist.";
     }
@@ -141,6 +167,114 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
+            <!-- Business Registration Fields (shown only for Business Owners) -->
+            <div id="businessFields" class="space-y-4 hidden">
+                <div class="border-t border-gray-200 pt-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Business Information</h3>
+                </div>
+
+                <div>
+                    <label for="business_name" class="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-store text-gray-400"></i>
+                        </div>
+                        <input type="text" name="business_name" id="business_name" 
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter business name">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="business_address" class="block text-sm font-medium text-gray-700 mb-2">Business Address *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-map-marker-alt text-gray-400"></i>
+                        </div>
+                        <textarea name="business_address" id="business_address" rows="2" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter complete business address"></textarea>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="business_contact" class="block text-sm font-medium text-gray-700 mb-2">Business Contact Number *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-phone text-gray-400"></i>
+                        </div>
+                        <input type="tel" name="business_contact" id="business_contact" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter business phone number">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="business_email" class="block text-sm font-medium text-gray-700 mb-2">Business Email</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" name="business_email" id="business_email"
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter business email">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="business_type" class="block text-sm font-medium text-gray-700 mb-2">Business Type *</label>
+                    <select name="business_type" id="business_type" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                        <option value="">Select Business Type</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Food Establishment">Food Establishment</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="School">School</option>
+                        <option value="Factory">Factory</option>
+                        <option value="Office Building">Office Building</option>
+                        <option value="Shopping Mall">Shopping Mall</option>
+                        <option value="Construction Site">Construction Site</option>
+                        <option value="Gas Station">Gas Station</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="registration_number" class="block text-sm font-medium text-gray-700 mb-2">Registration Number *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-id-card text-gray-400"></i>
+                        </div>
+                        <input type="text" name="registration_number" id="registration_number" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter business registration number">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="establishment_date" class="block text-sm font-medium text-gray-700 mb-2">Establishment Date *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-alt text-gray-400"></i>
+                        </div>
+                        <input type="date" name="establishment_date" id="establishment_date" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="inspection_frequency" class="block text-sm font-medium text-gray-700 mb-2">Inspection Frequency</label>
+                    <select name="inspection_frequency" id="inspection_frequency"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Frequency of health and safety inspections</p>
+                </div>
+            </div>
+
             <div>
                 <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
                 <div class="relative">
@@ -196,6 +330,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 e.preventDefault();
                 alert('Passwords do not match!');
                 confirmPassword.focus();
+            }
+        });
+
+        // Show/hide business fields based on role selection
+        document.getElementById('role')?.addEventListener('change', function() {
+            const businessFields = document.getElementById('businessFields');
+            if (this.value === 'business_owner') {
+                businessFields.classList.remove('hidden');
+                // Make business fields required
+                document.getElementById('business_name').required = true;
+                document.getElementById('business_address').required = true;
+                document.getElementById('business_contact').required = true;
+                document.getElementById('business_type').required = true;
+                document.getElementById('registration_number').required = true;
+                document.getElementById('establishment_date').required = true;
+            } else {
+                businessFields.classList.add('hidden');
+                // Remove required attribute for non-business owners
+                document.getElementById('business_name').required = false;
+                document.getElementById('business_address').required = false;
+                document.getElementById('business_contact').required = false;
+                document.getElementById('business_type').required = false;
+                document.getElementById('registration_number').required = false;
+                document.getElementById('establishment_date').required = false;
+            }
+        });
+
+        // Set default inspection frequency based on business type
+        document.getElementById('business_type')?.addEventListener('change', function() {
+            const inspectionFrequency = document.getElementById('inspection_frequency');
+            const frequencyMap = {
+                'Restaurant': 'monthly',
+                'Food Establishment': 'monthly',
+                'Hotel': 'quarterly',
+                'Hospital': 'monthly',
+                'School': 'quarterly',
+                'Factory': 'monthly',
+                'Office Building': 'quarterly',
+                'Shopping Mall': 'quarterly',
+                'Construction Site': 'weekly',
+                'Gas Station': 'monthly',
+                'Other': 'monthly'
+            };
+            
+            if (frequencyMap[this.value]) {
+                inspectionFrequency.value = frequencyMap[this.value];
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const roleSelect = document.getElementById('role');
+            if (roleSelect) {
+                roleSelect.dispatchEvent(new Event('change'));
             }
         });
     </script>

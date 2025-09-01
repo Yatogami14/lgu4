@@ -168,5 +168,66 @@ class User {
         }
         return false;
     }
+
+    // Get inspector specializations
+    public function getSpecializations() {
+        $query = "SELECT its.*, it.name as inspection_type_name, it.description 
+                  FROM inspector_specializations its
+                  JOIN inspection_types it ON its.inspection_type_id = it.id
+                  WHERE its.user_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    // Add inspector specialization
+    public function addSpecialization($inspection_type_id, $proficiency_level = 'intermediate', $certification_date = null) {
+        $query = "INSERT INTO inspector_specializations 
+                  SET user_id=:user_id, inspection_type_id=:inspection_type_id, 
+                      proficiency_level=:proficiency_level, certification_date=:certification_date";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        $stmt->bindParam(":user_id", $this->id);
+        $stmt->bindParam(":inspection_type_id", $inspection_type_id);
+        $stmt->bindParam(":proficiency_level", $proficiency_level);
+        $stmt->bindParam(":certification_date", $certification_date);
+        
+        return $stmt->execute();
+    }
+
+    // Remove inspector specialization
+    public function removeSpecialization($specialization_id) {
+        $query = "DELETE FROM inspector_specializations WHERE id = ? AND user_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $specialization_id);
+        $stmt->bindParam(2, $this->id);
+        return $stmt->execute();
+    }
+
+    // Get inspectors by specialization
+    public function getInspectorsBySpecialization($inspection_type_id) {
+        $query = "SELECT u.*, its.proficiency_level, its.certification_date
+                  FROM users u
+                  JOIN inspector_specializations its ON u.id = its.user_id
+                  WHERE its.inspection_type_id = ? AND u.role = 'inspector'
+                  ORDER BY its.proficiency_level DESC, u.name ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $inspection_type_id);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    // Check if inspector has specialization
+    public function hasSpecialization($inspection_type_id) {
+        $query = "SELECT id FROM inspector_specializations 
+                  WHERE user_id = ? AND inspection_type_id = ?";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $this->id);
+        $stmt->bindParam(2, $inspection_type_id);
+        $stmt->execute();
+        return $stmt->rowCount() > 0;
+    }
 }
 ?>

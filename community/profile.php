@@ -2,9 +2,8 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
-require_once 'models/Notification.php';
-
-require_once 'utils/access_control.php';
+require_once '../models/Notification.php';
+require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
 requirePermission('profile');

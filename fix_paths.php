@@ -15,7 +15,7 @@ $businessFiles = [
     'business/businesses.php',
     'business/analytics.php',
     'business/violations.php',
-    'business/user_landing.php',
+    'business/business_landing.php',
     'business/schedule.php',
     'business/public_register.php'
 ];
@@ -23,7 +23,7 @@ $businessFiles = [
 // Files to fix in community directory
 $communityFiles = [
     'community/violations.php',
-    'community/user_landing.php',
+    'community/community_landing.php',
     'community/schedule.php',
     'community/public_register.php',
     'community/public_login.php',

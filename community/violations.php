@@ -2,11 +2,10 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
-require_once 'models/Inspection.php';
-require_once 'models/Business.php';
-require_once 'models/Notification.php';
-
-require_once 'utils/access_control.php';
+require_once '../models/Inspection.php';
+require_once '../models/Business.php';
+require_once '../models/Notification.php';
+require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
 requirePermission('violations');
@@ -60,7 +59,7 @@ $violations = [
 <body class="min-h-screen bg-gray-50">
 
 <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">

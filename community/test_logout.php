@@ -11,13 +11,13 @@ echo "<br><br>";
 
 // Test user logout redirect
 echo "<h2>User Logout Test</h2>";
-echo "<p>Should redirect to: user_landing.php</p>";
+echo "<p>Should redirect to: community_landing.php</p>";
 echo "<a href='user_logout.php'>Test User Logout</a>";
 
 echo "<br><br>";
 
 // Test general logout redirect
 echo "<h2>General Logout Test</h2>";
-echo "<p>Should redirect based on session role or to user_landing.php</p>";
+echo "<p>Should redirect based on session role or to community_landing.php</p>";
 echo "<a href='logout.php'>Test General Logout</a>";
 ?>
