@@ -16,10 +16,17 @@ $user = new User($db);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-// Get violations from database (mock data for now)
-$violations = [
+// Get user's businesses first
+$business = new Business($db);
+$userBusinesses = $business->readByOwnerId($_SESSION['user_id']);
+$userBusinessIds = array_column($userBusinesses, 'id');
+
+// Get violations only for user's businesses from database (mock data for now)
+// In a real implementation, this would query the database with proper filtering
+$allViolations = [
     [
         'id' => 1,
+        'business_id' => 1,
         'business_name' => 'ABC Restaurant',
         'description' => 'Fire exit blocked by storage boxes',
         'severity' => 'high',
@@ -29,6 +36,7 @@ $violations = [
     ],
     [
         'id' => 2,
+        'business_id' => 2,
         'business_name' => 'XYZ Mall',
         'description' => 'Missing fire extinguishers in food court',
         'severity' => 'medium',
@@ -38,6 +46,7 @@ $violations = [
     ],
     [
         'id' => 3,
+        'business_id' => 3,
         'business_name' => 'Tech Hub Office',
         'description' => 'Poor waste management practices',
         'severity' => 'low',
@@ -46,6 +55,11 @@ $violations = [
         'created_at' => '2024-01-14 09:15:00'
     ]
 ];
+
+// Filter violations to only show those belonging to current user's businesses
+$violations = array_filter($allViolations, function($violation) use ($userBusinessIds) {
+    return in_array($violation['business_id'], $userBusinessIds);
+});
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,10 +79,6 @@ $violations = [
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Violations Management</h2>
-            <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
-                    class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">
-                <i class="fas fa-plus mr-2"></i>Report Violation
-            </button>
         </div>
 
         <!-- Stats Cards -->
@@ -154,12 +164,14 @@ $violations = [
                             <?php echo date('M j, Y', strtotime($violation['due_date'])); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <?php if ($_SESSION['user_role'] != 'business_owner'): ?>
                             <button onclick="editViolation(<?php echo $violation['id']; ?>)" class="text-blue-600 hover:text-blue-900 mr-3">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
                             <button onclick="viewViolation(<?php echo $violation['id']; ?>)" class="text-green-600 hover:text-green-900">
                                 <i class="fas fa-eye"></i> View
                             </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -167,69 +179,5 @@ $violations = [
             </table>
         </div>
     </div>
-
-    <!-- Create Violation Modal -->
-    <div id="createModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900">Report New Violation</h3>
-                <form class="mt-4 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Business</label>
-                        <select class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option>ABC Restaurant</option>
-                            <option>XYZ Mall</option>
-                            <option>Tech Hub Office</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Violation Description</label>
-                        <textarea rows="3" placeholder="Describe the violation..." 
-                                  class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Severity</label>
-                        <select class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="critical">Critical</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Due Date</label>
-                        <input type="date" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-                            Cancel
-                        </button>
-                        <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                            Report
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('createModal');
-            if (event.target == modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function editViolation(id) {
-            alert('Edit violation ' + id);
-        }
-
-        function viewViolation(id) {
-            alert('View violation ' + id);
-        }
-    </script>
 </body>
 </html>

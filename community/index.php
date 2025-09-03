@@ -22,18 +22,10 @@ $user = new User($db);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-// Get dashboard data
-$inspection = new Inspection($db);
 $business = new Business($db);
-$notification = new Notification($db);
 
-$totalInspections = $inspection->countAll();
-$activeViolations = $inspection->countActiveViolations();
-$complianceRate = $inspection->getAverageCompliance();
-$activeInspectors = $user->countActiveInspectors();
-
-$recentInspections = $inspection->readRecent(5);
-$recentNotifications = $notification->readByUser($_SESSION['user_id'], 5);
+// Get all businesses compliance status for community user view
+$allBusinesses = $business->readAll(); // Assuming this method fetches all businesses
 
 // Handle tab navigation
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';

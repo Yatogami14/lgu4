@@ -3,6 +3,7 @@ session_start();
 require_once '../config/database.php';
 require_once '../models/Inspection.php';
 require_once '../models/Notification.php';
+require_once '../models/Business.php';
 
 // Check if user is logged in and is a business owner
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'business_owner') {
@@ -24,6 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $database = new Database();
     $db = $database->getConnection();
+
+    // Validate that the business belongs to the current user
+    $business = new Business($db);
+    $business->id = $business_id;
+    $business->readOne();
+
+    if ($business->owner_id != $_SESSION['user_id']) {
+        $_SESSION['error'] = 'You do not have permission to request inspections for this business.';
+        header('Location: index.php');
+        exit;
+    }
 
     $inspection = new Inspection($db);
     $notification = new Notification($db);

@@ -132,14 +132,16 @@ $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
                             </div>
                             
                             <div class="flex space-x-2">
-                                <button onclick="requestInspection(<?php echo $userBusiness['id']; ?>)" 
+                                <button onclick="requestInspection(<?php echo $userBusiness['id']; ?>)"
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
                                     Request Inspection
                                 </button>
+                                <?php if ($_SESSION['user_role'] != 'business_owner'): ?>
                                 <a href="business_view.php?id=<?php echo $userBusiness['id']; ?>" 
                                    class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">
                                     View Details
                                 </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <?php endforeach; ?>

@@ -95,10 +95,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+        .form-row > div {
+            flex: 1;
+        }
+        .business-fields-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        @media (max-width: 768px) {
+            .form-grid, .form-row, .business-fields-grid {
+                grid-template-columns: 1fr;
+                display: block;
+            }
+            .form-row {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body class="font-sans">
-    <div class="register-card p-8 w-full max-w-md mx-4">
+    <div class="register-card p-8 w-full max-w-4xl mx-4">
         <div class="text-center mb-8">
             <div class="flex items-center justify-center mb-4">
                 <i class="fas fa-building text-4xl logo"></i>
@@ -124,34 +150,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <form method="POST" class="space-y-6" id="registerForm">
             <div>
                 <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
-                <select name="role" id="role" required 
+                <select name="role" id="role" required
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
                     <option value="business_owner">Business Owner</option>
                     <option value="community_user">Community User</option>
                 </select>
             </div>
 
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-user text-gray-400"></i>
+            <div class="form-row">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input type="text" name="name" id="name" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter your full name">
                     </div>
-                    <input type="text" name="name" id="name" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter your full name">
                 </div>
-            </div>
 
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-envelope text-gray-400"></i>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" name="email" id="email" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Enter your email">
                     </div>
-                    <input type="email" name="email" id="email" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter your email">
                 </div>
             </div>
 
@@ -161,15 +189,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i class="fas fa-building text-gray-400"></i>
                     </div>
-                    <input type="text" name="department" id="department" 
+                    <input type="text" name="department" id="department"
                            class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                            placeholder="Enter business or organization name">
                 </div>
             </div>
 
             <!-- Business Registration Fields (shown only for Business Owners) -->
-            <div id="businessFields" class="space-y-4 hidden">
-                <div class="border-t border-gray-200 pt-4">
+            <div id="businessFields" class="business-fields-grid hidden">
+                <div class="border-t border-gray-200 pt-4 col-span-2">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Business Information</h3>
                 </div>
 
@@ -179,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-store text-gray-400"></i>
                         </div>
-                        <input type="text" name="business_name" id="business_name" 
+                        <input type="text" name="business_name" id="business_name"
                                class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                                placeholder="Enter business name">
                     </div>
@@ -275,28 +303,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-lock text-gray-400"></i>
+            <div class="form-row">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" name="password" id="password" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Create a strong password" minlength="6">
                     </div>
-                    <input type="password" name="password" id="password" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Create a strong password" minlength="6">
+                    <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
-            </div>
 
-            <div>
-                <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-lock text-gray-400"></i>
+                <div>
+                    <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" name="confirm_password" id="confirm_password" required
+                               class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                               placeholder="Confirm your password">
                     </div>
-                    <input type="password" name="confirm_password" id="confirm_password" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Confirm your password">
                 </div>
             </div>
 
