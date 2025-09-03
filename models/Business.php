@@ -7,6 +7,7 @@ class Business {
     public $name;
     public $address;
     public $owner_id;
+    public $inspector_id;
     public $contact_number;
     public $email;
     public $business_type;
@@ -27,7 +28,7 @@ class Business {
     // Create business
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
-                SET name=:name, address=:address, owner_id=:owner_id, 
+                SET name=:name, address=:address, owner_id=:owner_id, inspector_id=:inspector_id,
                     contact_number=:contact_number, email=:email, 
                     business_type=:business_type, registration_number=:registration_number,
                     establishment_date=:establishment_date, inspection_frequency=:inspection_frequency,
@@ -39,6 +40,7 @@ class Business {
         $this->name = htmlspecialchars(strip_tags($this->name));
         $this->address = htmlspecialchars(strip_tags($this->address));
         $this->owner_id = htmlspecialchars(strip_tags($this->owner_id));
+        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
         $this->contact_number = htmlspecialchars(strip_tags($this->contact_number));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->business_type = htmlspecialchars(strip_tags($this->business_type));
@@ -63,6 +65,7 @@ class Business {
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":address", $this->address);
         $stmt->bindParam(":owner_id", $this->owner_id);
+        $stmt->bindParam(":inspector_id", $this->inspector_id);
         $stmt->bindParam(":contact_number", $this->contact_number);
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":business_type", $this->business_type);
@@ -80,9 +83,10 @@ class Business {
 
     // Read single business
     public function readOne() {
-        $query = "SELECT b.*, u.name as owner_name, u.email as owner_email
+        $query = "SELECT b.*, u.name as owner_name, u.email as owner_email, ui.name as inspector_name
                   FROM " . $this->table_name . " b
                   LEFT JOIN users u ON b.owner_id = u.id
+                  LEFT JOIN users ui ON b.inspector_id = ui.id
                   WHERE b.id = ? LIMIT 0,1";
 
         $stmt = $this->conn->prepare($query);
@@ -95,6 +99,7 @@ class Business {
             $this->name = $row['name'];
             $this->address = $row['address'];
             $this->owner_id = $row['owner_id'];
+            $this->inspector_id = $row['inspector_id'];
             $this->contact_number = $row['contact_number'];
             $this->email = $row['email'];
             $this->business_type = $row['business_type'];
@@ -127,7 +132,7 @@ class Business {
     // Update business
     public function update() {
         $query = "UPDATE " . $this->table_name . "
-                SET name=:name, address=:address, owner_id=:owner_id, 
+                SET name=:name, address=:address, owner_id=:owner_id, inspector_id=:inspector_id,
                     contact_number=:contact_number, email=:email, 
                     business_type=:business_type, registration_number=:registration_number,
                     establishment_date=:establishment_date, inspection_frequency=:inspection_frequency,
@@ -141,6 +146,7 @@ class Business {
         $this->name = htmlspecialchars(strip_tags($this->name));
         $this->address = htmlspecialchars(strip_tags($this->address));
         $this->owner_id = htmlspecialchars(strip_tags($this->owner_id));
+        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
         $this->contact_number = htmlspecialchars(strip_tags($this->contact_number));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->business_type = htmlspecialchars(strip_tags($this->business_type));
@@ -156,6 +162,7 @@ class Business {
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":address", $this->address);
         $stmt->bindParam(":owner_id", $this->owner_id);
+        $stmt->bindParam(":inspector_id", $this->inspector_id);
         $stmt->bindParam(":contact_number", $this->contact_number);
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":business_type", $this->business_type);
@@ -411,6 +418,21 @@ class Business {
             $businesses[] = $row;
         }
         return $businesses;
+    }
+
+    // Get inspector for a business
+    public function getInspector($business_id) {
+        $query = "SELECT u.id, u.name, u.email
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.inspector_id = u.id
+                  WHERE b.id = ? AND b.inspector_id IS NOT NULL";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $business_id);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 }
 ?>

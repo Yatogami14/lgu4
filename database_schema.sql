@@ -26,6 +26,7 @@ CREATE TABLE businesses (
     name VARCHAR(255) NOT NULL,
     address TEXT NOT NULL,
     owner_id INT NULL,
+    inspector_id INT NULL,
     contact_number VARCHAR(20) NULL,
     email VARCHAR(255) NULL,
     business_type VARCHAR(100) NULL,
@@ -39,6 +40,7 @@ CREATE TABLE businesses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (inspector_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_name (name),
     INDEX idx_business_type (business_type),
     INDEX idx_compliance (is_compliant),
@@ -73,7 +75,7 @@ CREATE TABLE checklist_templates (
 CREATE TABLE inspections (
     id INT PRIMARY KEY AUTO_INCREMENT,
     business_id INT NOT NULL,
-    inspector_id INT NOT NULL,
+    inspector_id INT NULL,
     inspection_type_id INT NOT NULL,
     scheduled_date DATETIME NOT NULL,
     completed_date DATETIME NULL,
@@ -85,7 +87,7 @@ CREATE TABLE inspections (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
-    FOREIGN KEY (inspector_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (inspector_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (inspection_type_id) REFERENCES inspection_types(id) ON DELETE CASCADE,
     INDEX idx_business (business_id),
     INDEX idx_inspector (inspector_id),
@@ -222,6 +224,12 @@ INSERT INTO inspections (business_id, inspector_id, inspection_type_id, schedule
 (1, 2, 1, '2024-01-15 09:00:00', 'scheduled', 'high', NULL, 0),
 (2, 3, 2, '2024-01-16 10:00:00', 'in_progress', 'medium', 85, 2),
 (3, 2, 3, '2024-01-14 14:00:00', 'completed', 'low', 92, 1);
+
+-- Insert sample unassigned inspections for testing assignment feature
+INSERT INTO inspections (business_id, inspector_id, inspection_type_id, scheduled_date, status, priority) VALUES
+(1, NULL, 1, '2024-01-20 09:00:00', 'scheduled', 'medium'),
+(2, NULL, 2, '2024-01-21 10:00:00', 'scheduled', 'high'),
+(3, NULL, 3, '2024-01-22 14:00:00', 'scheduled', 'low');
 
 -- Insert sample notifications
 INSERT INTO notifications (user_id, message, type, is_read) VALUES

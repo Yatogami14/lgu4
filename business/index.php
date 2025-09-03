@@ -1,4 +1,4 @@
-    <?php
+<?php
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
@@ -27,40 +27,69 @@ $inspection = new Inspection($db);
 $business = new Business($db);
 $notification = new Notification($db);
 
-// Get businesses owned by current user
+// Get businesses owned by current user (should be only one or none)
 $userBusinesses = $business->readByOwnerId($_SESSION['user_id']);
-$totalInspections = $inspection->countAll();
-$activeViolations = $inspection->countActiveViolations();
-$complianceRate = $inspection->getAverageCompliance();
-$activeInspectors = $user->countActiveInspectors();
+$userBusiness = !empty($userBusinesses) ? $userBusinesses[0] : null;
 
-$recentInspections = $inspection->readRecent(5);
-$recentNotifications = $notification->readByUser($_SESSION['user_id'], 5);
-
-// Get upcoming inspections for user's businesses
+// Get violations for user's business (using mock data like violations.php)
+$violations = [];
+$complianceStats = null;
+$recentInspections = [];
 $upcomingInspections = [];
-foreach ($userBusinesses as $userBusiness) {
-    $business->id = $userBusiness['id'];
-    $businessInspections = $business->getRecentInspections($userBusiness['id'], 10);
-    foreach ($businessInspections as $insp) {
+
+// Mock violations data - only show violations that result from actual inspections
+// In a real system, these would be created by inspectors during/after inspections
+$allViolations = [
+    // Only include violations for businesses that have had inspections
+    // For now, we'll show fewer violations to simulate realistic scenario
+    [
+        'id' => 1,
+        'business_id' => 1,
+        'inspection_id' => 1, // Links to an actual inspection
+        'business_name' => 'ABC Restaurant',
+        'description' => 'Fire exit blocked by storage boxes - found during routine inspection',
+        'severity' => 'high',
+        'status' => 'open',
+        'due_date' => '2024-01-25',
+        'created_at' => '2024-01-15 10:30:00'
+    ],
+    [
+        'id' => 2,
+        'business_id' => 2,
+        'inspection_id' => 2, // Links to an actual inspection
+        'business_name' => 'XYZ Mall',
+        'description' => 'Missing fire extinguishers in food court - identified during safety audit',
+        'severity' => 'medium',
+        'status' => 'in_progress',
+        'due_date' => '2024-01-28',
+        'created_at' => '2024-01-16 14:20:00'
+    ]
+    // Note: No violations for business ID 5 (Downtown Cafe) since no inspection has occurred yet
+    // This simulates the realistic scenario where violations only exist after inspections
+];
+
+if ($userBusiness) {
+    // Filter violations to only show those belonging to current user's business
+    $violations = array_filter($allViolations, function($violation) use ($userBusiness) {
+        return $violation['business_id'] == $userBusiness['id'];
+    });
+
+    // Get compliance stats
+    $complianceStats = $business->getComplianceStats($userBusiness['id']);
+
+    // Get recent inspections for this business
+    $recentInspections = $business->getRecentInspections($userBusiness['id'], 5);
+
+    // Get upcoming inspections
+    foreach ($recentInspections as $insp) {
         if ($insp['status'] == 'scheduled' && strtotime($insp['scheduled_date']) > time()) {
             $upcomingInspections[] = $insp;
         }
     }
 }
 
-// Sort upcoming inspections by date
-usort($upcomingInspections, function($a, $b) {
-    return strtotime($a['scheduled_date']) - strtotime($b['scheduled_date']);
-});
-
-// Get compliance status for user's businesses
-$complianceStats = [];
-foreach ($userBusinesses as $userBusiness) {
-    $business->id = $userBusiness['id'];
-    $stats = $business->getComplianceStats($userBusiness['id']);
-    $complianceStats[$userBusiness['id']] = $stats;
-}
+// Get recent notifications
+$recentNotifications = $notification->readByUser($_SESSION['user_id'], 5);
 
 // Handle tab navigation
 $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
@@ -88,61 +117,171 @@ $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
         <!-- Dashboard Content -->
         <?php if ($activeTab == 'dashboard'): ?>
         <div class="space-y-6">
-            <!-- Your Businesses Section -->
-            <?php if (!empty($userBusinesses)): ?>
+            <!-- Welcome Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-lg p-6 text-white">
+                <h1 class="text-2xl font-bold mb-2">Welcome back, <?php echo $user->name; ?>!</h1>
+                <p class="text-blue-100">Here's an overview of your business compliance and inspection status.</p>
+            </div>
+
+            <?php if ($userBusiness): ?>
+            <!-- Your Business Overview -->
             <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-bold">Your Businesses</h3>
-                    <p class="text-gray-600 text-sm">Manage your registered businesses and compliance status</p>
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h3 class="text-lg font-bold">Your Business</h3>
+                    <p class="text-gray-600 text-sm">Current status and compliance information</p>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <?php foreach ($userBusinesses as $userBusiness): ?>
-                        <?php $stats = $complianceStats[$userBusiness['id']] ?? []; ?>
-                        <div class="border rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="font-bold text-lg"><?php echo $userBusiness['name']; ?></h4>
-                                <span class="px-2 py-1 rounded-full text-xs font-medium <?php 
-                                    echo $userBusiness['is_compliant'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; 
-                                ?>">
-                                    <?php echo $userBusiness['is_compliant'] ? 'Compliant' : 'Non-Compliant'; ?>
-                                </span>
-                            </div>
-                            
-                            <p class="text-sm text-gray-600 mb-2"><?php echo $userBusiness['business_type']; ?></p>
-                            <p class="text-sm text-gray-600 mb-3"><?php echo $userBusiness['address']; ?></p>
-                            
-                            <div class="space-y-2 mb-4">
-                                <div class="flex justify-between text-sm">
-                                    <span>Compliance Score:</span>
-                                    <span class="font-medium <?php echo $userBusiness['compliance_score'] >= 80 ? 'text-green-600' : 'text-red-600'; ?>">
-                                        <?php echo $userBusiness['compliance_score']; ?>%
-                                    </span>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Business Info -->
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-building text-2xl text-blue-600"></i>
                                 </div>
-                                <div class="flex justify-between text-sm">
-                                    <span>Next Inspection:</span>
-                                    <span class="font-medium">
-                                        <?php echo $userBusiness['next_inspection_date'] ? date('M j, Y', strtotime($userBusiness['next_inspection_date'])) : 'Not scheduled'; ?>
-                                    </span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span>Inspection Frequency:</span>
-                                    <span class="font-medium"><?php echo ucfirst($userBusiness['inspection_frequency']); ?></span>
+                                <div>
+                                    <h4 class="text-xl font-bold"><?php echo $userBusiness['name']; ?></h4>
+                                    <p class="text-gray-600"><?php echo $userBusiness['business_type']; ?></p>
                                 </div>
                             </div>
-                            
-                            <div class="flex space-x-2">
-                                <button onclick="requestInspection(<?php echo $userBusiness['id']; ?>)"
-                                        class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
-                                    Request Inspection
-                                </button>
-                                <?php if ($_SESSION['user_role'] != 'business_owner'): ?>
-                                <a href="business_view.php?id=<?php echo $userBusiness['id']; ?>" 
-                                   class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm">
-                                    View Details
-                                </a>
+
+                            <div class="space-y-2">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-map-marker-alt text-gray-400 w-4"></i>
+                                    <span class="text-sm text-gray-600"><?php echo $userBusiness['address']; ?></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-alt text-gray-400 w-4"></i>
+                                    <span class="text-sm text-gray-600">Next Inspection: <?php echo $userBusiness['next_inspection_date'] ? date('M j, Y', strtotime($userBusiness['next_inspection_date'])) : 'Not scheduled'; ?></span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-clock text-gray-400 w-4"></i>
+                                    <span class="text-sm text-gray-600">Frequency: <?php echo ucfirst($userBusiness['inspection_frequency']); ?></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compliance Status -->
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <div class="inline-flex items-center space-x-2 px-4 py-2 rounded-full <?php echo $userBusiness['is_compliant'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                    <i class="fas <?php echo $userBusiness['is_compliant'] ? 'fa-check-circle' : 'fa-exclamation-triangle'; ?>"></i>
+                                    <span class="font-medium"><?php echo $userBusiness['is_compliant'] ? 'Compliant' : 'Non-Compliant'; ?></span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span>Compliance Score</span>
+                                        <span class="font-medium"><?php echo $userBusiness['compliance_score']; ?>%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                                             style="width: <?php echo $userBusiness['compliance_score']; ?>%"></div>
+                                    </div>
+                                </div>
+
+                                <?php if ($complianceStats): ?>
+                                <div class="grid grid-cols-2 gap-4 text-center">
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="text-2xl font-bold text-blue-600"><?php echo $complianceStats['total_inspections']; ?></div>
+                                        <div class="text-xs text-gray-600">Total Inspections</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="text-2xl font-bold text-red-600"><?php echo $complianceStats['total_violations']; ?></div>
+                                        <div class="text-xs text-gray-600">Active Violations</div>
+                                    </div>
+                                </div>
                                 <?php endif; ?>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Violations Section -->
+            <?php if (!empty($violations)): ?>
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b bg-red-50">
+                    <h3 class="text-lg font-bold text-red-800">Active Violations</h3>
+                    <p class="text-red-600 text-sm">Issues that need your attention</p>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <?php foreach ($violations as $violation): ?>
+                        <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-medium text-red-800"><?php echo $violation['description']; ?></h4>
+                                    <p class="text-sm text-red-600 mt-1"><?php echo $violation['severity']; ?> Priority</p>
+                                    <div class="flex items-center space-x-4 mt-2 text-xs text-gray-600">
+                                        <span>Status: <span class="font-medium"><?php echo ucfirst(str_replace('_', ' ', $violation['status'])); ?></span></span>
+                                        <span>Due: <span class="font-medium"><?php echo $violation['due_date'] ? date('M j, Y', strtotime($violation['due_date'])) : 'N/A'; ?></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <!-- No Violations - Good News -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b bg-green-50">
+                    <h3 class="text-lg font-bold text-green-800">No Active Violations</h3>
+                    <p class="text-green-600 text-sm">Great job! Your business is in good standing</p>
+                </div>
+                <div class="p-6">
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                        </div>
+                        <h4 class="text-lg font-medium text-green-800 mb-2">All Clear!</h4>
+                        <p class="text-gray-600">Your business has no outstanding violations. Keep up the good work!</p>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Recent Inspections -->
+            <?php if (!empty($recentInspections)): ?>
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b">
+                    <h3 class="text-lg font-bold">Recent Inspections</h3>
+                    <p class="text-gray-600 text-sm">Your latest inspection history</p>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <?php foreach ($recentInspections as $inspection): ?>
+                        <div class="flex items-center justify-between p-4 border rounded-lg">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center <?php
+                                    echo $inspection['status'] == 'completed' ? 'bg-green-100 text-green-600' :
+                                         ($inspection['status'] == 'in_progress' ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600');
+                                ?>">
+                                    <i class="fas <?php
+                                        echo $inspection['status'] == 'completed' ? 'fa-check' :
+                                             ($inspection['status'] == 'in_progress' ? 'fa-clock' : 'fa-calendar');
+                                    ?>"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium"><?php echo $inspection['inspection_type']; ?></h4>
+                                    <p class="text-sm text-gray-600"><?php echo date('M j, Y', strtotime($inspection['scheduled_date'])); ?></p>
+                                    <p class="text-xs text-gray-500">Status: <?php echo ucfirst(str_replace('_', ' ', $inspection['status'])); ?></p>
+                                </div>
+                            </div>
+                            <?php if ($inspection['compliance_score']): ?>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold <?php echo $inspection['compliance_score'] >= 80 ? 'text-green-600' : 'text-red-600'; ?>">
+                                    <?php echo $inspection['compliance_score']; ?>%
+                                </div>
+                                <div class="text-xs text-gray-600">Compliance</div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
                     </div>
@@ -150,122 +289,70 @@ $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
             </div>
             <?php endif; ?>
 
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600">Your Businesses</p>
-                            <p class="text-2xl font-bold"><?php echo count($userBusinesses); ?></p>
-                            <p class="text-xs text-blue-600">Registered businesses</p>
-                        </div>
-                        <i class="fas fa-building text-3xl text-blue-500"></i>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600">Compliant Businesses</p>
-                            <p class="text-2xl font-bold">
-                                <?php 
-                                $compliantCount = 0;
-                                foreach ($userBusinesses as $business) {
-                                    if ($business['is_compliant']) $compliantCount++;
-                                }
-                                echo $compliantCount; 
-                                ?>
-                            </p>
-                            <p class="text-xs text-green-600">Good standing</p>
-                        </div>
-                        <i class="fas fa-check-circle text-3xl text-green-500"></i>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600">Upcoming Inspections</p>
-                            <p class="text-2xl font-bold"><?php echo count($upcomingInspections); ?></p>
-                            <p class="text-xs text-yellow-600">Scheduled</p>
-                        </div>
-                        <i class="fas fa-calendar-alt text-3xl text-yellow-500"></i>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-600">Average Compliance</p>
-                            <p class="text-2xl font-bold">
-                                <?php 
-                                $totalScore = 0;
-                                $count = 0;
-                                foreach ($userBusinesses as $business) {
-                                    if ($business['compliance_score'] > 0) {
-                                        $totalScore += $business['compliance_score'];
-                                        $count++;
-                                    }
-                                }
-                                echo $count > 0 ? round($totalScore / $count) : 0; 
-                                ?>%
-                            </p>
-                            <p class="text-xs text-blue-600">Overall performance</p>
-                        </div>
-                        <i class="fas fa-chart-line text-3xl text-purple-500"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Inspections -->
+            <!-- Quick Actions -->
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
-                    <h3 class="text-lg font-bold">Recent Inspections</h3>
-                    <p class="text-gray-600 text-sm">Latest inspection activities and status updates</p>
+                    <h3 class="text-lg font-bold">Quick Actions</h3>
+                    <p class="text-gray-600 text-sm">Common tasks and requests</p>
                 </div>
                 <div class="p-6">
-                    <div class="space-y-4">
-                        <?php foreach ($recentInspections as $inspection): ?>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg space-y-3 sm:space-y-0">
-                            <div class="flex items-start space-x-3 flex-1 min-w-0">
-                                <div class="w-3 h-3 rounded-full mt-1 flex-shrink-0 
-                                    <?php echo $inspection['priority'] == 'high' ? 'bg-red-500' : 
-                                           ($inspection['priority'] == 'medium' ? 'bg-yellow-500' : 'bg-green-500'); ?>">
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="font-medium truncate"><?php echo $inspection['business_name']; ?></p>
-                                    <p class="text-sm text-gray-600 break-words"><?php echo $inspection['inspection_type']; ?></p>
-                                    <p class="text-sm text-gray-600 break-words"><?php echo $inspection['business_address']; ?></p>
-                                    <p class="text-xs text-gray-500">Inspector: <?php echo $inspection['inspector_name']; ?></p>
-                                </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="requestInspection(<?php echo $userBusiness['id']; ?>)"
+                                class="flex items-center space-x-3 p-4 border-2 border-dashed border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-calendar-plus text-blue-600"></i>
                             </div>
-                            <div class="flex flex-row sm:flex-col lg:flex-row items-start sm:items-end lg:items-center space-x-3 sm:space-x-0 lg:space-x-4 sm:space-y-2 lg:space-y-0 flex-shrink-0">
-                                <?php if ($inspection['compliance_score']): ?>
-                                <div class="text-left sm:text-right">
-                                    <p class="text-xs sm:text-sm">Compliance</p>
-                                    <p class="font-bold text-green-600 text-sm sm:text-base"><?php echo $inspection['compliance_score']; ?>%</p>
-                                </div>
-                                <?php endif; ?>
-                                <div class="flex flex-col space-y-1">
-                                    <span class="px-2 py-1 rounded-full text-xs font-medium 
-                                        <?php echo $inspection['status'] == 'scheduled' ? 'bg-blue-100 text-blue-800' : 
-                                               ($inspection['status'] == 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                                               ($inspection['status'] == 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')); ?>">
-                                        <?php echo str_replace('_', ' ', $inspection['status']); ?>
-                                    </span>
-                                    <p class="text-xs sm:text-sm text-gray-500"><?php echo date('M j, Y', strtotime($inspection['scheduled_date'])); ?></p>
-                                </div>
+                            <div class="text-left">
+                                <h4 class="font-medium text-blue-800">Request Inspection</h4>
+                                <p class="text-sm text-blue-600">Schedule a new inspection</p>
                             </div>
-                        </div>
-                        <?php endforeach; ?>
+                        </button>
+
+                        <a href="profile.php"
+                           class="flex items-center space-x-3 p-4 border-2 border-dashed border-green-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user-edit text-green-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <h4 class="font-medium text-green-800">Update Profile</h4>
+                                <p class="text-sm text-green-600">Manage your account</p>
+                            </div>
+                        </a>
+
+                        <a href="violations.php"
+                           class="flex items-center space-x-3 p-4 border-2 border-dashed border-orange-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-clipboard-list text-orange-600"></i>
+                            </div>
+                            <div class="text-left">
+                                <h4 class="font-medium text-orange-800">View Violations</h4>
+                                <p class="text-sm text-orange-600">Check violation history</p>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Notifications -->
+            <?php else: ?>
+            <!-- No Business Found -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-8 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-building text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No Business Registered</h3>
+                    <p class="text-gray-600 mb-4">You don't have any registered businesses yet.</p>
+                    <p class="text-sm text-gray-500">Contact your local government office to register your business for inspections.</p>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Recent Notifications -->
+            <?php if (!empty($recentNotifications)): ?>
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
                     <h3 class="text-lg font-bold">Recent Notifications</h3>
+                    <p class="text-gray-600 text-sm">Latest updates and messages</p>
                 </div>
                 <div class="p-6">
                     <div class="space-y-3">
@@ -274,13 +361,14 @@ $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
                             <i class="fas fa-bell text-blue-500 mt-1 mr-3"></i>
                             <div class="flex-1">
                                 <p class="text-sm"><?php echo $notification['message']; ?></p>
-                                <p class="text-xs text-gray-500 mt-1"><?php echo $notification['created_at']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1"><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></p>
                             </div>
                         </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>

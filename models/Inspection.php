@@ -278,5 +278,21 @@ class Inspection {
         }
         return $inspections;
     }
+
+    // Get available inspections (not assigned to any inspector)
+    public function getAvailableInspections() {
+        $query = "SELECT i.*, b.name as business_name, it.name as inspection_type
+                  FROM " . $this->table_name . " i
+                  LEFT JOIN businesses b ON i.business_id = b.id
+                  LEFT JOIN inspection_types it ON i.inspection_type_id = it.id
+                  WHERE i.inspector_id IS NULL OR i.inspector_id = ''
+                  ORDER BY i.scheduled_date ASC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+
 }
 ?>

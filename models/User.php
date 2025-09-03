@@ -48,6 +48,7 @@ class User {
         $stmt->bindParam(":certification", $this->certification);
 
         if ($stmt->execute()) {
+            $this->id = $this->conn->lastInsertId();
             return true;
         }
         return false;

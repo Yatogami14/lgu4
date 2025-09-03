@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->contact_number = $_POST['contact_number'];
         $business->email = $_POST['email'];
         $business->owner_id = $user->id; // Set current user as owner
-        
+
         if ($business->create()) {
             $_SESSION['success_message'] = 'Business created successfully!';
         } else {
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->registration_number = $_POST['registration_number'];
         $business->contact_number = $_POST['contact_number'];
         $business->email = $_POST['email'];
-        
+
         if ($business->update()) {
             $_SESSION['success_message'] = 'Business updated successfully!';
         } else {
@@ -59,11 +59,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif (isset($_POST['delete'])) {
         // Delete business
         $business->id = $_POST['id'];
-        
+
         if ($business->delete()) {
             $_SESSION['success_message'] = 'Business deleted successfully!';
         } else {
             $_SESSION['error_message'] = 'Failed to delete business. Please try again.';
+        }
+        header('Location: businesses.php');
+        exit();
+    }
+    elseif (isset($_POST['assign_inspector'])) {
+        // Assign inspector to business
+        $business->id = $_POST['business_id'];
+        $business->inspector_id = $_POST['inspector_id'];
+
+        if ($business->update()) {
+            $_SESSION['success_message'] = 'Inspector assigned successfully!';
+        } else {
+            $_SESSION['error_message'] = 'Failed to assign inspector. Please try again.';
         }
         header('Location: businesses.php');
         exit();
@@ -165,6 +178,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspector</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Inspection</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -185,6 +199,12 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo $business_row['business_type'] ?: 'N/A'; ?>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?php 
+                            $inspector = $business->getInspector($business_row['id']);
+                            echo $inspector ? htmlspecialchars($inspector['name']) : 'Unassigned';
+                            ?>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center space-x-2">
                                 <div class="w-16 bg-gray-200 rounded-full h-2">
@@ -203,6 +223,9 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <a href="business_view.php?id=<?php echo $business_row['id']; ?>" class="text-blue-600 hover:text-blue-900 mr-3">
                                 <i class="fas fa-eye"></i> View
                             </a>
+                            <button onclick="assignInspector(<?php echo $business_row['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
+                                <i class="fas fa-user-plus"></i> Assign Inspector
+                            </button>
                         </td>
                     </tr>
                     <?php endwhile; ?>
@@ -276,14 +299,14 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <form method="POST" action="businesses.php" class="mt-4 space-y-4">
                     <input type="hidden" name="id" id="edit_id">
                     <div>
-                        <label class="block极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果
+                        <label class="block text-sm font-medium text-gray-700">Business Name</label>
                         <input type="text" name="name" id="edit_name" placeholder="Enter business name" required
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Address</label>
                         <textarea name="address" id="edit_address" rows="3" placeholder="Enter full address" required
-                                  class="w-full极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果
+                                  class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Type</label>
@@ -291,7 +314,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <option value="">Select type</option>
                             <option value="Restaurant">Restaurant</option>
                             <option value="Retail">Retail Store</option>
-                            <option value极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果
+                            <option value="Office">Office Building</option>
                             <option value="Manufacturing">Manufacturing</option>
                             <option value="Healthcare">Healthcare Facility</option>
                             <option value="Education">Educational Institution</option>
@@ -303,8 +326,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                     </div>
                     <div>
-                        <label class极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果
-                        <input type="tel" name="极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果" id="edit_contact_number" placeholder="Enter contact number" required
+                        <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                        <input type="tel" name="contact_number" id="edit_contact_number" placeholder="Enter contact number" required
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                     </div>
                     <div>
@@ -313,12 +336,40 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                     </div>
                     <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')" 
-                                class="px-4极速赛车开奖直播极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果
+                        <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
                         <button type="submit" name="update" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                             Update Business
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Inspector Modal -->
+    <div id="assignInspectorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Assign Inspector</h3>
+                <form method="POST" action="businesses.php" class="mt-4 space-y-4">
+                    <input type="hidden" name="business_id" id="assign_business_id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Select Inspector</label>
+                        <select name="inspector_id" id="inspector_select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                            <option value="">Select inspector</option>
+                            <!-- Inspectors will be loaded here -->
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="document.getElementById('assignInspectorModal').classList.add('hidden')"
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" name="assign_inspector" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Assign Inspector
                         </button>
                     </div>
                 </form>
@@ -331,13 +382,47 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         window.onclick = function(event) {
             const createModal = document.getElementById('createModal');
             const editModal = document.getElementById('editModal');
-            
+            const assignInspectorModal = document.getElementById('assignInspectorModal');
+
             if (event.target == createModal) {
                 createModal.classList.add('hidden');
             }
             if (event.target == editModal) {
                 editModal.classList.add('hidden');
             }
+            if (event.target == assignInspectorModal) {
+                assignInspectorModal.classList.add('hidden');
+            }
+        }
+
+        function assignInspector(businessId) {
+            // Set the business ID
+            document.getElementById('assign_business_id').value = businessId;
+
+            // Fetch available inspectors
+            fetch('get_inspectors.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const inspectorSelect = document.getElementById('inspector_select');
+                        inspectorSelect.innerHTML = '<option value="">Select inspector</option>';
+
+                        data.inspectors.forEach(inspector => {
+                            const option = document.createElement('option');
+                            option.value = inspector.id;
+                            option.textContent = inspector.name;
+                            inspectorSelect.appendChild(option);
+                        });
+
+                        document.getElementById('assignInspectorModal').classList.remove('hidden');
+                    } else {
+                        alert('Failed to load inspectors');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading inspectors');
+                });
         }
 
         function editBusiness(id) {
@@ -352,7 +437,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         document.getElementById('edit_business_type').value = data.business.business_type;
                         document.getElementById('edit_registration_number').value = data.business.registration_number;
                         document.getElementById('edit_contact_number').value = data.business.contact_number;
-                        document.getElementById('极速赛车开奖直播记录+历史结果查询平台 168极速赛车官网开奖结果').value = data.business.email;
+                        document.getElementById('edit_email').value = data.business.email;
                         document.getElementById('editModal').classList.remove('hidden');
                     } else {
                         alert('Failed to load business data');

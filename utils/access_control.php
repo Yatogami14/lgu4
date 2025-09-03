@@ -47,7 +47,7 @@ class AccessControl {
             'inspections' => false,
             'schedule' => false,
             'violations' => true,
-            'businesses' => true,
+            'businesses' => false,
             'inspectors' => false,
             'analytics' => false,
             'profile' => true,
