@@ -1,11 +1,26 @@
 <?php
-session_start();
+// The session_manager will start the session
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 
+// If user is already logged in, redirect to their dashboard
+if (isset($_SESSION['user_id'])) {
+    $role = $_SESSION['user_role'];
+    if ($role == 'business_owner') {
+        header('Location: business_landing.php');
+    } else if ($role == 'community_user') {
+        header('Location: ../community/community_landing.php');
+    } else {
+        // Fallback for other roles like admin/inspector
+        header('Location: ../admin/index.php');
+    }
+    exit;
+}
+
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['email']) && isset($_POST['password'])) {
@@ -16,15 +31,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'] = $user->id;
             $_SESSION['user_role'] = $user->role;
             $_SESSION['user_name'] = $user->name;
+
+            // Handle "Remember Me"
+            if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+                $token_data = $user->generateRememberMeToken();
+                if (is_array($token_data) && isset($token_data['selector'], $token_data['validator'])) {
+                    $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                    setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+                }
+            }
             
             // Redirect to appropriate landing page based on user role
             if ($user->role == 'business_owner') {
                 header('Location: business_landing.php');
             } else if ($user->role == 'community_user') {
-                header('Location: community_landing.php');
+                header('Location: ../community/community_landing.php');
             } else {
                 // Default fallback
-                header('Location: business_landing.php');
+                header('Location: ../admin/index.php');
             }
             exit;
         } else {
@@ -102,6 +126,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <input type="password" name="password" id="password" required 
                            class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                            placeholder="Enter your password">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between text-sm mb-4">
+                <div class="flex items-center">
+                    <input id="remember_me" name="remember_me" type="checkbox" value="1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="remember_me" class="ml-2 block text-sm text-gray-900">
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <a href="../forgot_password.php" class="font-medium text-blue-600 hover:text-blue-800">
+                        Forgot your password?
+                    </a>
                 </div>
             </div>
 

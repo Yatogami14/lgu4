@@ -11,19 +11,21 @@ require_once '../utils/access_control.php';
 requirePermission('inspections');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['create_inspection'])) {
         $inspection->business_id = $_POST['business_id'];
-        $inspection->inspector_id = $_POST['inspector_id'];
+        $inspection->inspector_id = null; // Business owners cannot assign inspectors.
         $inspection->inspection_type_id = $_POST['inspection_type_id'];
         $inspection->scheduled_date = $_POST['scheduled_date'];
         $inspection->status = $_POST['status'];
@@ -38,8 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Get all inspections
-$inspections = $inspection->readAll();
-$businesses = $business->readAll();
+$businesses_owned = $business->readByOwnerId($_SESSION['user_id']);
+$business_ids = array_column($businesses_owned, 'id');
+
+$inspections = [];
+if (!empty($business_ids)) {
+    $inspections = $inspection->readByBusinessIds($business_ids);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +59,7 @@ $businesses = $business->readAll();
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -84,7 +91,7 @@ $businesses = $business->readAll();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($row = $inspections->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php foreach ($inspections as $row): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900"><?php echo $row['business_name']; ?></div>
@@ -116,7 +123,7 @@ $businesses = $business->readAll();
                             </a>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
@@ -132,9 +139,9 @@ $businesses = $business->readAll();
                         <label class="block text-sm font-medium text-gray-700">Business</label>
                         <select name="business_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             <option value="">Select Business</option>
-                            <?php while ($business_row = $businesses->fetch(PDO::FETCH_ASSOC)): ?>
-                                <option value="<?php echo $business_row['id']; ?>"><?php echo $business_row['name']; ?></option>
-                            <?php endwhile; ?>
+                            <?php foreach ($businesses_owned as $business_row): ?>
+                                <option value="<?php echo $business_row['id']; ?>"><?php echo htmlspecialchars($business_row['name']); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div>
@@ -172,7 +179,7 @@ $businesses = $business->readAll();
                         <label class="block text-sm font-medium text-gray-700">Notes</label>
                         <textarea name="notes" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                     </div>
-                    <input type="hidden" name="inspector_id" value="<?php echo $user->id; ?>">
+                    <input type="hidden" name="create_inspection" value="1">
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">

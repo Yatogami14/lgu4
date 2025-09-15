@@ -11,40 +11,46 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
-$business = new Business($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
+$business = new Business($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user->name = $_POST['name'];
-    $user->email = $_POST['email'];
+    // --- User (Owner) Details ---
+    $user->name = $_POST['owner_name'];
+    $user->email = $_POST['owner_email'];
     $user->password = $_POST['password'];
-    $user->role = $_POST['role'];
-    $user->department = $_POST['department'] ?? '';
+    $user->role = 'business_owner'; // Automatically set role
+    $user->department = $_POST['business_name']; // Use business name for department
+    $user->certification = 'Business Owner';
 
-    // Set certification based on role
-    switch ($_POST['role']) {
-        case 'business_owner':
-            $user->certification = 'Business Owner';
-            break;
-        case 'community_user':
-            $user->certification = 'Community User';
-            break;
-        default:
-            $user->certification = 'User';
-    }
+    // --- Business Details ---
+    $business->name = $_POST['business_name'];
+    $business->address = $_POST['business_address'];
+    $business->contact_number = $_POST['business_contact'];
+    $business->email = $_POST['business_email'];
+    $business->business_type = $_POST['business_type'];
+    $business->registration_number = $_POST['business_reg_no'];
 
-    // Check if email already exists
+    // --- Transaction-like process ---
+    // 1. Check if user email exists
     if ($user->emailExists()) {
         $error_message = "An account with this email already exists. Please use a different email or try logging in.";
     } else {
-        // Create user account
+        // 2. Create the user
         if ($user->create()) {
-            $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
-            $success_message = "$role_name account created successfully! You can now login.";
+            // 3. If user creation is successful, create the business and link it
+            $business->owner_id = $user->id; // Link business to the new user
+            if ($business->create()) {
+                $success_message = "Business owner account and business profile created successfully! You can now login.";
+            } else {
+                // Rollback: Delete the user if business creation fails
+                $user->delete(); 
+                $error_message = "Failed to register your business. Please check business details and try again.";
+            }
         } else {
-            $error_message = "Failed to create account. Email might already exist.";
+            $error_message = "Failed to create user account. Please try again.";
         }
     }
 }
@@ -130,54 +136,71 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <form method="POST" class="space-y-6" id="registerForm">
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
-                <select name="role" id="role" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
-                    <option value="business_owner" selected="selected">Business Owner</option>
-                </select>
-            </div>
-
-            <div class="form-row">
+            <!-- Owner Information -->
+            <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Owner Information</h2>
+            <div class="form-grid">
                 <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    <label for="owner_name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-user text-gray-400"></i>
                         </div>
-                        <input type="text" name="name" id="name" required
+                        <input type="text" name="owner_name" id="owner_name" required
                                class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                                placeholder="Enter your full name">
                     </div>
                 </div>
-
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <label for="owner_email" class="block text-sm font-medium text-gray-700 mb-2">Email Address (for Login)</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-envelope text-gray-400"></i>
                         </div>
-                        <input type="email" name="email" id="email" required
+                        <input type="email" name="owner_email" id="owner_email" required
                                class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                               placeholder="Enter your email">
+                               placeholder="Enter your login email">
                     </div>
                 </div>
             </div>
 
+            <!-- Business Information -->
+            <h2 class="text-xl font-semibold text-gray-700 border-b pb-2 mt-8">Business Information</h2>
+            <div class="form-grid">
+                <div>
+                    <label for="business_name" class="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
+                    <input type="text" name="business_name" id="business_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., ABC Restaurant">
+                </div>
+                <div>
+                    <label for="business_type" class="block text-sm font-medium text-gray-700 mb-2">Business Type</label>
+                    <select name="business_type" id="business_type" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                        <option value="">Select a type</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Retail">Retail Store</option>
+                        <option value="Office">Office Building</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Healthcare">Healthcare Facility</option>
+                        <option value="Education">Educational Institution</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
             <div>
-                <label for="department" class="block text-sm font-medium text-gray-700 mb-2">Business/Organization (Optional)</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-building text-gray-400"></i>
-                    </div>
-                    <input type="text" name="department" id="department"
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter business or organization name">
+                <label for="business_address" class="block text-sm font-medium text-gray-700 mb-2">Business Address</label>
+                <textarea name="business_address" id="business_address" rows="3" required class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Enter complete business address"></textarea>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label for="business_contact" class="block text-sm font-medium text-gray-700 mb-2">Business Contact Number</label>
+                    <input type="tel" name="business_contact" id="business_contact" required class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., +63 912 345 6789">
+                </div>
+                <div>
+                    <label for="business_email" class="block text-sm font-medium text-gray-700 mb-2">Business Email</label>
+                    <input type="email" name="business_email" id="business_email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., contact@abcrestaurant.com">
                 </div>
             </div>
-
-            <!-- Business Registration Fields (shown only for Business Owners) -->
-            <div id="businessFields" class="business-fields-grid hidden">
+             <div>
+                <label for="business_reg_no" class="block text-sm font-medium text-gray-700 mb-2">Business Registration Number</label>
+                <input type="text" name="business_reg_no" id="business_reg_no" required class="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="e.g., DTI/SEC Registration No.">
             </div>
 
             <div class="form-row">
@@ -215,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="mt-6 text-center">
             <p class="text-gray-600">Already have an account?
-                <a href="public_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
+                <a href="../main_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
             </p>
         </div>
 
@@ -237,11 +260,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 alert('Passwords do not match!');
                 confirmPassword.focus();
             }
-        });
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // No business fields to initialize
         });
     </script>
 </body>

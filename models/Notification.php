@@ -222,5 +222,16 @@ class Notification {
         
         return $this->create();
     }
+
+    // Create notification for inspection assignment
+    public function createAssignmentNotification($inspector_id, $business_name, $inspection_id) {
+        $this->user_id = $inspector_id;
+        $this->message = "You have been assigned a new inspection for " . $business_name;
+        $this->type = "info";
+        $this->related_entity_type = "inspection";
+        $this->related_entity_id = $inspection_id;
+        
+        return $this->create();
+    }
 }
 ?>

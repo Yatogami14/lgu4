@@ -1,0 +1,46 @@
+<?php
+// Initialize database-backed sessions
+require_once dirname(__DIR__) . '/config/database.php';
+require_once dirname(__DIR__) . '/utils/DatabaseSessionHandler.php';
+
+$database = new Database();
+// The session handler and user "remember me" functionality both use the core database.
+// We must explicitly get the connection for the core database.
+$db_core = $database->getConnection(Database::DB_CORE);
+
+$handler = new DatabaseSessionHandler($db_core);
+session_set_save_handler($handler, true);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check for "Remember Me" cookie if user is not logged in via session
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
+    require_once dirname(__DIR__) . '/models/User.php';
+
+    list($selector, $validator) = explode(':', $_COOKIE['remember_me'], 2);
+
+    if ($selector && $validator) {
+        $user = new User($db_core);
+
+        if ($user->validateRememberMeToken($selector, $validator)) {
+            // Log the user in
+            $_SESSION['user_id'] = $user->id;
+            $_SESSION['user_role'] = $user->role;
+            $_SESSION['user_name'] = $user->name;
+
+            // Regenerate the token for security (prevents token theft and reuse)
+            $token_data = $user->generateRememberMeToken();
+            if ($token_data) {
+                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+            }
+        } else {
+            // Invalid token, clear the cookie
+            if (isset($_COOKIE['remember_me'])) {
+                setcookie('remember_me', '', time() - 3600, "/");
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
@@ -10,13 +10,15 @@ require_once '../utils/access_control.php';
 requirePermission('inspections');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -32,6 +34,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($inspection->create()) {
             header('Location: inspections.php?success=Inspection created successfully');
             exit;
+        }
+    }
+
+    // Handle re-assignment from modal
+    if (isset($_POST['action']) && $_POST['action'] === 'reassign_inspector') {
+        header('Content-Type: application/json');
+
+        // Only admins can re-assign
+        if (!in_array($_SESSION['user_role'], ['admin', 'super_admin'])) {
+            echo json_encode(['success' => false, 'message' => 'Permission Denied.']);
+            exit;
+        }
+
+        $inspection->id = $_POST['inspection_id'];
+        $inspection->inspector_id = $_POST['inspector_id'];
+
+        if ($inspection->assignInspector()) {
+            echo json_encode(['success' => true, 'message' => 'Inspector re-assigned successfully.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to re-assign inspector.']);
         }
     }
 }
@@ -54,7 +76,7 @@ $businesses = $business->readAll();
     <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-20">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Inspections Management</h2>
             <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
@@ -78,6 +100,7 @@ $businesses = $business->readAll();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspector</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -99,6 +122,9 @@ $businesses = $business->readAll();
                                 <?php echo str_replace('_', ' ', $row['status']); ?>
                             </span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?php echo htmlspecialchars($row['inspector_name'] ?? 'Unassigned'); ?>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs font-medium rounded-full 
                                 <?php echo $row['priority'] == 'high' ? 'bg-red-100 text-red-800' : 
@@ -113,11 +139,38 @@ $businesses = $business->readAll();
                             <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-green-600 hover:text-green-900">
                                 <i class="fas fa-eye"></i> View
                             </a>
+                            <button onclick="openReassignModal(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['business_name'])); ?>')" class="text-purple-600 hover:text-purple-900 ml-3">
+                                <i class="fas fa-random"></i> Re-assign
+                            </button>
                         </td>
                     </tr>
                     <?php endwhile; ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Re-assign Inspector Modal -->
+    <div id="reassignModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Re-assign Inspector</h3>
+                <p class="text-sm text-gray-600 mt-1">For inspection at: <span id="reassignBusinessName" class="font-bold"></span></p>
+                <form id="reassignForm" class="mt-4 space-y-4">
+                    <input type="hidden" name="action" value="reassign_inspector">
+                    <input type="hidden" name="inspection_id" id="reassign_inspection_id">
+                    <div>
+                        <label for="reassign_inspector_id" class="block text-sm font-medium text-gray-700">New Inspector</label>
+                        <select name="inspector_id" id="reassign_inspector_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">Loading inspectors...</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeModal('reassignModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">Re-assign</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -188,11 +241,83 @@ $businesses = $business->readAll();
     </div>
 
     <script>
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openReassignModal(inspectionId, businessName) {
+            const modal = document.getElementById('reassignModal');
+            document.getElementById('reassign_inspection_id').value = inspectionId;
+            document.getElementById('reassignBusinessName').textContent = businessName;
+
+            const inspectorSelect = document.getElementById('reassign_inspector_id');
+            inspectorSelect.innerHTML = '<option value="">Loading inspectors...</option>';
+            
+            // Fetch available inspectors
+            fetch('get_inspectors.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        inspectorSelect.innerHTML = '<option value="">Select an inspector</option>';
+                        data.inspectors.forEach(inspector => {
+                            const option = document.createElement('option');
+                            option.value = inspector.id;
+                            option.textContent = inspector.name;
+                            inspectorSelect.appendChild(option);
+                        });
+                    } else {
+                        inspectorSelect.innerHTML = '<option value="">Failed to load inspectors</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching inspectors:', error);
+                    inspectorSelect.innerHTML = '<option value="">Error loading inspectors</option>';
+                });
+
+            modal.classList.remove('hidden');
+        }
+
+        document.getElementById('reassignForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Re-assigning...';
+            submitButton.disabled = true;
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Inspector re-assigned successfully!');
+                    location.reload(); // Reload the page to see the change
+                } else {
+                    throw new Error(data.message || 'Failed to re-assign inspector.');
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            })
+            .finally(() => {
+                submitButton.innerHTML = originalButtonText;
+                submitButton.disabled = false;
+                closeModal('reassignModal');
+            });
+        });
+
         // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('createModal');
             if (event.target == modal) {
                 modal.classList.add('hidden');
+            }
+            const reassignModal = document.getElementById('reassignModal');
+            if (event.target == reassignModal) {
+                closeModal('reassignModal');
             }
         }
     </script>

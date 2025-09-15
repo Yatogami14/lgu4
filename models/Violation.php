@@ -1,0 +1,313 @@
+<?php
+class Violation {
+    private $conn;
+    private $table_name = "violations";
+
+    public $id;
+    public $inspection_id;
+    public $business_id;
+    public $description;
+    public $severity;
+    public $status;
+    public $due_date;
+    public $resolved_date;
+    public $created_by;
+    public $created_at;
+    public $updated_at;
+
+    public function __construct($db) {
+        $this->conn = $db;
+    }
+
+    public function create() {
+        $query = "INSERT INTO " . $this->table_name . "
+                SET
+                    inspection_id = :inspection_id,
+                    business_id = :business_id,
+                    description = :description,
+                    severity = :severity,
+                    status = :status,
+                    due_date = :due_date,
+                    created_by = :created_by";
+
+        $stmt = $this->conn->prepare($query);
+
+        // Sanitize
+        $this->inspection_id = htmlspecialchars(strip_tags($this->inspection_id));
+        $this->business_id = htmlspecialchars(strip_tags($this->business_id));
+        $this->description = htmlspecialchars(strip_tags($this->description));
+        $this->severity = htmlspecialchars(strip_tags($this->severity));
+        $this->status = htmlspecialchars(strip_tags($this->status));
+        $this->due_date = !empty($this->due_date) ? htmlspecialchars(strip_tags($this->due_date)) : null;
+        $this->created_by = htmlspecialchars(strip_tags($this->created_by));
+
+        // Bind
+        $stmt->bindParam(":inspection_id", $this->inspection_id);
+        $stmt->bindParam(":business_id", $this->business_id);
+        $stmt->bindParam(":description", $this->description);
+        $stmt->bindParam(":severity", $this->severity);
+        $stmt->bindParam(":status", $this->status);
+        $stmt->bindParam(":due_date", $this->due_date);
+        $stmt->bindParam(":created_by", $this->created_by);
+
+        if ($stmt->execute()) {
+            $this->id = $this->conn->lastInsertId();
+            return true;
+        }
+
+        error_log("Violation creation failed: " . implode(";", $stmt->errorInfo()));
+        return false;
+    }
+
+    public function update() {
+        $query = "UPDATE " . $this->table_name . "
+                SET
+                    description = :description,
+                    severity = :severity,
+                    status = :status,
+                    due_date = :due_date,
+                    resolved_date = :resolved_date
+                WHERE
+                    id = :id";
+
+        $stmt = $this->conn->prepare($query);
+
+        // Sanitize
+        $this->description = htmlspecialchars(strip_tags($this->description));
+        $this->severity = htmlspecialchars(strip_tags($this->severity));
+        $this->status = htmlspecialchars(strip_tags($this->status));
+        $this->due_date = !empty($this->due_date) ? htmlspecialchars(strip_tags($this->due_date)) : null;
+        $this->resolved_date = !empty($this->resolved_date) ? htmlspecialchars(strip_tags($this->resolved_date)) : null;
+        $this->id = htmlspecialchars(strip_tags($this->id));
+
+        // Bind
+        $stmt->bindParam(":description", $this->description);
+        $stmt->bindParam(":severity", $this->severity);
+        $stmt->bindParam(":status", $this->status);
+        $stmt->bindParam(":due_date", $this->due_date);
+        $stmt->bindParam(":resolved_date", $this->resolved_date);
+        $stmt->bindParam(":id", $this->id);
+
+        if ($stmt->execute()) {
+            return true;
+        }
+
+        error_log("Violation update failed: " . implode(";", $stmt->errorInfo()));
+        return false;
+    }
+
+    /**
+     * Read all violations, optionally filtered by an array of business IDs.
+     * @param array $business_ids
+     * @return PDOStatement
+     */
+    public function readAll($business_ids = []) {
+        $query = "SELECT v.*, b.name as business_name 
+                  FROM " . $this->table_name . " v
+                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
+                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id";
+
+        if (!empty($business_ids)) {
+            // Create placeholders for the IN clause
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $query .= " WHERE i.business_id IN (" . $in_clause . ")";
+        }
+
+        $query .= " ORDER BY v.created_at DESC";
+
+        $stmt = $this->conn->prepare($query);
+
+        if (!empty($business_ids)) {
+            // Bind each business ID to the placeholder
+            foreach ($business_ids as $k => $id) {
+                $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
+            }
+        }
+
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Read all violations for a specific inspection.
+     * @param int $inspection_id
+     * @return PDOStatement
+     */
+    public function readByInspectionId($inspection_id) {
+        $query = "SELECT v.* 
+                  FROM " . $this->table_name . " v
+                  WHERE v.inspection_id = ?
+                  ORDER BY v.created_at DESC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $inspection_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Get violation statistics.
+     * @param array $business_ids
+     * @return array
+     */
+    public function getViolationStats($business_ids = []) {
+        $query = "SELECT
+                    COUNT(v.id) as total,
+                    SUM(CASE WHEN v.status = 'open' THEN 1 ELSE 0 END) as open,
+                    SUM(CASE WHEN v.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                    SUM(CASE WHEN v.status = 'resolved' THEN 1 ELSE 0 END) as resolved
+                  FROM " . $this->table_name . " v";
+    
+        if (!empty($business_ids)) {
+            $query .= " LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id";
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $query .= " WHERE i.business_id IN (" . $in_clause . ")";
+        }
+
+        $stmt = $this->conn->prepare($query);
+
+        if (!empty($business_ids)) {
+            foreach ($business_ids as $k => $id) {
+                $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
+            }
+        }
+
+        $stmt->execute();
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $stats;
+    }
+
+    /**
+     * Get violation statistics by severity.
+     * @return array
+     */
+    public function getViolationStatsBySeverity() {
+        $query = "SELECT
+                    severity,
+                    COUNT(id) as count
+                  FROM " . $this->table_name . "
+                  GROUP BY severity";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        
+        $stats = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $stats[$row['severity']] = (int)$row['count'];
+        }
+        
+        $severities = ['low', 'medium', 'high', 'critical'];
+        foreach ($severities as $severity) {
+            if (!isset($stats[$severity])) {
+                $stats[$severity] = 0;
+            }
+        }
+        
+        return $stats;
+    }
+
+    /**
+     * Read all violations for a specific inspector.
+     * @param int $inspector_id
+     * @return PDOStatement
+     */
+    public function readByInspectorId($inspector_id) {
+        $query = "SELECT v.*, b.name as business_name
+                  FROM " . $this->table_name . " v
+                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
+                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
+                  WHERE i.inspector_id = ?
+                  ORDER BY v.created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Get violation statistics for a specific inspector.
+     * @param int $inspector_id
+     * @return array
+     */
+    public function getViolationStatsByInspectorId($inspector_id) {
+        $query = "SELECT
+                    COUNT(v.id) as total,
+                    SUM(CASE WHEN v.status = 'open' THEN 1 ELSE 0 END) as open,
+                    SUM(CASE WHEN v.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                    SUM(CASE WHEN v.status = 'resolved' THEN 1 ELSE 0 END) as resolved
+                  FROM " . $this->table_name . " v
+                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
+                  WHERE i.inspector_id = ?";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Read all violations for a specific creator.
+     * @param int $creator_id
+     * @return PDOStatement
+     */
+    public function readByCreatorId($creator_id) {
+        $query = "SELECT v.*, b.name as business_name
+                  FROM " . $this->table_name . " v
+                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id
+                  WHERE v.created_by = ?
+                  ORDER BY v.created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Get violation statistics for a specific creator.
+     * @param int $creator_id
+     * @return array
+     */
+    public function getViolationStatsByCreatorId($creator_id) {
+        $query = "SELECT
+                    COUNT(id) as total,
+                    SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
+                    SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                    SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
+                  FROM " . $this->table_name . "
+                  WHERE created_by = ?";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Ensure all keys exist even if SUM returns NULL
+        return array_map(fn($v) => $v ?? 0, $stats);
+    }
+
+    /**
+     * Count active violations for a list of businesses.
+     * @param array $business_ids
+     * @return int
+     */
+    public function countActiveForBusinesses(array $business_ids) {
+        if (empty($business_ids)) {
+            return 0;
+        }
+        $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+        $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
+                  WHERE status IN ('open', 'in_progress') AND business_id IN (" . $in_clause . ")";
+        
+        $stmt = $this->conn->prepare($query);
+        foreach ($business_ids as $k => $id) {
+            $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['count'] ?? 0;
+    }
+}
+?>

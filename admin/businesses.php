@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Business.php';
@@ -10,13 +10,16 @@ require_once '../utils/access_control.php';
 requirePermission('businesses');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+$db_reports = $database->getConnection(Database::DB_REPORTS);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$business = new Business($db);
-$inspection = new Inspection($db);
+$business = new Business($db_core);
+$inspection = new Inspection($db_scheduling);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -28,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->registration_number = $_POST['registration_number'];
         $business->contact_number = $_POST['contact_number'];
         $business->email = $_POST['email'];
-        $business->owner_id = $user->id; // Set current user as owner
+        $business->owner_id = $_POST['owner_id'] ?? null;
 
         if ($business->create()) {
             $_SESSION['success_message'] = 'Business created successfully!';
@@ -73,8 +76,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->id = $_POST['business_id'];
         $business->inspector_id = $_POST['inspector_id'];
 
-        if ($business->update()) {
-            $_SESSION['success_message'] = 'Inspector assigned successfully!';
+        $default_assigned = $business->assignInspector();
+        $inspection_assigned = false;
+
+        // The button on this page should assign an inspector to the next available inspection
+        // for this business, and also set them as the default inspector.
+        if ($default_assigned) {
+            // Now, find an unassigned inspection for this business and assign the inspector.
+            $inspectionForAssignment = new Inspection($db_scheduling);
+            $unassigned_inspection = $inspectionForAssignment->findNextUnassignedForBusiness($_POST['business_id']);
+            
+            if ($unassigned_inspection) {
+                $inspectionForAssignment->id = $unassigned_inspection['id'];
+                $inspectionForAssignment->inspector_id = $_POST['inspector_id'];
+                if ($inspectionForAssignment->assignInspector()) {
+                    $inspection_assigned = true;
+                    // Create a notification for the inspector
+                    require_once '../models/Notification.php';
+                    $notification = new Notification($db_reports);
+                    
+                    $tempBusiness = new Business($db_core);
+                    $tempBusiness->id = $_POST['business_id'];
+                    $tempBusinessData = $tempBusiness->readOne();
+                    $businessName = $tempBusinessData['name'] ?? 'a business';
+
+                    $notification->createAssignmentNotification($_POST['inspector_id'], $businessName, $unassigned_inspection['id']);
+                }
+            }
+            
+            $message = 'Inspector set as default for the business. ';
+            $message .= $inspection_assigned ? 'They have also been assigned to the next upcoming inspection.' : 'No upcoming unassigned inspections were found to assign.';
+            $_SESSION['success_message'] = $message;
         } else {
             $_SESSION['error_message'] = 'Failed to assign inspector. Please try again.';
         }
@@ -85,6 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all businesses
 $businesses = $business->readAll();
+$businessStats = $business->getBusinessStats();
+
+// Get all business owners for the create modal
+$ownerUser = new User($db_core);
+$all_owners = $ownerUser->readByRole('business_owner')->fetchAll(PDO::FETCH_ASSOC);
 
 // Display success/error messages
 $success_message = $_SESSION['success_message'] ?? '';
@@ -105,7 +142,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Business Management</h2>
                 <button onclick="document.getElementById('createModal').classList.remove('hidden'); clearForm();" 
@@ -133,7 +170,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Total Businesses</p>
-                        <p class="text-2xl font-bold">3</p>
+                        <p class="text-2xl font-bold"><?php echo $businessStats['total'] ?? 0; ?></p>
                     </div>
                     <i class="fas fa-building text-3xl text-blue-500"></i>
                 </div>
@@ -143,7 +180,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">High Risk</p>
-                        <p class="text-2xl font-bold">1</p>
+                        <p class="text-2xl font-bold"><?php echo $businessStats['high_risk'] ?? 0; ?></p>
                     </div>
                     <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
                 </div>
@@ -153,7 +190,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Medium Risk</p>
-                        <p class="text-2xl font-bold">1</p>
+                        <p class="text-2xl font-bold"><?php echo $businessStats['medium_risk'] ?? 0; ?></p>
                     </div>
                     <i class="fas fa-exclamation text-3xl text-yellow-500"></i>
                 </div>
@@ -163,7 +200,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Low Risk</p>
-                        <p class="text-2xl font-bold">1</p>
+                        <p class="text-2xl font-bold"><?php echo $businessStats['low_risk'] ?? 0; ?></p>
                     </div>
                     <i class="fas fa-check-circle text-3xl text-green-500"></i>
                 </div>
@@ -215,8 +252,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php 
-                            $recent = $business->getRecentInspections($business_row['id'], 1);
-                            echo $recent ? date('M j, Y', strtotime($recent[0]['scheduled_date'])) : 'Never';
+                            $last_inspection_date = $business->getLastCompletedInspectionDate($business_row['id']);
+                            echo $last_inspection_date ? date('M j, Y', strtotime($last_inspection_date)) : 'Never';
                             ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -276,6 +313,15 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <label class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" placeholder="Enter email address" required
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Assign Owner</label>
+                        <select name="owner_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">Select an Owner</option>
+                            <?php foreach ($all_owners as $owner): ?>
+                                <option value="<?php echo $owner['id']; ?>"><?php echo htmlspecialchars($owner['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 

@@ -2,6 +2,6 @@
 session_start();
 session_unset();
 session_destroy();
-header('Location: public_login.php');
+header('Location: ../main_login.php');
 exit;
 ?>

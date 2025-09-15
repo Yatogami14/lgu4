@@ -1,24 +1,24 @@
 <?php
-session_start();
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Business.php';
 require_once '../models/Inspection.php';
+require_once '../utils/access_control.php';
 
 // Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: public_login.php');
-    exit;
-}
+requirePermission('businesses');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$business = new Business($db);
-$inspection = new Inspection($db);
+$business = new Business($db_core);
+$inspection = new Inspection($db_scheduling);
 
 // Get business ID from URL
 $business_id = isset($_GET['id']) ? $_GET['id'] : null;
@@ -51,32 +51,10 @@ $recent_inspections = $business->getRecentInspections($business_id, 5);
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-                    <i class="fas fa-shield-alt text-blue-600 text-xl sm:text-2xl"></i>
-                    <div class="min-w-0 flex-1">
-                        <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate">LGU Health & Safety</h1>
-                        <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Inspection Platform</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center space-x-1 sm:space-x-4 flex-shrink-0">
-                    <a href="index.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
-                        <i class="fas fa-home"></i>
-                    </a>
-                    <a href="logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-2xl font-bold"><?php echo $business_data['name']; ?></h2>

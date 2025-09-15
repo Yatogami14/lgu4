@@ -24,10 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $database = new Database();
-    $db = $database->getConnection();
+    $db_core = $database->getConnection(Database::DB_CORE);
+    $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+    $db_reports = $database->getConnection(Database::DB_REPORTS);
 
     // Validate that the business belongs to the current user
-    $business = new Business($db);
+    $business = new Business($db_core);
     $business->id = $business_id;
     $business->readOne();
 
@@ -37,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $inspection = new Inspection($db);
-    $notification = new Notification($db);
+    $inspection = new Inspection($db_scheduling);
+    $notification = new Notification($db_reports);
 
     // Create new inspection request
     $inspection->business_id = $business_id;

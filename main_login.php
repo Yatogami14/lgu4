@@ -1,11 +1,12 @@
 <?php
-session_start();
+// The session_manager will start the session
+require_once 'utils/session_manager.php';
 require_once 'config/database.php';
 require_once 'models/User.php';
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->email = $_POST['email'];
@@ -15,13 +16,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['user_id'] = $user->id;
         $_SESSION['user_role'] = $user->role;
         $_SESSION['user_name'] = $user->name;
+
+        // Handle "Remember Me"
+        if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+            $token_data = $user->generateRememberMeToken();
+            if ($token_data) {
+                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+            }
+        }
         
         // Redirect based on user role
         switch ($user->role) {
             case 'admin':
             case 'super_admin':
-            case 'inspector':
                 header('Location: admin/index.php');
+                break;
+            case 'inspector':
+                header('Location: inspector/index.php');
                 break;
             case 'business_owner':
                 header('Location: business/index.php');
@@ -110,6 +122,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
+            <div class="flex items-center justify-between text-sm mb-4">
+                <div class="flex items-center">
+                    <input id="remember_me" name="remember_me" type="checkbox" value="1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="remember_me" class="ml-2 block text-sm text-gray-900">
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <a href="forgot_password.php" class="font-medium text-blue-600 hover:text-blue-800">
+                        Forgot your password?
+                    </a>
+                </div>
+            </div>
+
             <button type="submit" 
                     class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200 transform hover:scale-105">
                 <i class="fas fa-sign-in-alt mr-2"></i>Sign In
@@ -119,9 +145,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="mt-6 text-center">
             <p class="text-gray-600 mb-4">Don't have an account?</p>
             <div class="grid grid-cols-1 gap-3">
-                <a href="admin/admin_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
-                    <i class="fas fa-user-shield mr-2"></i>Register as Admin
-                </a>
                 <a href="business/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-building mr-2"></i>Register as Business
                 </a>
@@ -133,12 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="mt-8 pt-6 border-t border-gray-200">
             <div class="text-center">
-                <p class="text-sm text-gray-600 mb-2">Access specific portals:</p>
-                <div class="flex justify-center space-x-4">
-                    <a href="admin/admin_login.php" class="text-blue-600 hover:text-blue-800 text-sm">Admin Portal</a>
-                    <a href="business/public_login.php" class="text-blue-600 hover:text-blue-800 text-sm">Business Portal</a>
-                    <a href="community/public_login.php" class="text-blue-600 hover:text-blue-800 text-sm">Community Portal</a>
-                </div>
                 <p class="text-sm text-gray-600 mt-4">© 2024 LGU Health & Safety Platform. All rights reserved.</p>
             </div>
         </div>

@@ -1,11 +1,18 @@
 <?php
-session_start();
+// The session_manager will start the session
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 
+// If user is already logged in, redirect to their dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit;
+}
+
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->email = $_POST['email'];
@@ -15,6 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['user_id'] = $user->id;
         $_SESSION['user_role'] = $user->role;
         $_SESSION['user_name'] = $user->name;
+
+        // Handle "Remember Me"
+        if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+            $token_data = $user->generateRememberMeToken();
+            if ($token_data) {
+                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+            }
+        }
+
         header('Location: index.php');
         exit;
     } else {
@@ -94,6 +111,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
+            <div class="flex items-center justify-between text-sm mb-4">
+                <div class="flex items-center">
+                    <input id="remember_me" name="remember_me" type="checkbox" value="1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="remember_me" class="ml-2 block text-sm text-gray-900">
+                        Remember me
+                    </label>
+                </div>
+                <div>
+                    <a href="../forgot_password.php" class="font-medium text-blue-600 hover:text-blue-800">
+                        Forgot your password?
+                    </a>
+                </div>
+            </div>
+
             <button type="submit" 
                     class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200 transform hover:scale-105">
                 <i class="fas fa-sign-in-alt mr-2"></i>Sign In
@@ -101,8 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
 
         <div class="mt-6 text-center">
-            <p class="text-gray-600">Need an account? 
-                <a href="admin_register.php" class="text-blue-600 hover:text-blue-800 font-medium">Register as Admin User</a>
+            <p class="text-gray-600">Need to create an initial admin account?
+                <a href="admin_register.php" class="text-blue-600 hover:text-blue-800 font-medium">
+                    Register Here
+                </a>
             </p>
         </div>
 

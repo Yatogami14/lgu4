@@ -1,17 +1,17 @@
 <?php
 session_start();
-require_once 'config/database.php';
-require_once 'models/User.php';
+require_once '../config/database.php';
+require_once '../models/User.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: public_login.php');
+    header('Location: admin_login.php');
     exit;
 }
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 

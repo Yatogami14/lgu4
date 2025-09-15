@@ -2,22 +2,24 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
-require_once 'models/Inspection.php';
-require_once 'models/Business.php';
+require_once '../models/Inspection.php';
+require_once '../models/Business.php';
 
-require_once 'utils/access_control.php';
+require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
 requirePermission('inspections');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -52,7 +54,7 @@ $businesses = $business->readAll();
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
@@ -12,13 +12,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'business_owner') 
 }
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
 
 // Get user-specific data for business owner
 $userInspections = $inspection->readByUserId($_SESSION['user_id'], 5);

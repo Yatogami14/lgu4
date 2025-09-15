@@ -9,12 +9,14 @@ require_once '../utils/access_control.php';
 requirePermission('profile');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_reports = $database->getConnection(Database::DB_REPORTS);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$notification = new Notification($db);
+$notification = new Notification($db_reports);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

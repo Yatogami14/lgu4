@@ -2,28 +2,30 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
-require_once 'models/Inspection.php';
-require_once 'models/Business.php';
+require_once '../models/Inspection.php';
+require_once '../models/Business.php';
 
-require_once 'utils/access_control.php';
+require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
 requirePermission('schedule');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['schedule_inspection'])) {
         $inspection->business_id = $_POST['business_id'];
-        $inspection->inspector_id = $_POST['inspector_id'];
+        $inspection->inspector_id = null; // Business owners request, admins assign.
         $inspection->inspection_type_id = $_POST['inspection_type_id'];
         $inspection->scheduled_date = $_POST['scheduled_date'];
         $inspection->status = 'scheduled';
@@ -51,7 +53,7 @@ $businesses = $business->readAll();
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -110,7 +112,6 @@ $businesses = $business->readAll();
                             <label class="block text-sm font-medium text-gray-700">Notes</label>
                             <textarea name="notes" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                         </div>
-                        <input type="hidden" name="inspector_id" value="<?php echo $user->id; ?>">
                         <div class="flex justify-end space-x-3">
                             <button type="button" onclick="document.getElementById('scheduleModal').classList.add('hidden')" 
                                     class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">

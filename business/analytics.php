@@ -1,29 +1,44 @@
 <?php
-session_start();
-require_once '../config/database.php';
+require_once '../utils/session_manager.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Business.php';
 require_once '../models/Notification.php';
+require_once '../models/Violation.php';
 require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
 requirePermission('analytics');
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
+
+$user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db);
-$business = new Business($db);
+$inspection = new Inspection($db_scheduling);
+$business = new Business($db_core);
+$violation = new Violation($db_violations);
 
-// Get analytics data
-$totalInspections = $inspection->countAll();
-$totalBusinesses = $business->countAll();
-$totalActiveViolations = $inspection->countActiveViolations();
-$averageCompliance = $inspection->getAverageCompliance();
+// Get analytics data scoped to the business owner's businesses
+$owned_businesses = $business->readByOwnerId($_SESSION['user_id']);
+$business_ids = array_column($owned_businesses, 'id');
+
+$totalInspections = 0;
+$totalBusinesses = count($owned_businesses);
+$totalActiveViolations = 0;
+$averageCompliance = 0;
+$recent_inspections = [];
+
+if (!empty($business_ids)) {
+    $totalInspections = $inspection->countAllForBusinesses($business_ids);
+    $totalActiveViolations = $violation->countActiveForBusinesses($business_ids);
+    $averageCompliance = $inspection->getAverageComplianceForBusinesses($business_ids);
+    $recent_inspections = $inspection->readRecentForBusinesses($business_ids, 5);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -36,10 +51,10 @@ $averageCompliance = $inspection->getAverageCompliance();
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
-    <?php include 'includes/navigation.php'; ?>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <h2 class="text-2xl font-bold mb-6">Analytics Dashboard</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -97,8 +112,7 @@ $averageCompliance = $inspection->getAverageCompliance();
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php 
-                    $recent_inspections = $inspection->readRecent(5);
-                    foreach ($recent_inspections as $recent): ?>
+                    if (!empty($recent_inspections)) foreach ($recent_inspections as $recent): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900"><?php echo $recent['business_name']; ?></div>
@@ -118,6 +132,9 @@ $averageCompliance = $inspection->getAverageCompliance();
                         </td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php if (empty($recent_inspections)): ?>
+                        <tr><td colspan="4" class="text-center py-4 text-gray-500">No recent inspections found for your businesses.</td></tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>

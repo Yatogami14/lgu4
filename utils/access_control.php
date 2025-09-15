@@ -1,131 +1,72 @@
 <?php
-// Role-based access control utility
-
-class AccessControl {
-    
-    // Define role permissions
-    private static $permissions = [
-        'super_admin' => [
-            'dashboard' => true,
-            'inspections' => true,
-            'schedule' => true,
-            'violations' => true,
-            'businesses' => true,
-            'inspectors' => true,
-            'analytics' => true,
-            'profile' => true,
-            'user_management' => true,
-            'system_config' => true
-        ],
-        'admin' => [
-            'dashboard' => true,
-            'inspections' => true,
-            'schedule' => true,
-            'violations' => true,
-            'businesses' => true,
-            'inspectors' => true,
-            'analytics' => true,
-            'profile' => true,
-            'user_management' => false,
-            'system_config' => false
-        ],
-        'inspector' => [
-            'dashboard' => true,
-            'inspections' => true,
-            'schedule' => true,
-            'violations' => true,
-            'businesses' => true,
-            'inspectors' => false,
-            'analytics' => false,
-            'profile' => true,
-            'user_management' => false,
-            'system_config' => false,
-            'assigned_inspections' => true
-        ],
-        'business_owner' => [
-            'dashboard' => true,
-            'inspections' => false,
-            'schedule' => false,
-            'violations' => true,
-            'businesses' => false,
-            'inspectors' => false,
-            'analytics' => false,
-            'profile' => true,
-            'user_management' => false,
-            'system_config' => false
-        ],
-        'community_user' => [
-            'dashboard' => true,
-            'inspections' => false,
-            'schedule' => false,
-            'violations' => false,
-            'businesses' => false,
-            'inspectors' => false,
-            'analytics' => false,
-            'profile' => true,
-            'user_management' => false,
-            'system_config' => false
-        ]
-    ];
-
-    // Check if user has permission for a specific resource
-    public static function hasPermission($role, $resource) {
-        if (!isset(self::$permissions[$role])) {
-            return false;
-        }
-        
-        return self::$permissions[$role][$resource] ?? false;
-    }
-
-    // Redirect user if they don't have permission
-    public static function requirePermission($role, $resource, $redirectUrl = 'index.php') {
-        if (!self::hasPermission($role, $resource)) {
-            header("Location: $redirectUrl");
-            exit;
-        }
-    }
-
-    // Get all permissions for a role
-    public static function getRolePermissions($role) {
-        return self::$permissions[$role] ?? [];
-    }
-
-    // Check if user can access a page
-    public static function canAccessPage($role, $page) {
-        $pagePermissions = [
-            'index.php' => 'dashboard',
-            'inspections.php' => 'inspections',
-            'schedule.php' => 'schedule',
-            'violations.php' => 'violations',
-            'businesses.php' => 'businesses',
-            'inspectors.php' => 'inspectors',
-            'analytics.php' => 'analytics',
-            'profile.php' => 'profile',
-            'user_management.php' => 'user_management',
-            'system_config.php' => 'system_config'
-        ];
-
-        $resource = $pagePermissions[$page] ?? 'dashboard';
-        return self::hasPermission($role, $resource);
-    }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// Function to check if current user has permission
-function currentUserHasPermission($resource) {
-    if (!isset($_SESSION['user_role'])) {
-        return false;
+const ROLE_PERMISSIONS = [
+    'super_admin' => [
+        'dashboard', 'inspections', 'businesses', 'user_management', 'analytics', 
+        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections', 'checklist_management', 'inspection_types_management'
+    ],
+    'admin' => [
+        'dashboard', 'inspections', 'businesses', 'user_management', 'analytics', 
+        'violations', 'profile', 'schedule', 'assigned_inspections', 'checklist_management', 'inspection_types_management'
+    ],
+    'inspector' => [
+        'dashboard', 'assigned_inspections', 'profile', 'violations', 'inspections', 'businesses'
+    ],
+    'business_owner' => [
+        'dashboard', 'violations', 'profile', 'businesses', 'inspections'
+    ],
+    'community_user' => [
+        'dashboard', 'violations', 'profile', 'businesses', 'inspections'
+    ],
+];
+
+function currentUserHasPermission($permission) {
+    $role = $_SESSION['user_role'] ?? 'guest';
+    if ($role === 'super_admin') { // Super admin has all permissions
+        return true; 
     }
-    
-    return AccessControl::hasPermission($_SESSION['user_role'], $resource);
+    if (isset(ROLE_PERMISSIONS[$role])) {
+        return in_array($permission, ROLE_PERMISSIONS[$role]);
+    }
+    return false;
 }
 
-// Function to require permission for current user
-function requirePermission($resource, $redirectUrl = 'index.php') {
-    if (!isset($_SESSION['user_role'])) {
-        header("Location: login.php");
+function requirePermission($permission, $redirect_page = 'index.php') {
+    $role = $_SESSION['user_role'] ?? 'guest';
+    $current_path = $_SERVER['SCRIPT_NAME'];
+
+    // Prevent inspectors from accessing the /admin/ area directly.
+    if (strpos($current_path, '/admin/') !== false && $role === 'inspector') {
+        header('Location: /lgu4/inspector/index.php?error=access_denied');
         exit;
     }
-    
-    AccessControl::requirePermission($_SESSION['user_role'], $resource, $redirectUrl);
+    if (!currentUserHasPermission($permission)) {
+        $current_page = basename($_SERVER['PHP_SELF']);
+        $base_path = '/lgu4/';
+        switch ($role) {
+            case 'business_owner':
+                $redirect_url = $base_path . 'business/' . $redirect_page;
+                break;
+            case 'community_user':
+                $redirect_url = $base_path . 'community/' . $redirect_page;
+                break;
+            case 'inspector':
+                // If redirecting to the same page would cause a loop, log the user out.
+                if ($current_page === $redirect_page) {
+                    header('Location: ' . $base_path . 'admin/admin_logout.php');
+                    exit;
+                }
+                $redirect_url = $base_path . 'inspector/' . $redirect_page;
+                break;
+            default: // admin, super_admin, guest
+                $redirect_url = $base_path . 'admin/' . $redirect_page;
+        }
+        
+        header('Location: ' . $redirect_url . '?error=access_denied');
+        exit;
+    }
 }
 ?>

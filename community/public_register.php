@@ -10,34 +10,27 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db = $database->getConnection();
-$user = new User($db);
+$db_core = $database->getConnection(Database::DB_CORE);
+$user = new User($db_core);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->name = $_POST['name'];
     $user->email = $_POST['email'];
     $user->password = $_POST['password'];
-    $user->role = $_POST['role'];
-    $user->department = $_POST['department'] ?? '';
-    
-    // Set certification based on role
-    switch ($_POST['role']) {
-        case 'business_owner':
-            $user->certification = 'Business Owner';
-            break;
-        case 'community_user':
-            $user->certification = 'Community User';
-            break;
-        default:
-            $user->certification = 'User';
-    }
+    $user->role = 'community_user'; // Automatically set role
+    $user->department = null; // No department for community users
+    $user->certification = 'Community User'; // Automatically set certification
 
-    if ($user->create()) {
-        $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
-        $success_message = "$role_name account created successfully! You can now login.";
+    // Check if email already exists before trying to create
+    if ($user->emailExists()) {
+        $error_message = "An account with this email already exists. Please use a different email or try logging in.";
     } else {
-        $error_message = "Failed to create account. Email might already exist.";
+        if ($user->create()) {
+            $success_message = "Community account created successfully! You can now login.";
+        } else {
+            $error_message = "Failed to create account. Please try again.";
+        }
     }
 }
 ?>
@@ -46,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public Registration - Digital Health & Safety Inspection Platform</title>
+    <title>Community Registration - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -77,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="flex items-center justify-center mb-4">
                 <i class="fas fa-building text-4xl logo"></i>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Business & Community Registration</h1>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Community Registration</h1>
             <p class="text-gray-600">Digital Inspection Platform</p>
         </div>
 
@@ -96,15 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <form method="POST" class="space-y-6" id="registerForm">
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
-                <select name="role" id="role" required 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200">
-                    <option value="business_owner">Business Owner</option>
-                    <option value="community_user">Community User</option>
-                </select>
-            </div>
-
             <div>
                 <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                 <div class="relative">
@@ -126,18 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <input type="email" name="email" id="email" required 
                            class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
                            placeholder="Enter your email">
-                </div>
-            </div>
-
-            <div>
-                <label for="department" class="block text-sm font-medium text-gray-700 mb-2">Business/Organization (Optional)</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-building text-gray-400"></i>
-                    </div>
-                    <input type="text" name="department" id="department" 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter business or organization name">
                 </div>
             </div>
 
@@ -174,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="mt-6 text-center">
             <p class="text-gray-600">Already have an account? 
-                <a href="public_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
+                <a href="../main_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
             </p>
         </div>
 
