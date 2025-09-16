@@ -1,7 +1,6 @@
 <?php
 // The session_manager will start the session
 require_once 'utils/session_manager.php';
-require_once 'config/database.php';
 require_once 'models/Auth.php';
 
 // If user is already logged in (e.g., via session or "remember me" cookie), redirect them.
@@ -26,7 +25,6 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-$database = new Database();
 $auth = new Auth($database);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

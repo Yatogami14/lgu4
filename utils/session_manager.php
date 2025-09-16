@@ -4,11 +4,8 @@ require_once dirname(__DIR__) . '/config/database.php';
 require_once dirname(__DIR__) . '/utils/DatabaseSessionHandler.php';
 
 $database = new Database();
-// The session handler and user "remember me" functionality both use the core database.
-// We must explicitly get the connection for the core database.
-$db_core = $database->getConnection(Database::DB_CORE);
 
-$handler = new DatabaseSessionHandler($db_core);
+$handler = new DatabaseSessionHandler($database);
 session_set_save_handler($handler, true);
 
 if (session_status() === PHP_SESSION_NONE) {
