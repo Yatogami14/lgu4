@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // The session_manager will start the session
 require_once 'utils/session_manager.php';
 require_once 'models/Auth.php';

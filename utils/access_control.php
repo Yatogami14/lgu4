@@ -38,14 +38,19 @@ function requirePermission($permission, $redirect_page = 'index.php') {
     $role = $_SESSION['user_role'] ?? 'guest';
     $current_path = $_SERVER['SCRIPT_NAME'];
 
+    // Allow access to main_login.php without permission check
+    if (basename($current_path) === 'main_login.php') {
+        return;
+    }
+
     // Prevent inspectors from accessing the /admin/ area directly.
     if (strpos($current_path, '/admin/') !== false && $role === 'inspector') {
-        header('Location: /lgu4/inspector/index.php?error=access_denied');
+        header('Location: /inspector/index.php?error=access_denied');
         exit;
     }
     if (!currentUserHasPermission($permission)) {
         $current_page = basename($_SERVER['PHP_SELF']);
-        $base_path = '/lgu4/';
+        $base_path = '/';
         switch ($role) {
             case 'business_owner':
                 $redirect_url = $base_path . 'business/' . $redirect_page;

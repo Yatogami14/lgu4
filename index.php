@@ -12,7 +12,7 @@
         }
         .hero-bg {
             background-color: #f8fafc;
-            background-image: 
+            background-image:
                 linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)),
                 url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop');
             background-size: cover;
