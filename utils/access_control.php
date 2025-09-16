@@ -6,11 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 const ROLE_PERMISSIONS = [
     'super_admin' => [
         'dashboard', 'inspections', 'businesses', 'user_management', 'analytics', 
-        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections', 'checklist_management', 'inspection_types_management'
+        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections', 'checklist_management', 'inspection_types_management', 'inspectors'
     ],
     'admin' => [
         'dashboard', 'inspections', 'businesses', 'user_management', 'analytics', 
-        'violations', 'profile', 'schedule', 'assigned_inspections', 'checklist_management', 'inspection_types_management'
+        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections', 'checklist_management', 'inspection_types_management', 'inspectors'
     ],
     'inspector' => [
         'dashboard', 'assigned_inspections', 'profile', 'violations', 'inspections', 'businesses'
