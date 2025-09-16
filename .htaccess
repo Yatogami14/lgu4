@@ -40,3 +40,8 @@ RewriteRule ^vendor/ - [F,L]
 
 # Rewrite index.html to index.php
 RewriteRule ^index\.html$ index.php [L]
+
+# Allow access to main_login.php
+<Files "main_login.php">
+    Require all granted
+</Files>
