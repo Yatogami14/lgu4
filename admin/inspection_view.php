@@ -280,36 +280,45 @@ function getSeverityTextColor($severity) {
                             </div>
                             <div class="p-4">
                                 <p class="text-xs text-gray-500 truncate mb-3" title="<?php echo htmlspecialchars($media['filename']); ?>"><?php echo htmlspecialchars($media['filename']); ?></p>
-                                <?php if ($media_analysis): ?>
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="font-medium text-sm <?php echo getComplianceColor($media_analysis['compliance']); ?>">AI: <?php echo formatComplianceText($media_analysis['compliance']); ?></span>
-                                        <span class="px-2 py-1 <?php echo getComplianceBgColor($media_analysis['compliance']); ?> <?php echo getComplianceColor($media_analysis['compliance']); ?> text-xs rounded"><?php echo round(($media_analysis['confidence'] ?? 0) * 100); ?>% conf.</span>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div>
-                                            <p class="text-xs font-medium">Positive Observations:</p>
-                                            <?php if (!empty($media_analysis['positive_observations'])): ?>
-                                                <ul class="text-xs list-disc ml-4 text-green-700">
-                                                    <?php foreach ($media_analysis['positive_observations'] as $obs): ?>
-                                                        <li><?php echo htmlspecialchars($obs); ?></li>
-                                                    <?php endforeach; ?>
-                                                </ul>
-                                            <?php else: ?>
-                                                <p class="text-xs text-gray-600">None noted.</p>
+                                <?php if ($media_analysis):
+                                    if (isset($media_analysis['compliance']) && $media_analysis['compliance'] === 'error'): ?>
+                                        <div class="bg-red-50 border border-red-200 rounded-md p-3 text-xs text-red-700">
+                                            <p class="font-bold"><i class="fas fa-exclamation-triangle mr-1"></i> AI Analysis Failed</p>
+                                            <?php if (!empty($media_analysis['hazards'])): ?>
+                                                <p class="mt-1"><?php echo htmlspecialchars(str_replace('AI Vision API Error: ', '', $media_analysis['hazards'][0])); ?></p>
                                             <?php endif; ?>
                                         </div>
-                                        <div>
-                                            <p class="text-xs font-medium">Detected Hazards:</p>
-                                            <?php if (!empty($media_analysis['hazards'])): ?>
-                                                <ul class="text-xs list-disc ml-4 text-red-700">
-                                                    <?php foreach ($media_analysis['hazards'] as $hazard): ?>
-                                                        <li><?php echo htmlspecialchars($hazard); ?></li>
-                                                    <?php endforeach; ?>
-                                                </ul>
-                                            <?php else: ?>
-                                                <p class="text-xs text-gray-600">None detected.</p>
-                                            <?php endif; ?>
-                                    </div>
+                                    <?php else: ?>
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="font-medium text-sm <?php echo getComplianceColor($media_analysis['compliance']); ?>">AI: <?php echo formatComplianceText($media_analysis['compliance']); ?></span>
+                                            <span class="px-2 py-1 <?php echo getComplianceBgColor($media_analysis['compliance']); ?> <?php echo getComplianceColor($media_analysis['compliance']); ?> text-xs rounded"><?php echo round(($media_analysis['confidence'] ?? 0) * 100); ?>% conf.</span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div>
+                                                <p class="text-xs font-medium">Positive Observations:</p>
+                                                <?php if (!empty($media_analysis['positive_observations'])): ?>
+                                                    <ul class="text-xs list-disc ml-4 text-green-700">
+                                                        <?php foreach ($media_analysis['positive_observations'] as $obs): ?>
+                                                            <li><?php echo htmlspecialchars($obs); ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                <?php else: ?>
+                                                    <p class="text-xs text-gray-600">None noted.</p>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-medium">Detected Hazards:</p>
+                                                <?php if (!empty($media_analysis['hazards'])): ?>
+                                                    <ul class="text-xs list-disc ml-4 text-red-700">
+                                                        <?php foreach ($media_analysis['hazards'] as $hazard): ?>
+                                                            <li><?php echo htmlspecialchars($hazard); ?></li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                <?php else: ?>
+                                                    <p class="text-xs text-gray-600">None detected.</p>
+                                                <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <div class="bg-gray-100 p-3 rounded-md border text-center text-xs text-gray-500">
                                         <i class="fas fa-camera-slash mr-1"></i>No AI analysis available.

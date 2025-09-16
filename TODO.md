@@ -1,0 +1,3 @@
+- [ ] Update text model from 'gemini-pro' to 'gemini-1.5-flash' in utils/ai_analyzer.php
+- [ ] Update vision model from 'gemini-pro-vision' to 'gemini-1.5-pro' in utils/ai_analyzer.php
+- [ ] Test the API functionality after updates

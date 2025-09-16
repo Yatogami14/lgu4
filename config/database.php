@@ -1,8 +1,8 @@
 <?php
 class Database {
-    private $host = 'localhost:3307';
-    private $username = 'root';
-    private $password = '';
+    private $host = 'localhost';
+    private $username = 'hsi_lgu_checklist_assessment';
+    private $password = 'Admin123';
     private $connections = [];
 
     // Define database names as constants for easy reference and consistency

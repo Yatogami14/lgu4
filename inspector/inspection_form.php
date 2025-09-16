@@ -419,10 +419,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Inspector Notes</label>
-                    <textarea name="inspection_notes" rows="4" 
+                    <label for="inspection_notes_textarea" class="block text-sm font-medium text-gray-700">Inspector Notes</label>
+                    <textarea name="inspection_notes" id="inspection_notes_textarea" rows="4" 
                               placeholder="Add final inspection notes and recommendations..." 
                               class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"><?php echo htmlspecialchars($inspection_data['notes'] ?? ''); ?></textarea>
+                    <!-- AI Analysis for Inspector Notes -->
+                    <div id="finalNotesAnalysis" class="bg-blue-50 border border-blue-200 rounded-md p-4 mt-2 hidden">
+                        <!-- Content will be injected by JS -->
+                        <p class="text-sm text-blue-800">AI analysis will appear here after you finish typing.</p>
+                    </div>
                 </div>
 
                 <input type="hidden" name="compliance_score" id="compliance_score_hidden" value="100">
@@ -574,6 +579,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             });
         });
+
+        // AI analysis for final inspector notes
+        const finalNotesTextarea = document.getElementById('inspection_notes_textarea');
+        if (finalNotesTextarea) {
+            finalNotesTextarea.addEventListener('blur', function() {
+                if (this.value.length > 10) {
+                    const analysisSection = document.getElementById('finalNotesAnalysis');
+                    const textToAnalyze = this.value;
+                    
+                    analysisSection.classList.remove('hidden');
+                    analysisSection.innerHTML = `
+                        <div class="flex items-center space-x-2 text-blue-600 mb-2">
+                            <i class="fas fa-bolt animate-pulse"></i>
+                            <span class="font-medium">AI Analyzing Final Notes...</span>
+                        </div>
+                    `;
+
+                    const formData = new FormData();
+                    formData.append('action', 'analyze_text');
+                    formData.append('text', textToAnalyze);
+
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) { throw new Error(data.error); }
+
+                        let suggestionsList = '';
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            suggestionsList = '<ul class="text-sm list-disc ml-4">' + data.suggestions.map(s => `<li>${s}</li>`).join('') + '</ul>';
+                        } else {
+                            suggestionsList = '<p class="text-sm">No suggestions provided.</p>';
+                        }
+
+                        let complianceColor = 'text-yellow-600', complianceBg = 'bg-yellow-100', complianceText = 'Needs Review';
+                        if (data.compliance === 'compliant') { complianceColor = 'text-green-600'; complianceBg = 'bg-green-100'; complianceText = 'Compliant'; } 
+                        else if (data.compliance === 'non_compliant') { complianceColor = 'text-red-600'; complianceBg = 'bg-red-100'; complianceText = 'Non-Compliant'; }
+                        else if (data.compliance === 'error') { complianceColor = 'text-red-600'; complianceBg = 'bg-red-100'; complianceText = 'Analysis Error'; }
+                        
+                        analysisSection.innerHTML = `
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-medium ${complianceColor}">AI Analysis: ${complianceText}</span>
+                                <span class="px-2 py-1 ${complianceBg} ${complianceColor.replace('600', '800')} text-xs rounded">${Math.round(data.confidence * 100)}% confidence</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Suggestions:</p>
+                                ${suggestionsList}
+                            </div>
+                        `;
+                    })
+                    .catch(error => {
+                        console.error('Error during final notes AI analysis:', error);
+                        analysisSection.innerHTML = `<div class="flex items-center space-x-2 text-red-600 mb-2"><i class="fas fa-exclamation-triangle"></i><span class="font-medium">Analysis Failed</span></div><p class="text-sm text-red-800">${error.message}</p>`;
+                    });
+                }
+            });
+        }
 
         // Handle file upload and AI analysis
         document.getElementById('mediaUpload').addEventListener('change', function(e) {

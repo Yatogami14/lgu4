@@ -2,8 +2,10 @@
 
 class GeminiAnalyzer {
     private $apiKey;
-    private $modelUrl = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=';
-
+    private $textModel = 'gemini-1.5-flash'; // Stable model for text generation
+    private $visionModel = 'gemini-1.5-flash'; // Stable model for vision/multimodal tasks
+    private $baseUrl = 'https://generativelanguage.googleapis.com/v1/models/';
+ 
     public function __construct($apiKey) {
         $this->apiKey = $apiKey;
     }
@@ -16,7 +18,7 @@ class GeminiAnalyzer {
         $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following inspector's observation notes. Based on the text, determine the compliance status. The status must be one of: 'compliant', 'non_compliant', or 'needs_review'. Also provide a confidence score for your assessment (from 0.0 to 1.0) and up to two brief suggestions for the inspector.\n\nReturn your analysis ONLY as a valid JSON object with the keys: 'compliance', 'confidence', 'suggestions' (which should be an array of strings).\n\nInspector's notes: \"{$text}\"";
 
         $data = ['contents' => [['parts' => [['text' => $prompt]]]]];
-        $url = $this->modelUrl . $this->apiKey;
+        $url = $this->baseUrl . $this->textModel . ':generateContent?key=' . $this->apiKey;
 
         $response = $this->makeApiCall($url, $data);
 
@@ -67,20 +69,21 @@ class GeminiAnalyzer {
         $fileData = base64_encode(file_get_contents($filePath));
         $mimeType = mime_content_type($filePath);
 
-        $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following image for potential safety hazards and positive compliance observations.
-Identify up to three specific hazards you see. Examples of hazards include 'blocked fire exit', 'spill on floor', 'improperly stored chemicals', 'missing safety gear', 'exposed wiring'.
-Also, identify up to two positive compliance observations. Examples of positive observations include 'clear and unobstructed walkways', 'fire extinguisher is properly mounted and accessible', 'employees wearing appropriate PPE'.
-Based on the findings, determine a general compliance status: 'compliant', 'non_compliant', or 'needs_review'.
+        $prompt = "You are an AI assistant for a health and safety inspection platform. Your task is to provide a balanced analysis of the provided image, looking for both safety hazards and positive compliance observations.
+
+1.  **Positive Observations (Crucial):** First, identify up to two positive compliance observations. It is very important to find positive aspects. If no obvious positive actions are visible, comment on things that are correctly in place (e.g., 'Floor appears clean and dry', 'Area is well-lit', 'No visible obstructions').
+2.  **Detected Hazards:** Next, identify up to three specific safety hazards. Examples include 'blocked fire exit', 'spill on floor', 'improperly stored chemicals', 'missing safety gear', 'exposed wiring'.
+3.  **Overall Assessment:** Based on your findings, determine a general compliance status ('compliant', 'non_compliant', or 'needs_review') and a confidence score (0.0 to 1.0).
 
 Return your analysis ONLY as a valid JSON object with the following keys:
-- 'hazards': an array of strings for detected hazards. Should be empty if none are found.
-- 'positive_observations': an array of strings for detected positive compliance signs. Should be empty if none are found.
+- 'positive_observations': An array of strings for detected positive compliance signs. This key MUST be present. If no positive items are found, return an empty array.
+- 'hazards': An array of strings for detected hazards. If no hazards are found, return an empty array.
+- 'compliance': The status string ('compliant', 'non_compliant', or 'needs_review').
 - 'confidence': a score from 0.0 to 1.0 for the overall assessment.
-- 'compliance': the status string ('compliant', 'non_compliant', or 'needs_review').
 
 Image for analysis is provided.";
         $data = ['contents' => [['parts' => [['text' => $prompt], ['inline_data' => ['mime_type' => $mimeType, 'data' => $fileData]]]]]];
-        $url = $this->modelUrl . $this->apiKey;
+        $url = $this->baseUrl . $this->visionModel . ':generateContent?key=' . $this->apiKey;
 
         $response = $this->makeApiCall($url, $data);
 
