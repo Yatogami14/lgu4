@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../models/Inspection.php';
 require_once '../models/Notification.php';
 require_once '../models/Business.php';
+require_once '../models/InspectionType.php';
 
 // Check if user is logged in and is a business owner
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'business_owner') {
@@ -13,23 +14,20 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] != 'business_owner') 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $business_id = $_POST['business_id'] ?? null;
-    $inspection_type = $_POST['inspection_type'] ?? null;
+    $inspection_type_id = $_POST['inspection_type_id'] ?? null;
     $preferred_date = $_POST['preferred_date'] ?? null;
     $notes = $_POST['notes'] ?? '';
 
-    if (!$business_id || !$inspection_type || !$preferred_date) {
+    if (!$business_id || !$inspection_type_id || !$preferred_date) {
         $_SESSION['error'] = 'Please fill in all required fields.';
         header('Location: index.php');
         exit;
     }
 
     $database = new Database();
-    $db_core = $database->getConnection(Database::DB_CORE);
-    $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-    $db_reports = $database->getConnection(Database::DB_REPORTS);
 
     // Validate that the business belongs to the current user
-    $business = new Business($db_core);
+    $business = new Business($database);
     $business->id = $business_id;
     $business->readOne();
 
@@ -39,21 +37,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $inspection = new Inspection($db_scheduling);
-    $notification = new Notification($db_reports);
+    $inspection = new Inspection($database);
+    $notification = new Notification($database);
 
     // Create new inspection request
     $inspection->business_id = $business_id;
-    $inspection->inspection_type = $inspection_type;
+    $inspection->inspection_type_id = $inspection_type_id;
     $inspection->scheduled_date = $preferred_date;
     $inspection->status = 'requested';
     $inspection->notes = $notes;
-    $inspection->created_by = $_SESSION['user_id'];
 
     if ($inspection->create()) {
+        // Fetch inspection type name for the notification message
+        $inspectionType = new InspectionType($database);
+        $inspectionType->id = $inspection_type_id;
+        $typeData = $inspectionType->readOne();
+        $inspection_type_name = $typeData['name'] ?? 'Unknown Type';
+
         // Create notification for business owner
         $notification->user_id = $_SESSION['user_id'];
-        $notification->message = "Inspection request for {$inspection_type} on {$preferred_date} has been submitted.";
+        $notification->message = "Inspection request for {$inspection_type_name} on {$preferred_date} has been submitted.";
         $notification->type = 'info';
         $notification->related_entity_type = 'inspection';
         $notification->related_entity_id = $inspection->id;

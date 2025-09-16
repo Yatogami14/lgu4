@@ -10,21 +10,19 @@ require_once '../utils/access_control.php';
 requirePermission('violations');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
 // Get current user
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // Get businesses owned by the current user
-$businessModel = new Business($db_core);
-$owned_businesses = $businessModel->readByOwnerId($user->id);
-$business_ids = array_map(fn($b) => $b['id'], $owned_businesses);
+$businessModel = new Business($database);
+$owned_businesses_stmt = $businessModel->readByOwnerId($user->id);
+$business_ids = array_column($owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC), 'id');
 
 // Get violations for the owned businesses
-$violationModel = new Violation($db_violations);
+$violationModel = new Violation($database);
 $violations = [];
 $violationStats = ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
 

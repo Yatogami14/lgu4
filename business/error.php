@@ -10,10 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
-$user->id = $_SESSION['user_id'];
-$user->readOne();
 
 // Get error message from URL
 $error_message = isset($_GET['message']) ? htmlspecialchars($_GET['message']) : 'An error occurred';

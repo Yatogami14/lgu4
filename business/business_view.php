@@ -13,17 +13,10 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
 requirePermission('businesses');
 
-$user = new User($db_core);
-$user->id = $_SESSION['user_id'];
-$user->readOne();
-
-$business = new Business($db_core);
-$inspection = new Inspection($db_scheduling);
+$business = new Business($database);
 
 // Get business ID from URL
 $business_id = isset($_GET['id']) ? $_GET['id'] : null;
@@ -39,8 +32,8 @@ $business_data = $business->readOne();
 
 // Security Check: Ensure business owner can only see their own business details
 if ($_SESSION['user_role'] === 'business_owner') {
-    $owned_businesses = $business->readByOwnerId($_SESSION['user_id']);
-    $owned_business_ids = array_column($owned_businesses, 'id');
+    $owned_businesses_stmt = $business->readByOwnerId($_SESSION['user_id']);
+    $owned_business_ids = array_column($owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC), 'id');
     if (!in_array($business_id, $owned_business_ids)) {
         header('Location: index.php?error=Access Denied');
         exit;

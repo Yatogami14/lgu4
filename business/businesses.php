@@ -9,16 +9,16 @@ require_once '../utils/access_control.php';
 requirePermission('businesses');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
 
 // Get current user
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // Get businesses owned by the current user
-$businessModel = new Business($db_core);
-$owned_businesses = $businessModel->readByOwnerId($user->id);
+$businessModel = new Business($database);
+$owned_businesses_stmt = $businessModel->readByOwnerId($user->id);
+$owned_businesses = $owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 <!DOCTYPE html>
@@ -54,13 +54,13 @@ $owned_businesses = $businessModel->readByOwnerId($user->id);
                     <?php if (empty($owned_businesses)): ?>
                         <tr><td colspan="5" class="text-center py-10 text-gray-500">You have not been assigned to any businesses.</td></tr>
                     <?php else: ?>
-                        <?php foreach ($owned_businesses as $business): ?>
+                        <?php foreach ($owned_businesses as $business_row): ?>
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($business['name']); ?></div></td>
-                            <td class="px-6 py-4"><div class="text-sm text-gray-900"><?php echo htmlspecialchars($business['address']); ?></div></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($business['business_type']); ?></td>
-                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-bold <?php echo ($business['compliance_score'] ?? 0) >= 80 ? 'text-green-600' : 'text-red-600'; ?>"><?php echo ($business['compliance_score'] ?? 'N/A'); ?>%</span></td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="business_view.php?id=<?php echo $business['id']; ?>" class="text-blue-600 hover:text-blue-900"><i class="fas fa-eye"></i> View Details</a></td>
+                            <td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($business_row['name']); ?></div></td>
+                            <td class="px-6 py-4"><div class="text-sm text-gray-900"><?php echo htmlspecialchars($business_row['address']); ?></div></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($business_row['business_type']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-bold <?php echo ($business_row['compliance_score'] ?? 0) >= 80 ? 'text-green-600' : 'text-red-600'; ?>"><?php echo ($business_row['compliance_score'] ?? 'N/A'); ?>%</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><a href="business_view.php?id=<?php echo $business_row['id']; ?>" class="text-blue-600 hover:text-blue-900"><i class="fas fa-eye"></i> View Details</a></td>
                         </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

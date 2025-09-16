@@ -15,11 +15,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_media = $database->getConnection(Database::DB_MEDIA);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
-
 
 // Get inspection ID from URL
 $inspection_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -29,7 +24,7 @@ if ($inspection_id <= 0) {
 }
 
 // Fetch inspection details
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $inspection->id = $inspection_id;
 $inspection_data = $inspection->readOne();
 
@@ -40,9 +35,9 @@ if (!$inspection_data) {
 
 // Security Check: Ensure business owner can only see their own inspections
 if ($_SESSION['user_role'] === 'business_owner') {
-    $business = new Business($db_core);
-    $user_businesses = $business->readByOwnerId($_SESSION['user_id']);
-    $owned_business_ids = array_column($user_businesses, 'id');
+    $business = new Business($database);
+    $user_businesses_stmt = $business->readByOwnerId($_SESSION['user_id']);
+    $owned_business_ids = array_column($user_businesses_stmt->fetchAll(PDO::FETCH_ASSOC), 'id');
     if (!in_array($inspection_data['business_id'], $owned_business_ids)) {
         header('Location: index.php?error=Access Denied');
         exit;
@@ -50,12 +45,12 @@ if ($_SESSION['user_role'] === 'business_owner') {
 }
 
 // Fetch associated media
-$media_model = new InspectionMedia($db_media);
+$media_model = new InspectionMedia($database);
 $media_files_stmt = $media_model->readByInspectionId($inspection_id);
 $media_files = $media_files_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch associated violations
-$violation_model = new Violation($db_violations);
+$violation_model = new Violation($database);
 $violations_stmt = $violation_model->readByInspectionId($inspection_id);
 $violations = $violations_stmt->fetchAll(PDO::FETCH_ASSOC);
 
