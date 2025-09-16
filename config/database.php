@@ -12,7 +12,7 @@ if (!class_exists('Database')) {
 
         private $connections = [];
         private $config = [
-            'ird' => [ // DB_CHECKLIST
+            'hsi_lgu_checklist_assessment' => [ // DB_CHECKLIST
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_checklist_assessment',
                 'username' => 'hsi_lgu_checklist_assessment',
@@ -24,25 +24,25 @@ if (!class_exists('Database')) {
                 'username' => 'hsi_lgu_core',
                 'password' => 'Admin123'
             ],
-            'ficr' => [ // DB_SCHEDULING
+            'hsi_lgu_inspection_scheduling' => [ // DB_SCHEDULING
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_inspection_scheduling',
                 'username' => 'hsi_lgu_inspection_scheduling',
                 'password' => 'Admin123'
             ],
-            'fsiet' => [ // DB_MEDIA
+            'hsi_lgu_media_uploads' => [ // DB_MEDIA
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_media_uploads',
                 'username' => 'hsi_lgu_media_uploads',
                 'password' => 'Admin123'
             ],
-            'hwrm' => [ // DB_REPORTS
+            'hsi_lgu_reports_notifications' => [ // DB_REPORTS
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_reports_notifications',
                 'username' => 'hsi_lgu_reports_notifications',
                 'password' => 'Admin123'
             ],
-            'piar' => [ // DB_VIOLATIONS
+            'hsi_lgu_violations_ticketing' => [ // DB_VIOLATIONS
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_violations_ticketing',
                 'username' => 'hsi_lgu_violations_ticketing',
