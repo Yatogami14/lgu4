@@ -1,13 +1,12 @@
 <?php
 class Database {
     private $host = 'localhost';
-    private $username = 'hsi_lgu_core';
+    private $username = 'hsi_lgu_inspection_scheduling';
     private $password = 'Admin123';
     private $connections = [];
 
     // Define database names as constants for easy reference and consistency
-    const DB_CORE = 'hsi_lgu_core';
-
+    const DB_SCHEDULING = 'lgu_inspection_scheduling';
 
     /**
      * Gets a PDO database connection for a specific submodule database.
