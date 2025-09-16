@@ -12,7 +12,7 @@
 
 # Turn on the rewrite engine
 RewriteEngine On
-RewriteBase /
+RewriteBase /lgu4/
 
 # -------------------------------------------------------------------
 # SECURITY CONFIGURATION
