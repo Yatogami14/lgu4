@@ -3,12 +3,12 @@
 if (!class_exists('Database')) {
     class Database {
         // Constants for database keys, mapping to the config array below
-        const DB_CORE = 'frsm';
-        const DB_SCHEDULING = 'ficr';
-        const DB_MEDIA = 'fsiet';
-        const DB_VIOLATIONS = 'piar';
-        const DB_CHECKLIST = 'ird';
-        const DB_REPORTS = 'hwrm';
+        const DB_CORE = 'hsi_lgu_core';
+        const DB_SCHEDULING = 'hsi_lgu_inspection_scheduling';
+        const DB_MEDIA = 'hsi_lgu_media_uploads';
+        const DB_VIOLATIONS = 'hsi_lgu_violations_ticketing';
+        const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
+        const DB_REPORTS = 'hsi_lgu_reports_notifications';
 
         private $connections = [];
         private $config = [
@@ -18,7 +18,7 @@ if (!class_exists('Database')) {
                 'username' => 'hsi_lgu_checklist_assessment',
                 'password' => 'Admin123'
             ],
-            'frsm' => [ // DB_CORE
+            'hsi_lgu_core' => [ // DB_CORE
                 'host' => 'localhost',
                 'dbname' => 'hsi_lgu_core',
                 'username' => 'hsi_lgu_core',
