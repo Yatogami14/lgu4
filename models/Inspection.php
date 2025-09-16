@@ -1,7 +1,7 @@
 <?php
 class Inspection {
-    private $conn;
     private $table_name = "inspections";
+    private $database;
 
     public $id;
     public $business_id;
@@ -19,8 +19,8 @@ class Inspection {
     public $created_at;
     public $updated_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     // Create inspection
@@ -29,8 +29,6 @@ class Inspection {
                 SET business_id=:business_id, inspector_id=:inspector_id, 
                     inspection_type_id=:inspection_type_id, scheduled_date=:scheduled_date,
                     status=:status, priority=:priority, notes=:notes";
-
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize input
         $this->business_id = htmlspecialchars(strip_tags($this->business_id));
@@ -41,36 +39,36 @@ class Inspection {
         $this->priority = htmlspecialchars(strip_tags($this->priority));
         $this->notes = htmlspecialchars(strip_tags($this->notes));
 
-        // Bind parameters
-        $stmt->bindParam(":business_id", $this->business_id);
-        $stmt->bindParam(":inspector_id", $this->inspector_id, $this->inspector_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-        $stmt->bindParam(":inspection_type_id", $this->inspection_type_id);
-        $stmt->bindParam(":scheduled_date", $this->scheduled_date);
-        $stmt->bindParam(":status", $this->status);
-        $stmt->bindParam(":priority", $this->priority);
-        $stmt->bindParam(":notes", $this->notes);
+        $params = [
+            ":business_id" => $this->business_id,
+            ":inspector_id" => $this->inspector_id,
+            ":inspection_type_id" => $this->inspection_type_id,
+            ":scheduled_date" => $this->scheduled_date,
+            ":status" => $this->status,
+            ":priority" => $this->priority,
+            ":notes" => $this->notes,
+        ];
 
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_SCHEDULING, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Inspection creation failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Read single inspection
     public function readOne() {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.id = ? LIMIT 0,1";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$this->id]);
 
         if ($row) {
             $this->business_id = $row['business_id'] ?? null;
@@ -96,82 +94,60 @@ class Inspection {
     public function readAll() {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query);
     }
 
     // Read recent inspections
     public function readRecent($limit = 5) {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  ORDER BY i.updated_at DESC LIMIT ?";
+                  ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $inspections = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $inspections[] = $row;
-        }
-        return $inspections;
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query);
     }
 
     // Read all assigned inspections
     public function readAllAssigned() {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.inspector_id IS NOT NULL
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query);
     }
 
     // Get upcoming inspections
     public function readUpcoming($limit = 5) {
         $query = "SELECT i.*, b.name as business_name, it.name as inspection_type
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   WHERE i.status = 'scheduled' AND i.scheduled_date >= CURDATE()
-                  ORDER BY i.scheduled_date ASC LIMIT ?";
+                  ORDER BY i.scheduled_date ASC LIMIT " . (int)$limit;
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $inspections = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $inspections[] = $row;
-        }
-        return $inspections;
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query);
     }
 
     // Update inspection
-    public function update($db_core) {
+    public function update() {
         $query = "UPDATE " . $this->table_name . "
                 SET completed_date=:completed_date, status=:status, compliance_score=:compliance_score, total_violations=:total_violations, 
                     notes=:notes, notes_ai_analysis=:notes_ai_analysis, draft_data = NULL
                 WHERE id=:id";
-
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize input
         // If status is 'completed' and completed_date is not set, set it to now.
@@ -186,27 +162,31 @@ class Inspection {
         // notes_ai_analysis is JSON, so we don't use strip_tags
         $this->notes_ai_analysis = !empty($this->notes_ai_analysis) ? $this->notes_ai_analysis : null;
         $this->id = htmlspecialchars(strip_tags($this->id));
+        
+        $params = [
+            ":completed_date" => $this->completed_date,
+            ":status" => $this->status,
+            ":compliance_score" => $this->compliance_score,
+            ":total_violations" => $this->total_violations,
+            ":notes" => $this->notes,
+            ":notes_ai_analysis" => $this->notes_ai_analysis,
+            ":id" => $this->id,
+        ];
 
-        // Bind parameters
-        $stmt->bindParam(":completed_date", $this->completed_date);
-        $stmt->bindParam(":status", $this->status);
-        $stmt->bindParam(":compliance_score", $this->compliance_score);
-        $stmt->bindParam(":total_violations", $this->total_violations);
-        $stmt->bindParam(":notes", $this->notes);
-        $stmt->bindParam(":notes_ai_analysis", $this->notes_ai_analysis);
-        $stmt->bindParam(":id", $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_SCHEDULING, $query, $params);
             // If the inspection is marked as completed, trigger an update on the parent business's compliance status.
             if ($this->status === 'completed' && $this->business_id) {
                 require_once 'Business.php';
-                $business = new Business($db_core);
+                $business = new Business($this->database);
                 $business->id = $this->business_id;
                 $business->updateComplianceStatus();
             }
             return true;
+        } catch (PDOException $e) {
+            error_log("Inspection update failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Save inspection draft
@@ -217,34 +197,35 @@ class Inspection {
                       status = 'in_progress'
                   WHERE id = :id";
         
-        $stmt = $this->conn->prepare($query);
-
         // Sanitize
         $notes = htmlspecialchars(strip_tags($notes));
         $this->id = htmlspecialchars(strip_tags($this->id));
         
-        // Bind
-        $stmt->bindParam(':draft_data', $draftData);
-        $stmt->bindParam(':notes', $notes);
-        $stmt->bindParam(':id', $this->id);
+        $params = [
+            ':draft_data' => $draftData,
+            ':notes' => $notes,
+            ':id' => $this->id,
+        ];
 
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_SCHEDULING, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Draft saving failed: " . $e->getMessage());
+            return false;
         }
-        error_log("Draft saving failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 
     // Delete inspection
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_SCHEDULING, $query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Inspection deletion failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Assign inspector to inspection
@@ -253,31 +234,29 @@ class Inspection {
                 SET inspector_id=:inspector_id, updated_at=NOW()
                 WHERE id=:id";
 
-        $stmt = $this->conn->prepare($query);
-
         // Sanitize input
         $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
         $this->id = htmlspecialchars(strip_tags($this->id));
 
-        // Bind parameters
-        $stmt->bindParam(":inspector_id", $this->inspector_id);
-        $stmt->bindParam(":id", $this->id);
+        $params = [
+            ":inspector_id" => $this->inspector_id,
+            ":id" => $this->id,
+        ];
 
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_SCHEDULING, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Inspection->assignInspector failed: " . $e->getMessage());
+            return false;
         }
-
-        error_log("Inspection->assignInspector failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 
     // Count all inspections
     public function countAll() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row['count'];
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query);
+        return $row['count'] ?? 0;
     }
 
     /**
@@ -291,12 +270,7 @@ class Inspection {
         }
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE business_id IN (" . $in_clause . ")";
-        $stmt = $this->conn->prepare($query);
-        foreach ($business_ids as $k => $id) {
-            $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
-        }
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, $business_ids);
         return $row['count'] ?? 0;
     }
 
@@ -311,30 +285,23 @@ class Inspection {
         }
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT AVG(compliance_score) as average FROM " . $this->table_name . " WHERE compliance_score IS NOT NULL AND business_id IN (" . $in_clause . ")";
-        $stmt = $this->conn->prepare($query);
-        foreach ($business_ids as $k => $id) {
-            $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
-        }
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, $business_ids);
         return $row['average'] ? round($row['average']) : 0;
     }
 
     // Count active violations
     public function countActiveViolations() {
         $query = "SELECT COUNT(*) as count FROM " . Database::DB_VIOLATIONS . ".violations WHERE status IN ('open', 'in_progress')";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row['count'];
+        // This query targets a different DB, so we need a connection to it.
+        // The database manager handles this. We just need to specify the DB.
+        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query);
+        return $row['count'] ?? 0;
     }
 
     // Get average compliance score
     public function getAverageCompliance() {
         $query = "SELECT AVG(compliance_score) as average FROM " . $this->table_name . " WHERE compliance_score IS NOT NULL";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query);
         return $row['average'] ? round($row['average']) : 0;
     }
 
@@ -342,69 +309,52 @@ class Inspection {
     public function readByStatus($status) {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.status = ?
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $status);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query, [$status]);
     }
 
     // Get inspections by inspector
     public function readByInspector($inspector_id) {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.inspector_id = ?
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $inspector_id);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query, [$inspector_id]);
     }
 
     // Get inspections by user ID
     public function readByUserId($user_id, $limit = 5) {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, it.name as inspection_type
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   WHERE i.inspector_id = ?
-                  ORDER BY i.scheduled_date DESC LIMIT ?";
+                  ORDER BY i.scheduled_date DESC LIMIT " . (int)$limit;
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $user_id);
-        $stmt->bindParam(2, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $inspections = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $inspections[] = $row;
-        }
-        return $inspections;
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$user_id]);
     }
 
     // Get available inspections (not assigned to any inspector)
     public function getAvailableInspections() {
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, it.name as inspection_type
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   WHERE i.inspector_id IS NULL OR i.inspector_id = ''
                   ORDER BY i.scheduled_date ASC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query);
     }
 
     // Get inspection counts by status
@@ -415,9 +365,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   GROUP BY status";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-
+        $stmt = $this->database->query(Database::DB_SCHEDULING, $query);
         $stats = [
             'scheduled' => 0,
             'in_progress' => 0,
@@ -438,15 +386,12 @@ class Inspection {
     // Get inspections by business ID
     public function readByBusinessId($business_id) {
         $query = "SELECT i.id, i.scheduled_date, it.name as inspection_type
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   WHERE i.business_id = ?
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_SCHEDULING, $query, [$business_id]);
     }
 
     // Get inspections by a list of business IDs
@@ -458,21 +403,14 @@ class Inspection {
         
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.business_id IN (" . $in_clause . ")
                   ORDER BY i.scheduled_date DESC";
 
-        $stmt = $this->conn->prepare($query);
-        
-        foreach ($business_ids as $k => $id) {
-            $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
-        }
-
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
     }
 
     /**
@@ -485,10 +423,7 @@ class Inspection {
                   WHERE business_id = ? AND (inspector_id IS NULL OR inspector_id = 0 OR inspector_id = '')
                   ORDER BY scheduled_date ASC
                   LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
     }
 
     /**
@@ -500,10 +435,7 @@ class Inspection {
         $query = "SELECT id FROM " . $this->table_name . " 
                   WHERE business_id = ? AND (inspector_id IS NULL OR inspector_id = 0 OR inspector_id = '')
                   ORDER BY scheduled_date ASC";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id]);
     }
 
     /**
@@ -529,10 +461,8 @@ class Inspection {
                   GROUP BY DATE(completed_date)
                   ORDER BY DATE(completed_date) ASC";
 
-        $stmt = $this->conn->prepare($query);
         $params = array_merge([$days], $business_ids);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $params);
     }
 
     /**
@@ -548,17 +478,14 @@ class Inspection {
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
                          it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
+                  FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
                   LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.business_id IN (" . $in_clause . ")
                   ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
 
-        $stmt = $this->conn->prepare($query);
-        
-        $stmt->execute($business_ids);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
     }
 
     /**
@@ -577,10 +504,7 @@ class Inspection {
                   GROUP BY DATE(completed_date)
                   ORDER BY DATE(completed_date) ASC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':days', $days, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [':days' => $days]);
     }
 }
 ?>

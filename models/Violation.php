@@ -1,6 +1,6 @@
 <?php
 class Violation {
-    private $conn;
+    private $database;
     private $table_name = "violations";
 
     public $id;
@@ -18,8 +18,8 @@ class Violation {
     public $created_at;
     public $updated_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     public function create() {
@@ -33,7 +33,8 @@ class Violation {
                     due_date = :due_date,
                     created_by = :created_by";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize
         $this->inspection_id = htmlspecialchars(strip_tags($this->inspection_id));
@@ -54,7 +55,7 @@ class Violation {
         $stmt->bindParam(":created_by", $this->created_by);
 
         if ($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
+            $this->id = $pdo->lastInsertId();
             return true;
         }
 
@@ -73,7 +74,8 @@ class Violation {
                 WHERE
                     id = :id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize
         $this->description = htmlspecialchars(strip_tags($this->description));
@@ -109,13 +111,14 @@ class Violation {
                   SET inspection_id = :inspection_id,
                       status = 'in_progress'
                   WHERE id = :id";
-        
-        $stmt = $this->conn->prepare($query);
+
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize
         $inspection_id = htmlspecialchars(strip_tags($inspection_id));
         $this->id = htmlspecialchars(strip_tags($this->id));
-        
+
         // Bind
         $stmt->bindParam(':inspection_id', $inspection_id, PDO::PARAM_INT);
         $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);

@@ -20,7 +20,7 @@ if (!isset($_GET['business_id']) || !is_numeric($_GET['business_id'])) {
 $database = new Database();
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $stmt = $inspection->readByBusinessId($_GET['business_id']);
 $inspections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

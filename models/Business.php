@@ -1,6 +1,6 @@
 <?php
 class Business {
-    private $conn;
+    private $database;
     private $table_name = "businesses";
 
     public $id;
@@ -21,8 +21,8 @@ class Business {
     public $created_at;
     public $updated_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     // Create business
@@ -30,8 +30,6 @@ class Business {
         $query = "INSERT INTO " . $this->table_name . "
                   SET name=:name, address=:address, owner_id=:owner_id, contact_number=:contact_number, 
                       email=:email, business_type=:business_type, registration_number=:registration_number";
-
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -42,35 +40,34 @@ class Business {
         $this->registration_number = htmlspecialchars(strip_tags($this->registration_number));
         $this->owner_id = !empty($this->owner_id) ? htmlspecialchars(strip_tags($this->owner_id)) : null;
 
-        // Bind parameters
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":address", $this->address);
-        $stmt->bindParam(":owner_id", $this->owner_id);
-        $stmt->bindParam(":contact_number", $this->contact_number);
-        $stmt->bindParam(":email", $this->email);
-        $stmt->bindParam(":business_type", $this->business_type);
-        $stmt->bindParam(":registration_number", $this->registration_number);
+        $params = [
+            ":name" => $this->name,
+            ":address" => $this->address,
+            ":owner_id" => $this->owner_id,
+            ":contact_number" => $this->contact_number,
+            ":email" => $this->email,
+            ":business_type" => $this->business_type,
+            ":registration_number" => $this->registration_number
+        ];
 
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_CORE, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Business creation failed: " . $e->getMessage());
+            return false;
         }
-        error_log("Business creation failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 
     // Read single business
     public function readOne() {
         $query = "SELECT b.*, u.name as owner_name, u.email as owner_email, ui.name as inspector_name
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
-                  LEFT JOIN " . Database::DB_CORE . ".users ui ON b.inspector_id = ui.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
+                  LEFT JOIN users ui ON b.inspector_id = ui.id
                   WHERE b.id = ? LIMIT 0,1";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$this->id]);
 
         if ($row) {
             $this->name = $row['name'] ?? null;
@@ -97,13 +94,11 @@ class Business {
     // Read all businesses
     public function readAll() {
         $query = "SELECT b.*, u.name as owner_name
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   ORDER BY b.created_at DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_CORE, $query);
     }
 
     /**
@@ -115,25 +110,16 @@ class Business {
         $query = "SELECT 
                     b.id, b.name, b.address, b.business_type, b.compliance_score
                   FROM " . $this->table_name . " b";
-
+        $params = [];
         if (!empty($search)) {
             $query .= " WHERE b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search";
+            $params[':search'] = "%" . htmlspecialchars(strip_tags($search)) . "%";
         }
 
-        $query .= " ORDER BY b.name ASC LIMIT :limit OFFSET :offset";
+        // PDO does not support binding for LIMIT/OFFSET, so we cast to int for safety.
+        $query .= " ORDER BY b.name ASC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
 
-        $stmt = $this->conn->prepare($query);
-
-        if (!empty($search)) {
-            $search_term = "%" . htmlspecialchars(strip_tags($search)) . "%";
-            $stmt->bindParam(':search', $search_term);
-        }
-
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
-
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_CORE, $query, $params);
     }
 
     /**
@@ -143,20 +129,13 @@ class Business {
      */
     public function countAllWithCompliance($search = '') {
         $query = "SELECT COUNT(b.id) as total_rows FROM " . $this->table_name . " b";
-
+        $params = [];
         if (!empty($search)) {
             $query .= " WHERE b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search";
+            $params[':search'] = "%" . htmlspecialchars(strip_tags($search)) . "%";
         }
 
-        $stmt = $this->conn->prepare($query);
-
-        if (!empty($search)) {
-            $search_term = "%" . htmlspecialchars(strip_tags($search)) . "%";
-            $stmt->bindParam(':search', $search_term);
-        }
-
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_CORE, $query, $params);
         return $row['total_rows'] ?? 0;
     }
 
@@ -170,8 +149,6 @@ class Business {
                     last_inspection_date=:last_inspection_date, next_inspection_date=:next_inspection_date,
                     is_compliant=:is_compliant, compliance_score=:compliance_score
                 WHERE id=:id";
-
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -189,39 +166,43 @@ class Business {
         $this->is_compliant = htmlspecialchars(strip_tags($this->is_compliant));
         $this->compliance_score = htmlspecialchars(strip_tags($this->compliance_score));
 
-        // Bind parameters
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":address", $this->address);
-        $stmt->bindParam(":owner_id", $this->owner_id);
-        $stmt->bindParam(":inspector_id", $this->inspector_id);
-        $stmt->bindParam(":contact_number", $this->contact_number);
-        $stmt->bindParam(":email", $this->email);
-        $stmt->bindParam(":business_type", $this->business_type);
-        $stmt->bindParam(":registration_number", $this->registration_number);
-        $stmt->bindParam(":establishment_date", $this->establishment_date);
-        $stmt->bindParam(":inspection_frequency", $this->inspection_frequency);
-        $stmt->bindParam(":last_inspection_date", $this->last_inspection_date);
-        $stmt->bindParam(":next_inspection_date", $this->next_inspection_date);
-        $stmt->bindParam(":is_compliant", $this->is_compliant);
-        $stmt->bindParam(":compliance_score", $this->compliance_score);
-        $stmt->bindParam(":id", $this->id);
+        $params = [
+            ':name' => $this->name,
+            ':address' => $this->address,
+            ':owner_id' => $this->owner_id,
+            ':inspector_id' => $this->inspector_id,
+            ':contact_number' => $this->contact_number,
+            ':email' => $this->email,
+            ':business_type' => $this->business_type,
+            ':registration_number' => $this->registration_number,
+            ':establishment_date' => $this->establishment_date,
+            ':inspection_frequency' => $this->inspection_frequency,
+            ':last_inspection_date' => $this->last_inspection_date,
+            ':next_inspection_date' => $this->next_inspection_date,
+            ':is_compliant' => $this->is_compliant,
+            ':compliance_score' => $this->compliance_score,
+            ':id' => $this->id
+        ];
 
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_CORE, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Business update failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Delete business
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_CORE, $query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Business deletion failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     /**
@@ -231,18 +212,23 @@ class Business {
      */
     public function assignInspector() {
         $query = "UPDATE " . $this->table_name . " SET inspector_id = :inspector_id WHERE id = :id";
-        
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize
         $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
         $this->id = htmlspecialchars(strip_tags($this->id));
 
-        // Bind
-        $stmt->bindParam(':inspector_id', $this->inspector_id);
-        $stmt->bindParam(':id', $this->id);
+        $params = [
+            ':inspector_id' => $this->inspector_id,
+            ':id' => $this->id
+        ];
 
-        return $stmt->execute();
+        try {
+            $this->database->query(Database::DB_CORE, $query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Assign inspector failed: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -252,20 +238,15 @@ class Business {
      */
     public function countAllForOwner($owner_id) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE owner_id = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $owner_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$owner_id]);
         return $row['count'] ?? 0;
     }
 
     // Count all businesses
     public function countAll() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row['count'];
+        $row = $this->database->fetch(Database::DB_CORE, $query);
+        return $row['count'] ?? 0;
     }
 
     // Get business statistics by risk
@@ -277,9 +258,7 @@ class Business {
                     SUM(CASE WHEN compliance_score >= 80 THEN 1 ELSE 0 END) as low_risk
                   FROM " . $this->table_name;
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats = $this->database->fetch(Database::DB_CORE, $query);
 
         // Ensure all keys exist even if SUM returns NULL
         $stats['total'] = $stats['total'] ?? 0;
@@ -298,46 +277,33 @@ class Business {
                   GROUP BY business_type 
                   ORDER BY count DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->database->fetchAll(Database::DB_CORE, $query);
     }
 
     // Search businesses
     public function search($keywords) {
         $query = "SELECT b.*, u.name as owner_name
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   WHERE b.name LIKE ? OR b.address LIKE ? OR b.business_type LIKE ?
                   ORDER BY b.created_at DESC";
-
-        $stmt = $this->conn->prepare($query);
 
         // Sanitize keywords
         $keywords = htmlspecialchars(strip_tags($keywords));
         $keywords = "%{$keywords}%";
 
-        // Bind parameters
-        $stmt->bindParam(1, $keywords);
-        $stmt->bindParam(2, $keywords);
-        $stmt->bindParam(3, $keywords);
-
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_CORE, $query, [$keywords, $keywords, $keywords]);
     }
 
     // Get businesses by type
     public function readByType($business_type) {
         $query = "SELECT b.*, u.name as owner_name
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   WHERE b.business_type = ?
                   ORDER BY b.created_at DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_type);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_CORE, $query, [$business_type]);
     }
 
     // Get compliance statistics for business
@@ -350,11 +316,7 @@ class Business {
                   FROM " . Database::DB_SCHEDULING . ".inspections 
                   WHERE business_id = ? AND compliance_score IS NOT NULL";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id);
-        $stmt->execute();
-
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
         
         // Format the results
         $stats['avg_compliance'] = $stats['avg_compliance'] ? round($stats['avg_compliance']) : 0;
@@ -372,12 +334,8 @@ class Business {
                   FROM " . Database::DB_VIOLATIONS . ".violations 
                   WHERE business_id = ? AND status IN ('open', 'in_progress')";
         
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
+
         return $row['active_violations_count'] ?? 0;
     }
 
@@ -391,35 +349,18 @@ class Business {
                   ORDER BY i.updated_at DESC
                   LIMIT ?";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id);
-        $stmt->bindParam(2, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $inspections = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $inspections[] = $row;
-        }
-        return $inspections;
+        return $this->database->fetchAll(Database::DB_CORE, $query, [$business_id, (int)$limit]);
     }
 
     // Get businesses by owner ID
     public function readByOwnerId($owner_id) {
         $query = "SELECT b.*, u.name as owner_name
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   WHERE b.owner_id = ?
                   ORDER BY b.created_at DESC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $owner_id);
-        $stmt->execute();
-
-        $businesses = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $businesses[] = $row;
-        }
-        return $businesses;
+        return $this->database->fetchAll(Database::DB_CORE, $query, [$owner_id]);
     }
 
     // Calculate next inspection date based on frequency
@@ -468,7 +409,7 @@ class Business {
     // Create inspection reminder notification
     public function createInspectionReminderNotification($days_before = 7) {
         require_once 'Notification.php';
-        $notification = new Notification($this->conn);
+        $notification = new Notification($this->database);
         
         $next_inspection = $this->next_inspection_date;
         $days_remaining = floor((strtotime($next_inspection) - time()) / (60 * 60 * 24));
@@ -495,10 +436,7 @@ class Business {
 
         // Get the most recent completed inspection date
         $query_last_date = "SELECT MAX(completed_date) as last_date FROM " . Database::DB_SCHEDULING . ".inspections WHERE business_id = ? AND status = 'completed'";
-        $stmt_last_date = $this->conn->prepare($query_last_date);
-        $stmt_last_date->bindParam(1, $this->id);
-        $stmt_last_date->execute();
-        $last_date_row = $stmt_last_date->fetch(PDO::FETCH_ASSOC);
+        $last_date_row = $this->database->fetch(Database::DB_CORE, $query_last_date, [$this->id]);
         $last_inspection_date = $last_date_row['last_date'] ?? null;
 
         // Load current business data to get inspection frequency
@@ -516,73 +454,58 @@ class Business {
                     next_inspection_date = :next_inspection_date
                 WHERE id = :id";
 
-        $stmt = $this->conn->prepare($query);
-
         $is_compliant = ($avg_compliance >= 80) ? 1 : 0;
 
-        // Bind parameters
-        $stmt->bindParam(":compliance_score", $avg_compliance);
-        $stmt->bindParam(":is_compliant", $is_compliant, PDO::PARAM_INT);
-        $stmt->bindParam(":last_inspection_date", $last_inspection_date);
-        $stmt->bindParam(":next_inspection_date", $next_inspection_date);
-        $stmt->bindParam(":id", $this->id);
+        $params = [
+            ":compliance_score" => $avg_compliance,
+            ":is_compliant" => $is_compliant,
+            ":last_inspection_date" => $last_inspection_date,
+            ":next_inspection_date" => $next_inspection_date,
+            ":id" => $this->id
+        ];
 
-        return $stmt->execute();
+        try {
+            $this->database->query(Database::DB_CORE, $query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Update compliance status failed: " . $e->getMessage());
+            return false;
+        }
     }
 
     // Get businesses due for inspection
     public function getBusinessesDueForInspection($limit = 10) {
         $query = "SELECT b.*, u.name as owner_name, u.email as owner_email
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   WHERE b.next_inspection_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
                   AND b.next_inspection_date >= CURDATE()
                   ORDER BY b.next_inspection_date ASC
                   LIMIT ?";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $businesses = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $businesses[] = $row;
-        }
-        return $businesses;
+        return $this->database->fetchAll(Database::DB_CORE, $query, [(int)$limit]);
     }
 
     // Get overdue inspections
     public function getOverdueInspections($limit = 10) {
         $query = "SELECT b.*, u.name as owner_name, u.email as owner_email
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.owner_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.owner_id = u.id
                   WHERE b.next_inspection_date < CURDATE()
                   ORDER BY b.next_inspection_date ASC
                   LIMIT ?";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $limit, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $businesses = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $businesses[] = $row;
-        }
-        return $businesses;
+        return $this->database->fetchAll(Database::DB_CORE, $query, [(int)$limit]);
     }
 
     // Get inspector for a business
     public function getInspector($business_id) {
         $query = "SELECT u.id, u.name, u.email
-                  FROM " . Database::DB_CORE . "." . $this->table_name . " b
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON b.inspector_id = u.id
+                  FROM " . $this->table_name . " b
+                  LEFT JOIN users u ON b.inspector_id = u.id
                   WHERE b.id = ? AND b.inspector_id IS NOT NULL";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
         return $row ?: null;
     }
 
@@ -595,10 +518,7 @@ class Business {
         $query = "SELECT MAX(completed_date) as last_inspection_date
                   FROM " . Database::DB_SCHEDULING . ".inspections
                   WHERE business_id = ? AND status = 'completed'";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
         return $row['last_inspection_date'] ?? null;
     }
 }

@@ -14,12 +14,12 @@ $db_core = $database->getConnection(Database::DB_CORE);
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 $db_reports = $database->getConnection(Database::DB_REPORTS);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$business = new Business($db_core);
-$inspection = new Inspection($db_scheduling);
+$business = new Business($database);
+$inspection = new Inspection($database);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -83,13 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // for this business, and also set them as the default inspector.
         if ($default_assigned) {
             // Now, find all unassigned inspections for this business and assign the inspector.
-            $inspectionForAssignment = new Inspection($db_scheduling);
+            $inspectionForAssignment = new Inspection($database);
             $unassigned_inspections = $inspectionForAssignment->findAllUnassignedForBusiness($_POST['business_id']);
             
             if ($unassigned_inspections) {
                 require_once '../models/Notification.php';
-                $notification = new Notification($db_reports);
-                $tempBusiness = new Business($db_core);
+                $notification = new Notification($database);
+                $tempBusiness = new Business($database);
                 $tempBusiness->id = $_POST['business_id'];
                 $tempBusinessData = $tempBusiness->readOne();
                 $businessName = $tempBusinessData['name'] ?? 'a business';
@@ -126,7 +126,7 @@ $businesses = $business->readAll();
 $businessStats = $business->getBusinessStats();
 
 // Get all business owners for the create modal
-$ownerUser = new User($db_core);
+$ownerUser = new User($database);
 $all_owners = $ownerUser->readByRole('business_owner')->fetchAll(PDO::FETCH_ASSOC);
 
 // Display success/error messages

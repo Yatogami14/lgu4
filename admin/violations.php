@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Handle Create Inspection from Violation
     if (isset($_POST['action']) && $_POST['action'] === 'create_inspection_from_violation') {
-        $inspection = new Inspection($db_scheduling);
+        $inspection = new Inspection($database);
         $inspection->business_id = $_POST['business_id'];
         $inspection->inspector_id = !empty($_POST['inspector_id']) ? $_POST['inspector_id'] : null;
         $inspection->inspection_type_id = $_POST['inspection_type_id'];

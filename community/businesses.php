@@ -19,7 +19,7 @@ $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 $business = new Business($db_core);
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 
 // Get all businesses
 $businesses = $business->readAll();

@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // --- START: Send Email Notification to Admins ---
         try {
             // 1. Get Violation Details for Email
-            $businessModel = new Business($db_core);
+            $businessModel = new Business($database);
             $businessModel->id = $violationModel->business_id;
             $businessData = $businessModel->readOne();
             $businessName = $businessData['name'] ?? 'Unknown Business';
@@ -100,7 +100,7 @@ $violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
 $violationStats = $violationModel->getViolationStatsByCreatorId($_SESSION['user_id']);
 
 // Get all businesses for the reporting form
-$businessModel = new Business($db_core);
+$businessModel = new Business($database);
 $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

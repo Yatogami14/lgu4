@@ -17,7 +17,7 @@ $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 $businessModel = new Business($db_core);
-$inspectionModel = new Inspection($db_scheduling);
+$inspectionModel = new Inspection($database);
 
 // Handle search
 $search = $_GET['search'] ?? '';

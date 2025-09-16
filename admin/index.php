@@ -16,15 +16,15 @@ $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 $db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
 // Get current user info
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // Instantiate models
-$inspectionModel = new Inspection($db_scheduling);
-$businessModel = new Business($db_core);
-$userModel = new User($db_core);
-$violationModel = new Violation($db_violations);
+$inspectionModel = new Inspection($database);
+$businessModel = new Business($database);
+$userModel = new User($database);
+$violationModel = new Violation($database);
 
 // Fetch stats for dashboard cards
 $inspectionStats = $inspectionModel->getInspectionStatsByStatus();

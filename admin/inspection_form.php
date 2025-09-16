@@ -99,7 +99,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_violation') {
         exit;
     }
     
-    $violation = new Violation($db_violations);
+    $violation = new Violation($database);
     $violation->inspection_id = $_POST['inspection_id'];
     $violation->business_id = $_POST['business_id'];
     $violation->description = $_POST['description'];
@@ -126,7 +126,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_draft') {
         exit;
     }
     
-    $inspection = new Inspection($db_scheduling);
+    $inspection = new Inspection($database);
     $inspection->id = $_POST['inspection_id'];
     
     $draft_responses = [];
@@ -150,12 +150,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_draft') {
 // Check if user is logged in and has permission to access this page
 requirePermission('inspections');
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db_scheduling);
-$business = new Business($db_core);
+$inspection = new Inspection($database);
+$business = new Business($database);
 $checklistTemplateModel = new ChecklistTemplate($db_checklist);
 $inspectionTypeModel = new InspectionType($db_core);
 
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inspection->notes_ai_analysis = null;
         }
 
-        if ($inspection->update($db_core)) {
+        if ($inspection->update()) {
             header('Location: inspections.php?success=Inspection completed successfully');
             exit;
         }

@@ -1,6 +1,6 @@
 <?php
 class User {
-    private $conn;
+    private $database;
     private $table_name = "users";
 
     public $id;
@@ -19,17 +19,19 @@ class User {
     public $remember_token_expires_at;
     public $updated_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     // Create user
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
-                SET name=:name, email=:email, password=:password, role=:role, 
+                SET name=:name, email=:email, password=:password, role=:role,
                     avatar=:avatar, department=:department, certification=:certification";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -53,7 +55,7 @@ class User {
         $stmt->bindParam(":certification", $this->certification);
 
         if ($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
+            $this->id = $pdo->lastInsertId();
             return true;
         }
         return false;
@@ -62,7 +64,9 @@ class User {
     // Read single user
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->execute();
 
@@ -85,19 +89,21 @@ class User {
     // Read all users
     public function readAll($role = null) {
         $query = "SELECT * FROM " . $this->table_name;
-        
+
         if ($role) {
             $query .= " WHERE role = :role";
         }
-        
+
         $query .= " ORDER BY created_at DESC";
-        
-        $stmt = $this->conn->prepare($query);
-        
+
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
+
         if ($role) {
             $stmt->bindParam(":role", $role);
         }
-        
+
         $stmt->execute();
         return $stmt;
     }
@@ -108,7 +114,9 @@ class User {
                   WHERE name LIKE :keywords OR email LIKE :keywords
                   ORDER BY name ASC";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize
         $keywords = htmlspecialchars(strip_tags($keywords));
@@ -140,7 +148,9 @@ class User {
 
         $query .= " WHERE id=:id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -172,7 +182,9 @@ class User {
     public function updatePassword($password) {
         $query = "UPDATE " . $this->table_name . " SET password = :password WHERE id = :id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize and hash password
         $this->password = htmlspecialchars(strip_tags($password));
@@ -195,7 +207,8 @@ class User {
     public function generatePasswordResetToken() {
         // Find user by email first
         $query = "SELECT id FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->email);
         $stmt->execute();
 
@@ -214,7 +227,7 @@ class User {
                              SET reset_token = :reset_token, reset_token_expires_at = :reset_token_expires_at 
                              WHERE id = :id";
             
-            $update_stmt = $this->conn->prepare($update_query);
+            $update_stmt = $pdo->prepare($update_query);
             $update_stmt->bindParam(':reset_token', $this->reset_token);
             $update_stmt->bindParam(':reset_token_expires_at', $this->reset_token_expires_at);
             $update_stmt->bindParam(':id', $this->id);
@@ -229,7 +242,8 @@ class User {
     // Validate a password reset token
     public function validatePasswordResetToken($token) {
         $query = "SELECT id FROM " . $this->table_name . " WHERE reset_token = ? AND reset_token_expires_at > NOW() LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $token);
         $stmt->execute();
 
@@ -260,7 +274,8 @@ class User {
                       remember_token_expires_at = :expires_at
                   WHERE id = :id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':selector', $selector);
         $stmt->bindParam(':validator_hash', $validator_hash);
         $stmt->bindParam(':expires_at', $expires_at);
@@ -279,7 +294,8 @@ class User {
                   WHERE remember_token_selector = ? AND remember_token_expires_at > NOW()
                   LIMIT 0,1";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $selector);
         $stmt->execute();
 
@@ -306,7 +322,8 @@ class User {
     // Delete user
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
 
         if ($stmt->execute()) {
@@ -318,7 +335,8 @@ class User {
     // Login user
     public function login() {
         $query = "SELECT id, name, email, password, role FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->email);
         $stmt->execute();
 
@@ -337,7 +355,8 @@ class User {
     // Count active inspectors
     public function countActiveInspectors() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE role = 'inspector'";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['count'];
@@ -354,7 +373,8 @@ class User {
                   WHERE s.last_activity > :active_threshold
                   AND u.role = 'inspector'";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':active_threshold', $active_threshold, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -363,7 +383,8 @@ class User {
     // Check if email exists
     public function emailExists() {
         $query = "SELECT id FROM " . $this->table_name . " WHERE email = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->email);
         $stmt->execute();
 
@@ -379,7 +400,8 @@ class User {
                   FROM " . Database::DB_SCHEDULING . ".inspector_specializations its
                   JOIN " . Database::DB_CORE . ".inspection_types it ON its.inspection_type_id = it.id
                   WHERE its.user_id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->execute();
         return $stmt;
@@ -391,7 +413,8 @@ class User {
                   SET user_id=:user_id, inspection_type_id=:inspection_type_id, 
                       proficiency_level=:proficiency_level, certification_date=:certification_date";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         
         $stmt->bindParam(":user_id", $this->id);
         $stmt->bindParam(":inspection_type_id", $inspection_type_id);
@@ -404,7 +427,8 @@ class User {
     // Remove inspector specialization
     public function removeSpecialization($specialization_id) {
         $query = "DELETE FROM " . Database::DB_SCHEDULING . ".inspector_specializations WHERE id = ? AND user_id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $specialization_id);
         $stmt->bindParam(2, $this->id);
         return $stmt->execute();
@@ -417,7 +441,8 @@ class User {
                   JOIN " . Database::DB_SCHEDULING . ".inspector_specializations its ON u.id = its.user_id
                   WHERE its.inspection_type_id = ? AND u.role = 'inspector'
                   ORDER BY its.proficiency_level DESC, u.name ASC";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspection_type_id);
         $stmt->execute();
         return $stmt;
@@ -427,7 +452,8 @@ class User {
     public function hasSpecialization($inspection_type_id) {
         $query = "SELECT id FROM " . Database::DB_SCHEDULING . ".inspector_specializations 
                   WHERE user_id = ? AND inspection_type_id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->bindParam(2, $inspection_type_id);
         $stmt->execute();
@@ -437,7 +463,8 @@ class User {
     // Clear password reset token
     private function clearPasswordResetToken() {
         $query = "UPDATE " . $this->table_name . " SET reset_token = NULL, reset_token_expires_at = NULL WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':id', $this->id);
         
         return $stmt->execute();
@@ -451,7 +478,8 @@ class User {
                       remember_token_expires_at = NULL
                   WHERE id = :id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':id', $this->id);
         return $stmt->execute();
     }
@@ -459,14 +487,16 @@ class User {
     // Clear "Remember Me" token by selector (for security)
     private function clearRememberMeTokenBySelector($selector) {
         $query = "UPDATE " . $this->table_name . " SET remember_token_selector = NULL, remember_token_validator_hash = NULL, remember_token_expires_at = NULL WHERE remember_token_selector = :selector";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':selector', $selector);
         return $stmt->execute();
     }
     // Get count of users grouped by role
     public function getUserCountByRole() {
         $query = "SELECT role, COUNT(*) as count FROM " . $this->table_name . " GROUP BY role";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->execute();
 
         $result = [];

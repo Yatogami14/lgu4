@@ -19,7 +19,7 @@ $user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $business = new Business($db_core);
 
 // Get user-specific data based on role

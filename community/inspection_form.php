@@ -118,7 +118,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_draft') {
         exit;
     }
     
-    $inspection = new Inspection($db_scheduling);
+    $inspection = new Inspection($database);
     $inspection->id = $_POST['inspection_id'];
     
     $draft_responses = [];
@@ -146,7 +146,7 @@ $user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $business = new Business($db_core);
 
 // Get inspection ID from URL
@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inspection->notes_ai_analysis = null;
         }
 
-        if ($inspection->update($db_core)) {
+        if ($inspection->update()) {
             header('Location: inspections.php?success=Inspection completed successfully');
             exit;
         }

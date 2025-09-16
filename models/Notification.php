@@ -1,6 +1,6 @@
 <?php
 class Notification {
-    private $conn;
+    private $database;
     private $table_name = "notifications";
 
     public $id;
@@ -12,17 +12,18 @@ class Notification {
     public $related_entity_id;
     public $created_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     // Create notification
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
-                SET user_id=:user_id, message=:message, type=:type, 
+                SET user_id=:user_id, message=:message, type=:type,
                     related_entity_type=:related_entity_type, related_entity_id=:related_entity_id";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Sanitize input
         $this->user_id = htmlspecialchars(strip_tags($this->user_id));
@@ -47,7 +48,8 @@ class Notification {
     // Read single notification
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->execute();
 
@@ -68,17 +70,18 @@ class Notification {
 
     // Read notifications by user
     public function readByUser($user_id, $limit = null) {
-        $query = "SELECT * FROM " . $this->table_name . " 
-                  WHERE user_id = ? 
+        $query = "SELECT * FROM " . $this->table_name . "
+                  WHERE user_id = ?
                   ORDER BY created_at DESC";
 
         if ($limit) {
             $query .= " LIMIT ?";
         }
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $user_id);
-        
+
         if ($limit) {
             $stmt->bindParam(2, $limit, PDO::PARAM_INT);
         }
@@ -94,17 +97,18 @@ class Notification {
 
     // Read unread notifications by user
     public function readUnreadByUser($user_id, $limit = null) {
-        $query = "SELECT * FROM " . $this->table_name . " 
-                  WHERE user_id = ? AND is_read = 0 
+        $query = "SELECT * FROM " . $this->table_name . "
+                  WHERE user_id = ? AND is_read = 0
                   ORDER BY created_at DESC";
 
         if ($limit) {
             $query .= " LIMIT ?";
         }
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $user_id);
-        
+
         if ($limit) {
             $stmt->bindParam(2, $limit, PDO::PARAM_INT);
         }
@@ -121,7 +125,8 @@ class Notification {
     // Mark notification as read
     public function markAsRead() {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
 
         if ($stmt->execute()) {
@@ -133,7 +138,8 @@ class Notification {
     // Mark all notifications as read for user
     public function markAllAsRead($user_id) {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE user_id = ? AND is_read = 0";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $user_id);
 
         if ($stmt->execute()) {
@@ -144,9 +150,10 @@ class Notification {
 
     // Count unread notifications for user
     public function countUnread($user_id) {
-        $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
+        $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
                   WHERE user_id = ? AND is_read = 0";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $user_id);
         $stmt->execute();
 
@@ -157,7 +164,8 @@ class Notification {
     // Delete notification
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
 
         if ($stmt->execute()) {
@@ -168,9 +176,10 @@ class Notification {
 
     // Delete old notifications (cleanup)
     public function deleteOld($days = 30) {
-        $query = "DELETE FROM " . $this->table_name . " 
+        $query = "DELETE FROM " . $this->table_name . "
                   WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $days, PDO::PARAM_INT);
 
         if ($stmt->execute()) {

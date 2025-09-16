@@ -11,7 +11,7 @@ $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
