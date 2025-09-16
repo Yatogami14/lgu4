@@ -62,8 +62,18 @@ class GeminiAnalyzer {
         $fileData = base64_encode(file_get_contents($filePath));
         $mimeType = mime_content_type($filePath);
 
-        $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following image for potential safety hazards. Identify up to three specific hazards you see. Examples include 'blocked fire exit', 'spill on floor', 'improperly stored chemicals', 'missing safety gear', 'exposed wiring'. Also, determine a general compliance status based on the hazards found: 'compliant', 'non_compliant', or 'needs_review'.\n\nReturn your analysis ONLY as a valid JSON object with the keys: 'hazards' (an array of strings), 'confidence' (a score from 0.0 to 1.0 for the overall assessment), and 'compliance' (the status string). If no hazards are found, the 'hazards' array should be empty.";
+        $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following image for potential safety hazards and positive compliance observations.
+Identify up to three specific hazards you see. Examples of hazards include 'blocked fire exit', 'spill on floor', 'improperly stored chemicals', 'missing safety gear', 'exposed wiring'.
+Also, identify up to two positive compliance observations. Examples of positive observations include 'clear and unobstructed walkways', 'fire extinguisher is properly mounted and accessible', 'employees wearing appropriate PPE'.
+Based on the findings, determine a general compliance status: 'compliant', 'non_compliant', or 'needs_review'.
 
+Return your analysis ONLY as a valid JSON object with the following keys:
+- 'hazards': an array of strings for detected hazards. Should be empty if none are found.
+- 'positive_observations': an array of strings for detected positive compliance signs. Should be empty if none are found.
+- 'confidence': a score from 0.0 to 1.0 for the overall assessment.
+- 'compliance': the status string ('compliant', 'non_compliant', or 'needs_review').
+
+Image for analysis is provided.";
         $data = ['contents' => [['parts' => [['text' => $prompt], ['inline_data' => ['mime_type' => $mimeType, 'data' => $fileData]]]]]];
         $url = $this->modelUrl . $this->apiKey;
 
@@ -96,6 +106,7 @@ class GeminiAnalyzer {
 
         return [
             'hazards' => $analysis['hazards'] ?? [],
+            'positive_observations' => $analysis['positive_observations'] ?? [],
             'confidence' => $analysis['confidence'] ?? 0.5,
             'compliance' => $analysis['compliance'] ?? 'needs_review'
         ];

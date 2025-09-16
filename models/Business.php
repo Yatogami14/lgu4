@@ -73,22 +73,22 @@ class Business {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
-            $this->name = $row['name'];
-            $this->address = $row['address'];
-            $this->owner_id = $row['owner_id'];
-            $this->inspector_id = $row['inspector_id'];
-            $this->contact_number = $row['contact_number'];
-            $this->email = $row['email'];
-            $this->business_type = $row['business_type'];
-            $this->registration_number = $row['registration_number'];
-            $this->establishment_date = $row['establishment_date'];
-            $this->inspection_frequency = $row['inspection_frequency'];
-            $this->last_inspection_date = $row['last_inspection_date'];
-            $this->next_inspection_date = $row['next_inspection_date'];
-            $this->is_compliant = $row['is_compliant'];
-            $this->compliance_score = $row['compliance_score'];
-            $this->created_at = $row['created_at'];
-            $this->updated_at = $row['updated_at'];
+            $this->name = $row['name'] ?? null;
+            $this->address = $row['address'] ?? null;
+            $this->owner_id = $row['owner_id'] ?? null;
+            $this->inspector_id = $row['inspector_id'] ?? null;
+            $this->contact_number = $row['contact_number'] ?? null;
+            $this->email = $row['email'] ?? null;
+            $this->business_type = $row['business_type'] ?? null;
+            $this->registration_number = $row['registration_number'] ?? null;
+            $this->establishment_date = $row['establishment_date'] ?? null;
+            $this->inspection_frequency = $row['inspection_frequency'] ?? null;
+            $this->last_inspection_date = $row['last_inspection_date'] ?? null;
+            $this->next_inspection_date = $row['next_inspection_date'] ?? null;
+            $this->is_compliant = $row['is_compliant'] ?? null;
+            $this->compliance_score = $row['compliance_score'] ?? null;
+            $this->created_at = $row['created_at'] ?? null;
+            $this->updated_at = $row['updated_at'] ?? null;
             return $row;
         }
         return false;
@@ -104,6 +104,33 @@ class Business {
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
+    }
+
+    /**
+     * Read all businesses with their latest compliance score for public display.
+     * @param string $search
+     * @return array
+     */
+    public function readAllWithCompliance($search = '') {
+        $query = "SELECT 
+                    b.id, b.name, b.address, b.business_type, b.compliance_score
+                  FROM " . $this->table_name . " b";
+
+        if (!empty($search)) {
+            $query .= " WHERE b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search";
+        }
+
+        $query .= " ORDER BY b.name ASC";
+
+        $stmt = $this->conn->prepare($query);
+
+        if (!empty($search)) {
+            $search_term = "%" . htmlspecialchars(strip_tags($search)) . "%";
+            $stmt->bindParam(':search', $search_term);
+        }
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Update business

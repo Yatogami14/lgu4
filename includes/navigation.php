@@ -49,7 +49,10 @@ if (isset($_SESSION['user_id'])) {
         'inspections' => [
             'label' => 'Inspections', 
             'icon' => 'fa-file-alt', 
-            'exclude_roles' => ['inspector']
+            'exclude_roles' => ['inspector', 'business_owner', 'community_user'],
+            'label_overrides' => [
+                'business_owner' => 'My Inspections'
+            ]
         ],
         'assigned_inspections' => [
             'label' => 'My Assignments', 
@@ -60,6 +63,7 @@ if (isset($_SESSION['user_id'])) {
         'businesses' => [
             'label' => 'Businesses', 
             'icon' => 'fa-building',
+            'exclude_roles' => ['community_user'],
             'label_overrides' => [
                 'business_owner' => 'My Businesses'
             ]
@@ -68,7 +72,8 @@ if (isset($_SESSION['user_id'])) {
             'label' => 'Violations', 
             'icon' => 'fa-exclamation-triangle',
             'label_overrides' => [
-                'community_user' => 'Report a Concern'
+                'community_user' => 'Report a Concern',
+                'business_owner' => 'My Violations'
             ],
             'icon_overrides' => [
                 'community_user' => 'fa-bullhorn'

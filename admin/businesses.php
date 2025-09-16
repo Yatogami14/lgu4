@@ -77,35 +77,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->inspector_id = $_POST['inspector_id'];
 
         $default_assigned = $business->assignInspector();
-        $inspection_assigned = false;
+        $inspections_assigned_count = 0;
 
-        // The button on this page should assign an inspector to the next available inspection
+        // The button on this page should assign an inspector to all available inspections
         // for this business, and also set them as the default inspector.
         if ($default_assigned) {
-            // Now, find an unassigned inspection for this business and assign the inspector.
+            // Now, find all unassigned inspections for this business and assign the inspector.
             $inspectionForAssignment = new Inspection($db_scheduling);
-            $unassigned_inspection = $inspectionForAssignment->findNextUnassignedForBusiness($_POST['business_id']);
+            $unassigned_inspections = $inspectionForAssignment->findAllUnassignedForBusiness($_POST['business_id']);
             
-            if ($unassigned_inspection) {
-                $inspectionForAssignment->id = $unassigned_inspection['id'];
-                $inspectionForAssignment->inspector_id = $_POST['inspector_id'];
-                if ($inspectionForAssignment->assignInspector()) {
-                    $inspection_assigned = true;
-                    // Create a notification for the inspector
-                    require_once '../models/Notification.php';
-                    $notification = new Notification($db_reports);
-                    
-                    $tempBusiness = new Business($db_core);
-                    $tempBusiness->id = $_POST['business_id'];
-                    $tempBusinessData = $tempBusiness->readOne();
-                    $businessName = $tempBusinessData['name'] ?? 'a business';
+            if ($unassigned_inspections) {
+                require_once '../models/Notification.php';
+                $notification = new Notification($db_reports);
+                $tempBusiness = new Business($db_core);
+                $tempBusiness->id = $_POST['business_id'];
+                $tempBusinessData = $tempBusiness->readOne();
+                $businessName = $tempBusinessData['name'] ?? 'a business';
 
-                    $notification->createAssignmentNotification($_POST['inspector_id'], $businessName, $unassigned_inspection['id']);
+                foreach($unassigned_inspections as $unassigned_inspection) {
+                    $inspectionForAssignment->id = $unassigned_inspection['id'];
+                    $inspectionForAssignment->inspector_id = $_POST['inspector_id'];
+                    if ($inspectionForAssignment->assignInspector()) {
+                        $inspections_assigned_count++;
+                        // Create a notification for the inspector for each assignment
+                        $notification->createAssignmentNotification($_POST['inspector_id'], $businessName, $unassigned_inspection['id']);
+                    }
                 }
             }
             
             $message = 'Inspector set as default for the business. ';
-            $message .= $inspection_assigned ? 'They have also been assigned to the next upcoming inspection.' : 'No upcoming unassigned inspections were found to assign.';
+            if ($inspections_assigned_count > 0) {
+                $plural = $inspections_assigned_count > 1 ? 'inspections' : 'inspection';
+                $message .= "They have also been assigned to {$inspections_assigned_count} upcoming unassigned {$plural}.";
+            } else {
+                $message .= 'No upcoming unassigned inspections were found to assign.';
+            }
             $_SESSION['success_message'] = $message;
         } else {
             $_SESSION['error_message'] = 'Failed to assign inspector. Please try again.';

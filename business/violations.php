@@ -134,7 +134,7 @@ if (!empty($business_ids)) {
                                 <?php echo date('M j, Y', strtotime($violation['due_date'])); ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="../admin/inspection_view.php?id=<?php echo $violation['inspection_id']; ?>" class="text-green-600 hover:text-green-900">
+                                <a href="inspection_view.php?id=<?php echo $violation['inspection_id']; ?>" class="text-green-600 hover:text-green-900">
                                     <i class="fas fa-eye"></i> View Details
                                 </a>
                             </td>

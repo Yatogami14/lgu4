@@ -490,6 +490,50 @@ class Inspection {
     }
 
     /**
+     * Finds all upcoming inspections for a business that have not been assigned an inspector.
+     * @param int $business_id
+     * @return array
+     */
+    public function findAllUnassignedForBusiness($business_id) {
+        $query = "SELECT id FROM " . $this->table_name . " 
+                  WHERE business_id = ? AND (inspector_id IS NULL OR inspector_id = 0 OR inspector_id = '')
+                  ORDER BY scheduled_date ASC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $business_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get compliance score trend over a number of days for specific businesses.
+     * @param array $business_ids
+     * @param int $days
+     * @return array
+     */
+    public function getComplianceTrendForBusinesses(array $business_ids, $days = 30) {
+        if (empty($business_ids)) {
+            return [];
+        }
+        $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+
+        $query = "SELECT 
+                    DATE(completed_date) as inspection_date, 
+                    AVG(compliance_score) as avg_score
+                  FROM " . $this->table_name . "
+                  WHERE completed_date >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  AND status = 'completed'
+                  AND compliance_score IS NOT NULL
+                  AND business_id IN (" . $in_clause . ")
+                  GROUP BY DATE(completed_date)
+                  ORDER BY DATE(completed_date) ASC";
+
+        $stmt = $this->conn->prepare($query);
+        $params = array_merge([$days], $business_ids);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Read recent inspections for a list of businesses.
      * @param array $business_ids
      * @param int $limit

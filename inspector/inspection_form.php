@@ -503,10 +503,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         // AI analysis on text input using Gemini
-        document.querySelectorAll('textarea').forEach(textarea => {
+        document.querySelectorAll('.checklist-item textarea').forEach(textarea => {
             textarea.addEventListener('blur', function() {
                 if (this.value.length > 10) {
-                    const card = this.closest('.bg-white');
+                    const card = this.closest('.checklist-item');
                     const analysisSection = card.querySelector('.bg-blue-50');
                     const textToAnalyze = this.value;
                     
@@ -522,7 +522,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     formData.append('action', 'analyze_text');
                     formData.append('text', textToAnalyze);
 
-                    fetch('', { // Post to the same page
+                    fetch(window.location.href, { // Post to the same page
                         method: 'POST',
                         body: formData
                     })
@@ -623,9 +623,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         throw new Error(data.error);
                     }
 
-                    let hazardsList = '<p class="text-sm text-green-700">No hazards detected.</p>';
+                    let hazardsList = '<p class="text-sm text-gray-600">No specific hazards detected.</p>';
                     if (data.hazards && data.hazards.length > 0) {
                         hazardsList = '<ul class="text-sm list-disc ml-4 text-red-700">' + data.hazards.map(h => `<li>${h}</li>`).join('') + '</ul>';
+                    }
+
+                    let positiveList = '<p class="text-sm text-gray-600">No specific positive observations noted.</p>';
+                    if (data.positive_observations && data.positive_observations.length > 0) {
+                        positiveList = '<ul class="text-sm list-disc ml-4 text-green-700">' + data.positive_observations.map(p => `<li>${p}</li>`).join('') + '</ul>';
                     }
 
                     let complianceColor = 'text-yellow-600';
@@ -646,7 +651,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <span class="font-medium ${complianceColor}">AI Analysis: ${complianceText}</span>
                             <span class="px-2 py-1 ${complianceBg} ${complianceColor.replace('600', '800')} text-xs rounded">${Math.round(data.confidence * 100)}% confidence</span>
                         </div>
-                        <div>
+                        <div class="mt-2">
+                            <p class="text-sm font-medium">Positive Observations:</p>
+                            ${positiveList}
+                        </div>
+                        <div class="mt-2">
                             <p class="text-sm font-medium">Detected Hazards:</p>
                             ${hazardsList}
                         </div>

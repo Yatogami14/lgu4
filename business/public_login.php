@@ -8,9 +8,9 @@ require_once '../models/User.php';
 if (isset($_SESSION['user_id'])) {
     $role = $_SESSION['user_role'];
     if ($role == 'business_owner') {
-        header('Location: business_landing.php');
+        header('Location: index.php');
     } else if ($role == 'community_user') {
-        header('Location: ../community/community_landing.php');
+        header('Location: ../community/index.php');
     } else {
         // Fallback for other roles like admin/inspector
         header('Location: ../admin/index.php');
@@ -43,9 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Redirect to appropriate landing page based on user role
             if ($user->role == 'business_owner') {
-                header('Location: business_landing.php');
+                header('Location: index.php');
             } else if ($user->role == 'community_user') {
-                header('Location: ../community/community_landing.php');
+                header('Location: ../community/index.php');
             } else {
                 // Default fallback
                 header('Location: ../admin/index.php');

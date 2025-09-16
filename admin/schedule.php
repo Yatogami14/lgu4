@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Business.php';
+require_once '../models/Notification.php';
 require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
@@ -12,6 +13,7 @@ requirePermission('schedule');
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+$db_reports = $database->getConnection(Database::DB_REPORTS);
 
 $user = new User($db_core);
 $user->id = $_SESSION['user_id'];
@@ -32,6 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $inspection->notes = $_POST['notes'];
 
         if ($inspection->create()) {
+            $inspection->id = $db_scheduling->lastInsertId();
+            // Create notification if inspector is assigned
+            if (!empty($inspection->inspector_id)) {
+                $notification = new Notification($db_reports);
+                $business->id = $inspection->business_id;
+                $business_data = $business->readOne();
+                $business_name = $business_data['name'] ?? 'a business';
+                $notification->createAssignmentNotification($inspection->inspector_id, $business_name, $inspection->id);
+            }
             header('Location: schedule.php?success=Inspection scheduled successfully');
             exit;
         }
