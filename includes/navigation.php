@@ -6,15 +6,15 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Use absolute paths to avoid issues when included from different directories
 $rootPath = dirname(__DIR__);
-require_once '../config/database.php';
-require_once '../models/User.php';
+require_once $rootPath . '/config/database.php';
+require_once $rootPath . '/models/User.php';
 require_once $rootPath . '/utils/access_control.php';
 
 // Get current user info for navigation
 if (isset($_SESSION['user_id'])) {
     $database = new Database();
     $db_core = $database->getConnection(Database::DB_CORE);
-    $user = new User($db_core);
+    $user = new User($database);
     $user->id = $_SESSION['user_id'];
     $user->readOne();
 
