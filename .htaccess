@@ -12,7 +12,7 @@
 
 # Turn on the rewrite engine
 RewriteEngine On
-RewriteBase /
+RewriteBase /lgu4/
 
 # -------------------------------------------------------------------
 # SECURITY CONFIGURATION
@@ -30,7 +30,7 @@ Options -Indexes
 <FilesMatch "^(composer\.json|composer\.lock|README\.md|SECURITY\.md)$">
     Require all denied
 </FilesMatch>
-# Block access to important directories
+# Block access to important directories except allow all others
 RewriteRule ^config/ - [F,L]
 RewriteRule ^vendor/ - [F,L]
 
