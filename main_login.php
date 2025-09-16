@@ -4,6 +4,28 @@ require_once 'utils/session_manager.php';
 require_once 'config/database.php';
 require_once 'models/Auth.php';
 
+// If user is already logged in (e.g., via session or "remember me" cookie), redirect them.
+if (isset($_SESSION['user_id'])) {
+    switch ($_SESSION['user_role']) {
+        case 'admin':
+        case 'super_admin':
+            header('Location: admin/index.php');
+            break;
+        case 'inspector':
+            header('Location: inspector/index.php');
+            break;
+        case 'business_owner':
+            header('Location: community/user_landing.php'); // Correct landing page
+            break;
+        case 'community_user':
+            header('Location: community/user_landing.php'); // Correct landing page
+            break;
+        default:
+            header('Location: index.html');
+    }
+    exit;
+}
+
 $database = new Database();
 $auth = new Auth($database);
 
@@ -36,10 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 header('Location: inspector/index.php');
                 break;
             case 'business_owner':
-                header('Location: business/index.php');
+                // The user_landing page is designed to handle both business and community users
+                header('Location: community/user_landing.php');
                 break;
             case 'community_user':
-                header('Location: community/index.php');
+                header('Location: community/user_landing.php');
                 break;
             default:
                 header('Location: index.html');
