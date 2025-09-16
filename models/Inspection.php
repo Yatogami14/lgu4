@@ -357,10 +357,12 @@ class Inspection {
 
     // Get inspections by inspector
     public function readByInspector($inspector_id) {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, it.name as inspection_type
+        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
+                         it.name as inspection_type, u.name as inspector_name
                   FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
+                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
                   WHERE i.inspector_id = ?
                   ORDER BY i.scheduled_date DESC";
 

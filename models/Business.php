@@ -111,7 +111,7 @@ class Business {
      * @param string $search
      * @return array
      */
-    public function readAllWithCompliance($search = '') {
+    public function readAllWithCompliance($search = '', $limit = 10, $offset = 0) {
         $query = "SELECT 
                     b.id, b.name, b.address, b.business_type, b.compliance_score
                   FROM " . $this->table_name . " b";
@@ -120,7 +120,33 @@ class Business {
             $query .= " WHERE b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search";
         }
 
-        $query .= " ORDER BY b.name ASC";
+        $query .= " ORDER BY b.name ASC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->conn->prepare($query);
+
+        if (!empty($search)) {
+            $search_term = "%" . htmlspecialchars(strip_tags($search)) . "%";
+            $stmt->bindParam(':search', $search_term);
+        }
+
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Count all businesses with their latest compliance score for pagination.
+     * @param string $search
+     * @return int
+     */
+    public function countAllWithCompliance($search = '') {
+        $query = "SELECT COUNT(b.id) as total_rows FROM " . $this->table_name . " b";
+
+        if (!empty($search)) {
+            $query .= " WHERE b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search";
+        }
 
         $stmt = $this->conn->prepare($query);
 
@@ -130,7 +156,8 @@ class Business {
         }
 
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['total_rows'] ?? 0;
     }
 
     // Update business

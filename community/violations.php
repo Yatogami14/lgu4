@@ -6,6 +6,12 @@ require_once '../models/Violation.php';
 require_once '../models/Business.php';
 require_once '../utils/access_control.php';
 
+// Include PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\SMTP;
+use PHPMailer\PHPMailer\Exception;
+require_once '../vendor/autoload.php';
+
 // Check if user is logged in and has permission
 requirePermission('violations');
 
@@ -31,6 +37,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($violationModel->create()) {
         $_SESSION['success_message'] = 'Concern reported successfully! It will be reviewed by an administrator.';
+
+        // --- START: Send Email Notification to Admins ---
+        try {
+            // 1. Get Violation Details for Email
+            $businessModel = new Business($db_core);
+            $businessModel->id = $violationModel->business_id;
+            $businessData = $businessModel->readOne();
+            $businessName = $businessData['name'] ?? 'Unknown Business';
+
+            // 2. Get Admin Emails
+            $adminUserModel = new User($db_core);
+            $admins = $adminUserModel->readByRole('admin')->fetchAll(PDO::FETCH_ASSOC);
+            $super_admins = $adminUserModel->readByRole('super_admin')->fetchAll(PDO::FETCH_ASSOC);
+            $all_admin_users = array_merge($admins, $super_admins);
+            $admin_emails = array_unique(array_column($all_admin_users, 'email'));
+
+            if (!empty($admin_emails)) {
+                // 3. Configure and Send Email
+                $mailerConfig = require '../config/mailer.php';
+                $mail = new PHPMailer(true);
+
+                $mail->isSMTP();
+                $mail->Host       = $mailerConfig['host'];
+                $mail->SMTPAuth   = $mailerConfig['smtp_auth'];
+                $mail->Username   = $mailerConfig['username'];
+                $mail->Password   = $mailerConfig['password'];
+                if ($mailerConfig['smtp_secure'] === 'tls') {
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                } elseif ($mailerConfig['smtp_secure'] === 'ssl') {
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                }
+                $mail->Port       = $mailerConfig['port'];
+
+                $mail->setFrom($mailerConfig['from_email'], $mailerConfig['from_name']);
+                foreach ($admin_emails as $email) {
+                    $mail->addAddress($email);
+                }
+
+                $mail->isHTML(true);
+                $mail->Subject = 'New Community Concern Reported: ' . $businessName;
+                $admin_link = "http://" . $_SERVER['HTTP_HOST'] . "/lgu4/admin/violations.php";
+                $mail->Body    = "<p>A new community concern has been reported for <strong>" . htmlspecialchars($businessName) . "</strong>.</p><p><strong>Concern:</strong> " . htmlspecialchars($violationModel->description) . "</p><p>Please review this concern in the admin portal by clicking the link below:</p><p><a href='{$admin_link}'>View Violations</a></p>";
+
+                $mail->send();
+            }
+        } catch (Exception $e) {
+            // Log the error, but don't block the user's success message.
+            error_log("Mailer Error (Community Violation): {$mail->ErrorInfo}");
+        }
+        // --- END: Send Email Notification ---
     } else {
         $_SESSION['error_message'] = 'Failed to report concern.';
     }

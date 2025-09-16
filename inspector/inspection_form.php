@@ -80,10 +80,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'analyze_media') {
     $analyzer = new GeminiAnalyzer(GEMINI_API_KEY);
     $result = $analyzer->analyzeMedia($filePath);
 
-    if (!isset($result['error'])) {
-        $media->ai_analysis = json_encode($result);
-        $media->updateAiAnalysis();
-    }
+    // Always save the result, whether it's a successful analysis or an error report from the analyzer.
+    $media->ai_analysis = json_encode($result);
+    $media->updateAiAnalysis();
 
     echo json_encode($result);
     exit;

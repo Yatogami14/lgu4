@@ -14,14 +14,51 @@ requirePermission('violations');
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 $db_violations = $database->getConnection(Database::DB_VIOLATIONS);
+$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+$db_reports = $database->getConnection(Database::DB_REPORTS);
 
 $user = new User($db_core);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
+// Get all inspectors for the modal
+$inspectorUser = new User($db_core);
+$all_inspectors = $inspectorUser->readByRole('inspector')->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all inspection types for the modal
+require_once '../models/InspectionType.php';
+$inspectionTypeModel = new InspectionType($db_core);
+$allInspectionTypes = $inspectionTypeModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+
 // --- Handle Violation Create/Update ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $violationModel = new Violation($db_violations);
+
+    // Handle Create Inspection from Violation
+    if (isset($_POST['action']) && $_POST['action'] === 'create_inspection_from_violation') {
+        $inspection = new Inspection($db_scheduling);
+        $inspection->business_id = $_POST['business_id'];
+        $inspection->inspector_id = !empty($_POST['inspector_id']) ? $_POST['inspector_id'] : null;
+        $inspection->inspection_type_id = $_POST['inspection_type_id'];
+        $inspection->scheduled_date = $_POST['scheduled_date'];
+        $inspection->status = 'scheduled';
+        $inspection->priority = $_POST['priority'];
+        $inspection->notes = $_POST['notes'];
+
+        if ($inspection->create()) {
+            $new_inspection_id = $db_scheduling->lastInsertId();
+            $violationModel->id = $_POST['violation_id'];
+            if ($violationModel->linkToInspection($new_inspection_id)) {
+                $_SESSION['success_message'] = 'Inspection created and linked to violation successfully!';
+            } else {
+                $_SESSION['error_message'] = 'Inspection was created, but failed to link to the violation.';
+            }
+        } else {
+            $_SESSION['error_message'] = 'Failed to create new inspection.';
+        }
+        header('Location: violations.php');
+        exit;
+    }
 
     // Handle Create
     if (isset($_POST['action']) && $_POST['action'] === 'create_violation') {
@@ -193,9 +230,13 @@ $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
                             <button onclick='openEditViolationModal(<?php echo json_encode($violation); ?>)' class="text-blue-600 hover:text-blue-900 mr-3">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <a href="inspection_view.php?id=<?php echo $violation['inspection_id']; ?>" class="text-green-600 hover:text-green-900">
-                                <i class="fas fa-eye"></i> View Details
-                            </a>
+                            <?php if ($violation['inspection_id'] == 0): ?>
+                                <button onclick='openCreateInspectionModal(<?php echo json_encode($violation); ?>)' class="text-green-600 hover:text-green-900">
+                                    <i class="fas fa-plus-circle"></i> Create Inspection
+                                </button>
+                            <?php else: ?>
+                                <a href="inspection_view.php?id=<?php echo $violation['inspection_id']; ?>" class="text-green-600 hover:text-green-900"><i class="fas fa-eye"></i> View Inspection</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -310,9 +351,78 @@ $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- Create Inspection from Violation Modal -->
+    <div id="createInspectionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Create Inspection for Violation</h3>
+                <p class="text-sm text-gray-600 mt-1">For business: <span id="ci_business_name" class="font-bold"></span></p>
+                
+                <form id="createInspectionForm" method="POST" class="mt-4 space-y-4">
+                    <input type="hidden" name="action" value="create_inspection_from_violation">
+                    <input type="hidden" name="violation_id" id="ci_violation_id">
+                    <input type="hidden" name="business_id" id="ci_business_id">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Violation</label>
+                        <p id="ci_violation_description" class="mt-1 text-sm text-gray-600 bg-gray-100 p-2 rounded-md border"></p>
+                    </div>
+
+                    <div>
+                        <label for="ci_inspection_type_id" class="block text-sm font-medium text-gray-700">Inspection Type</label>
+                        <select id="ci_inspection_type_id" name="inspection_type_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">Select Type</option>
+                            <?php foreach ($allInspectionTypes as $type): ?>
+                                <option value="<?php echo $type['id']; ?>"><?php echo htmlspecialchars($type['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ci_inspector_id" class="block text-sm font-medium text-gray-700">Assign Inspector (Optional)</label>
+                        <select id="ci_inspector_id" name="inspector_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">Unassigned</option>
+                            <?php foreach ($all_inspectors as $inspector_user): ?>
+                                <option value="<?php echo $inspector_user['id']; ?>"><?php echo htmlspecialchars($inspector_user['name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ci_scheduled_date" class="block text-sm font-medium text-gray-700">Scheduled Date</label>
+                        <input type="datetime-local" id="ci_scheduled_date" name="scheduled_date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div>
+                        <label for="ci_priority" class="block text-sm font-medium text-gray-700">Priority</label>
+                        <select id="ci_priority" name="priority" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ci_notes" class="block text-sm font-medium text-gray-700">Notes for Inspector</label>
+                        <textarea id="ci_notes" name="notes" rows="2" placeholder="e.g., Follow up on community report regarding..." class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeModal('createInspectionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Create & Link Inspection</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
         }
 
         // --- Create Violation Modal Logic ---
@@ -359,6 +469,24 @@ $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
             document.getElementById('edit_violation_due_date').value = violation.due_date;
             document.getElementById('edit_violation_resolved_date').value = violation.resolved_date;
             document.getElementById('editViolationModal').classList.remove('hidden');
+        }
+
+        // --- Create Inspection from Violation Modal Logic ---
+        function openCreateInspectionModal(violation) {
+            document.getElementById('ci_violation_id').value = violation.id;
+            document.getElementById('ci_business_id').value = violation.business_id;
+            document.getElementById('ci_business_name').textContent = violation.business_name;
+            document.getElementById('ci_violation_description').textContent = violation.description;
+            // Pre-fill notes
+            document.getElementById('ci_notes').value = `Follow-up on violation (ID: ${violation.id}): "${violation.description}"`;
+            // Set a default date for tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(9, 0, 0, 0);
+            const formattedDate = tomorrow.toISOString().slice(0, 16);
+            document.getElementById('ci_scheduled_date').value = formattedDate;
+
+            openModal('createInspectionModal');
         }
     </script>
 </body>

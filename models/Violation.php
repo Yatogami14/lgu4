@@ -6,12 +6,15 @@ class Violation {
     public $id;
     public $inspection_id;
     public $business_id;
+    public $checklist_response_id;
+    public $media_id;
     public $description;
     public $severity;
     public $status;
     public $due_date;
     public $resolved_date;
     public $created_by;
+    public $hash;
     public $created_at;
     public $updated_at;
 
@@ -97,6 +100,50 @@ class Violation {
     }
 
     /**
+     * Links a violation to a specific inspection and updates its status.
+     * @param int $inspection_id
+     * @return bool
+     */
+    public function linkToInspection($inspection_id) {
+        $query = "UPDATE " . $this->table_name . "
+                  SET inspection_id = :inspection_id,
+                      status = 'in_progress'
+                  WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($query);
+
+        // Sanitize
+        $inspection_id = htmlspecialchars(strip_tags($inspection_id));
+        $this->id = htmlspecialchars(strip_tags($this->id));
+        
+        // Bind
+        $stmt->bindParam(':inspection_id', $inspection_id, PDO::PARAM_INT);
+        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
+
+        if ($stmt->execute()) { return true; }
+        error_log("Violation linking failed for violation ID {$this->id}: " . implode(";", $stmt->errorInfo()));
+        return false;
+    }
+
+    /**
+     * Read community-reported violations that are awaiting action (open, no inspection ID).
+     * @param int $limit
+     * @return array
+     */
+    public function readCommunityReportsAwaitingAction($limit = 5) {
+        $query = "SELECT v.*, b.name as business_name
+                  FROM " . $this->table_name . " v
+                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id
+                  WHERE v.inspection_id = 0 AND v.status = 'open'
+                  ORDER BY v.created_at ASC
+                  LIMIT :limit";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    /**
      * Read all violations, optionally filtered by an array of business IDs.
      * @param array $business_ids
      * @return PDOStatement
@@ -104,13 +151,12 @@ class Violation {
     public function readAll($business_ids = []) {
         $query = "SELECT v.*, b.name as business_name 
                   FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id";
+                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id";
 
         if (!empty($business_ids)) {
             // Create placeholders for the IN clause
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $query .= " WHERE i.business_id IN (" . $in_clause . ")";
+            $query .= " WHERE v.business_id IN (" . $in_clause . ")";
         }
 
         $query .= " ORDER BY v.created_at DESC";

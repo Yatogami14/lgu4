@@ -256,7 +256,7 @@ function getSeverityTextColor($severity) {
                     ?>
                         <div class="border rounded-lg overflow-hidden">
                             <div class="bg-gray-200 flex items-center justify-center h-48">
-                                <img src="../uploads/<?php echo htmlspecialchars($media['filename']); ?>" alt="<?php echo htmlspecialchars($media['filename']); ?>" class="max-h-full max-w-full object-contain">
+                                <img src="../uploads/<?php echo htmlspecialchars($media['file_path']); ?>" alt="<?php echo htmlspecialchars($media['filename']); ?>" class="max-h-full max-w-full object-contain">
                             </div>
                             <div class="p-4">
                                 <p class="text-xs text-gray-500 truncate mb-3" title="<?php echo htmlspecialchars($media['filename']); ?>"><?php echo htmlspecialchars($media['filename']); ?></p>

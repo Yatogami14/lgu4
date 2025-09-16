@@ -3,6 +3,7 @@ require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
+require_once '../models/Violation.php';
 require_once '../models/Business.php';
 require_once '../utils/access_control.php';
 
@@ -12,6 +13,7 @@ requirePermission('dashboard');
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
+$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
 // Get current user info
 $user = new User($db_core);
@@ -22,6 +24,7 @@ $user->readOne();
 $inspectionModel = new Inspection($db_scheduling);
 $businessModel = new Business($db_core);
 $userModel = new User($db_core);
+$violationModel = new Violation($db_violations);
 
 // Fetch stats for dashboard cards
 $inspectionStats = $inspectionModel->getInspectionStatsByStatus();
@@ -34,6 +37,7 @@ $activeViolations = $inspectionModel->countActiveViolations();
 // Fetch data for tables
 $upcomingInspections = $inspectionModel->readUpcoming(5);
 $recentInspections = $inspectionModel->readRecent(5);
+$communityReports = $violationModel->readCommunityReportsAwaitingAction(5);
 
 // Fetch data for charts
 $complianceTrendData = $inspectionModel->getComplianceTrend(30);
@@ -172,6 +176,38 @@ $complianceTrendData = $inspectionModel->getComplianceTrend(30);
                             <?php endif; ?>
                         </ul>
                     </div>
+                </div>
+            </div>
+
+            <!-- Community Reports Awaiting Action -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="text-lg font-medium">Community Reports Awaiting Action</h3>
+                    <a href="violations.php" class="text-sm text-blue-600 hover:underline">View All</a>
+                </div>
+                <div class="p-4">
+                    <ul class="divide-y divide-gray-200">
+                        <?php if (!empty($communityReports)): ?>
+                            <?php foreach ($communityReports as $report): ?>
+                            <li class="py-3 flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900 truncate" title="<?php echo htmlspecialchars($report['description']); ?>">
+                                        <?php echo htmlspecialchars(substr($report['description'], 0, 70)); ?><?php echo strlen($report['description']) > 70 ? '...' : ''; ?>
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        For: <span class="font-semibold"><?php echo htmlspecialchars($report['business_name']); ?></span>
+                                    </p>
+                                </div>
+                                <div class="text-right ml-4 flex-shrink-0">
+                                    <p class="text-xs text-gray-500"><?php echo date('M j, Y', strtotime($report['created_at'])); ?></p>
+                                    <a href="violations.php" class="text-xs text-green-600 hover:underline font-semibold">Create Inspection</a>
+                                </div>
+                            </li>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <li class="py-10 text-center text-sm text-gray-500"><i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i><p>No community reports are awaiting action.</p></li>
+                        <?php endif; ?>
+                    </ul>
                 </div>
             </div>
         </div>

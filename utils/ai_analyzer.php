@@ -56,7 +56,12 @@ class GeminiAnalyzer {
 
     public function analyzeMedia($filePath) {
         if (empty($this->apiKey) || $this->apiKey === 'YOUR_GEMINI_API_KEY') {
-            return ['hazards' => ['Set Gemini API key to enable vision analysis.'], 'confidence' => 0.75, 'compliance' => 'needs_review'];
+            return [
+                'compliance' => 'error',
+                'confidence' => 0.0,
+                'hazards' => ['AI Vision analysis is not configured. Please set a valid Gemini API key.'],
+                'positive_observations' => []
+            ];
         }
 
         $fileData = base64_encode(file_get_contents($filePath));
@@ -90,7 +95,12 @@ Image for analysis is provided.";
             } else if ($statusCode === 400) {
                 $errorMessage = 'API request is malformed. (Code: 400)';
             }
-            return ['error' => 'Failed to analyze media. ' . $errorMessage];
+            return [
+                'compliance' => 'error',
+                'confidence' => 0.0,
+                'hazards' => ['AI Vision API Error: ' . $errorMessage],
+                'positive_observations' => []
+            ];
         }
 
         $json_string = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
@@ -101,7 +111,12 @@ Image for analysis is provided.";
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             error_log("Gemini Vision API returned invalid JSON: " . json_last_error_msg() . " | Raw response: " . $json_string);
-            return ['error' => 'AI analysis returned an invalid format.'];
+            return [
+                'compliance' => 'error',
+                'confidence' => 0.0,
+                'hazards' => ['AI analysis returned an invalid format.'],
+                'positive_observations' => []
+            ];
         }
 
         return [
