@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../config/database.php';
+require_once '../utils/session_manager.php';
 require_once '../models/User.php';
 require_once '../utils/access_control.php';
 
@@ -28,7 +27,6 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $inspector_id = $_GET['id'];
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
 $user = new User($database);
 $user->id = $inspector_id;
 
