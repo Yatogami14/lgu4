@@ -6,7 +6,7 @@ require_once 'models/User.php';
 
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->email = $_POST['email'];

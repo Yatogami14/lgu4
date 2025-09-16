@@ -20,7 +20,7 @@ if (isset($_SESSION['last_password_reset_request']) && (time() - $_SESSION['last
 
     $database = new Database();
     $db_core = $database->getConnection(Database::DB_CORE);
-    $user = new User($db_core);
+    $user = new User($database);
 
     $user->email = $_POST['email'];
     $token = $user->generatePasswordResetToken();

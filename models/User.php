@@ -30,7 +30,6 @@ class User {
                     avatar=:avatar, department=:department, certification=:certification";
 
         $pdo = $this->database->getConnection(Database::DB_CORE);
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
 
         // Sanitize input
@@ -65,7 +64,6 @@ class User {
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         $pdo = $this->database->getConnection(Database::DB_CORE);
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->execute();
@@ -97,7 +95,6 @@ class User {
         $query .= " ORDER BY created_at DESC";
 
         $pdo = $this->database->getConnection(Database::DB_CORE);
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
 
         if ($role) {
@@ -114,7 +111,6 @@ class User {
                   WHERE name LIKE :keywords OR email LIKE :keywords
                   ORDER BY name ASC";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
 
@@ -149,7 +145,6 @@ class User {
         $query .= " WHERE id=:id";
 
         $pdo = $this->database->getConnection(Database::DB_CORE);
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
 
         // Sanitize input
@@ -182,7 +177,6 @@ class User {
     public function updatePassword($password) {
         $query = "UPDATE " . $this->table_name . " SET password = :password WHERE id = :id";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
         $pdo = $this->database->getConnection(Database::DB_CORE);
         $stmt = $pdo->prepare($query);
 
@@ -400,7 +394,7 @@ class User {
                   FROM " . Database::DB_SCHEDULING . ".inspector_specializations its
                   JOIN " . Database::DB_CORE . ".inspection_types it ON its.inspection_type_id = it.id
                   WHERE its.user_id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->execute();
@@ -413,7 +407,7 @@ class User {
                   SET user_id=:user_id, inspection_type_id=:inspection_type_id, 
                       proficiency_level=:proficiency_level, certification_date=:certification_date";
         
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
         $stmt = $pdo->prepare($query);
         
         $stmt->bindParam(":user_id", $this->id);
@@ -427,7 +421,7 @@ class User {
     // Remove inspector specialization
     public function removeSpecialization($specialization_id) {
         $query = "DELETE FROM " . Database::DB_SCHEDULING . ".inspector_specializations WHERE id = ? AND user_id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $specialization_id);
         $stmt->bindParam(2, $this->id);
@@ -441,7 +435,7 @@ class User {
                   JOIN " . Database::DB_SCHEDULING . ".inspector_specializations its ON u.id = its.user_id
                   WHERE its.inspection_type_id = ? AND u.role = 'inspector'
                   ORDER BY its.proficiency_level DESC, u.name ASC";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspection_type_id);
         $stmt->execute();
@@ -452,7 +446,7 @@ class User {
     public function hasSpecialization($inspection_type_id) {
         $query = "SELECT id FROM " . Database::DB_SCHEDULING . ".inspector_specializations 
                   WHERE user_id = ? AND inspection_type_id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
         $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
         $stmt->bindParam(2, $inspection_type_id);

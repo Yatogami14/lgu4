@@ -29,7 +29,7 @@ $inspector_id = $_GET['id'];
 
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $inspector_id;
 
 // Read the inspector details

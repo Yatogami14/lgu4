@@ -5,7 +5,7 @@ require_once 'models/User.php';
 
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 
 $token = $_GET['token'] ?? $_POST['token'] ?? null;
 $is_token_valid = false;

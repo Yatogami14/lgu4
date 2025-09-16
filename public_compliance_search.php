@@ -6,7 +6,7 @@ require_once 'models/Business.php';
 $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 
-$businessModel = new Business($db_core);
+$businessModel = new Business($database);
 
 // Handle search
 $search = $_GET['search'] ?? '';
