@@ -1,12 +1,26 @@
 <?php
 class Database {
     private $host = 'localhost';
-    private $username = 'hsi_lgu_core';
     private $password = 'Admin123';
     private $connections = [];
 
-    // Define database names as constants for easy reference and consistency
+    // Define all database names as constants for easy reference and consistency
     const DB_CORE = 'hsi_lgu_core';
+    const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
+    const DB_SCHEDULING = 'lgu_inspection_scheduling';
+    const DB_MEDIA = 'hsi_lgu_media_uploads';
+    const DB_REPORTS = 'hsi_lgu_reports_notifications';
+    const DB_VIOLATIONS = 'hsi_lgu_violations_ticketing';
+
+    // Map database names to their specific usernames
+    private $db_credentials = [
+        self::DB_CORE => ['username' => 'hsi_lgu_core'],
+        self::DB_CHECKLIST => ['username' => 'hsi_lgu_checklist_assessment'],
+        self::DB_SCHEDULING => ['username' => 'hsi_lgu_inspection_scheduling'],
+        self::DB_MEDIA => ['username' => 'hsi_lgu_media_uploads'],
+        self::DB_REPORTS => ['username' => 'hsi_lgu_reports_notifications'],
+        self::DB_VIOLATIONS => ['username' => 'hsi_lgu_violations_ticketing'],
+    ];
 
 
     /**
@@ -22,11 +36,19 @@ class Database {
             return $this->connections[$db_name];
         }
 
+        // Check if credentials for the requested database exist.
+        if (!isset($this->db_credentials[$db_name])) {
+            error_log("Database configuration for '$db_name' not found.");
+            die("<h1>Configuration Error</h1><p>Database configuration for '<strong>" . htmlspecialchars($db_name) . "</strong>' not found.</p>");
+        }
+
+        $username = $this->db_credentials[$db_name]['username'];
+
         // Otherwise, create a new connection.
         try {
             $conn = new PDO(
                 "mysql:host=" . $this->host . ";dbname=" . $db_name . ";charset=utf8",
-                $this->username,
+                $username,
                 $this->password
             );
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
