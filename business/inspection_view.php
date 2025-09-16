@@ -1,18 +1,13 @@
 <?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
-require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Violation.php';
 require_once '../models/InspectionMedia.php';
-require_once '../models/Business.php';
 require_once '../utils/access_control.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../main_login.php');
-    exit;
-}
+// Check if user is logged in and has permission
+requirePermission('inspections');
 
 $database = new Database();
 
@@ -33,15 +28,11 @@ if (!$inspection_data) {
     exit;
 }
 
-// Security Check: Ensure business owner can only see their own inspections
-if ($_SESSION['user_role'] === 'business_owner') {
-    $business = new Business($database);
-    $user_businesses_stmt = $business->readByOwnerId($_SESSION['user_id']);
-    $owned_business_ids = array_column($user_businesses_stmt->fetchAll(PDO::FETCH_ASSOC), 'id');
-    if (!in_array($inspection_data['business_id'], $owned_business_ids)) {
-        header('Location: index.php?error=Access Denied');
-        exit;
-    }
+// Security Check: Ensure business owner can only see their own inspections.
+// Admins and inspectors have broader access, which is controlled by requirePermission().
+if ($_SESSION['user_role'] === 'business_owner' && $inspection_data['business_owner_id'] != $_SESSION['user_id']) {
+    header('Location: index.php?error=Access Denied');
+    exit;
 }
 
 // Fetch associated media

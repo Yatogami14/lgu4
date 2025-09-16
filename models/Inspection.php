@@ -55,7 +55,7 @@ class Inspection {
 
     // Read single inspection
     public function readOne() {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
+        $query = "SELECT i.*, b.name as business_name, b.address as business_address, b.owner_id as business_owner_id,
                          it.name as inspection_type, u.name as inspector_name
                   FROM " . $this->table_name . " i
                   LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id

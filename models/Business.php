@@ -282,12 +282,12 @@ class Business {
     // Get compliance statistics for business
     public function getComplianceStats($business_id) {
         $query = "SELECT 
-                    COUNT(*) as total_inspections,
-                    AVG(compliance_score) as avg_compliance,
+                    COUNT(id) as total_inspections,
+                    AVG(CASE WHEN status = 'completed' THEN compliance_score ELSE NULL END) as avg_compliance,
                     SUM(total_violations) as total_violations,
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_inspections
                   FROM " . Database::DB_SCHEDULING . ".inspections 
-                  WHERE business_id = ? AND compliance_score IS NOT NULL";
+                  WHERE business_id = ?";
 
         $stats = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
         
