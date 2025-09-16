@@ -2,6 +2,7 @@
 session_start();
 require_once '../config/database.php';
 require_once '../models/User.php';
+require_once '../models/Specialization.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -23,15 +24,16 @@ $db_core = $database->getConnection(Database::DB_CORE);
 $inspector_id = $_GET['id'];
 
 // Get inspector details
-$inspector = new User($db_core);
+$inspector = new User($database);
 $inspector->id = $inspector_id;
 
 if ($inspector->readOne()) {
-    // Get inspector specializations
-    $specializations = $inspector->getSpecializations();
+    // Get inspector specializations using the new model
+    $specializationModel = new Specialization($database);
+    $specializationsStmt = $specializationModel->readByUserId($inspector_id);
     $specializations_data = [];
     
-    while ($spec = $specializations->fetch(PDO::FETCH_ASSOC)) {
+    while ($spec = $specializationsStmt->fetch(PDO::FETCH_ASSOC)) {
         $specializations_data[] = $spec;
     }
     

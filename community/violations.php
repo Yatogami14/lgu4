@@ -16,14 +16,12 @@ require_once '../vendor/autoload.php';
 requirePermission('violations');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$violationModel = new Violation($db_violations);
+$violationModel = new Violation($database);
 
 // Handle form submission for creating a violation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_violation') {
@@ -47,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $businessName = $businessData['name'] ?? 'Unknown Business';
 
             // 2. Get Admin Emails
-            $adminUserModel = new User($db_core);
+            $adminUserModel = new User($database);
             $admins = $adminUserModel->readByRole('admin')->fetchAll(PDO::FETCH_ASSOC);
             $super_admins = $adminUserModel->readByRole('super_admin')->fetchAll(PDO::FETCH_ASSOC);
             $all_admin_users = array_merge($admins, $super_admins);

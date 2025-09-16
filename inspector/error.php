@@ -10,8 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 

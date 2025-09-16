@@ -15,13 +15,6 @@ require_once '../models/InspectionType.php';
 require_once '../utils/access_control.php';
 
 $database = new Database();
-// Establish connections to all necessary databases
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_media = $database->getConnection(Database::DB_MEDIA);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
-$db_checklist = $database->getConnection(Database::DB_CHECKLIST);
-$db_reports = $database->getConnection(Database::DB_REPORTS);
 
 // --- AI Analysis Endpoint ---
 // This block handles AJAX requests for text analysis.
@@ -60,7 +53,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'analyze_media') {
         exit;
     }
 
-    $media = new InspectionMedia($db_media);
+    $media = new InspectionMedia($database);
     $media->inspection_id = $inspection_id;
     $media->file_path = $dbPath;
     $media->filename = $fileName;
@@ -98,7 +91,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_violation') {
         exit;
     }
     
-    $violation = new Violation($db_violations);
+    $violation = new Violation($database);
     $violation->inspection_id = $_POST['inspection_id'];
     $violation->business_id = $_POST['business_id'];
     $violation->description = $_POST['description'];
@@ -125,7 +118,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_draft') {
         exit;
     }
     
-    $inspection = new Inspection($db_scheduling);
+    $inspection = new Inspection($database);
     $inspection->id = $_POST['inspection_id'];
     
     $draft_responses = [];
@@ -149,14 +142,14 @@ if (isset($_POST['action']) && $_POST['action'] === 'save_draft') {
 // Check if user is logged in and has permission to access this page
 requirePermission('inspections');
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db_scheduling);
-$business = new Business($db_core);
-$checklistTemplateModel = new ChecklistTemplate($db_checklist);
-$inspectionTypeModel = new InspectionType($db_core);
+$inspection = new Inspection($database);
+$business = new Business($database);
+$checklistTemplateModel = new ChecklistTemplate($database);
+$inspectionTypeModel = new InspectionType($database);
 
 
 // Get inspection ID from URL
@@ -205,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inspection->notes_ai_analysis = null;
         }
 
-        if ($inspection->update($db_core)) {
+        if ($inspection->complete()) {
             header('Location: assigned_inspections.php?success=Inspection completed successfully');
             exit;
         }

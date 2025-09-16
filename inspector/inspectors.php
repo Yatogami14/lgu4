@@ -20,7 +20,7 @@ $database = new Database();
 $db_core = $database->getConnection(Database::DB_CORE);
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
@@ -29,7 +29,7 @@ $inspectors = $user->readByRole('inspector');
 
 // Handle inspector creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_inspector'])) {
-    $newInspector = new User($db_core);
+    $newInspector = new User($database);
     $newInspector->name = $_POST['name'];
     $newInspector->email = $_POST['email'];
     $newInspector->password = $_POST['password'];
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_inspector'])) 
 
 // Handle inspector update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_inspector'])) {
-    $updateInspector = new User($db_core);
+    $updateInspector = new User($database);
     $updateInspector->id = $_POST['inspector_id'];
     $updateInspector->name = $_POST['name'];
     $updateInspector->email = $_POST['email'];
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_inspector'])) 
 
 // Handle inspector deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_inspector'])) {
-    $deleteInspector = new User($db_core);
+    $deleteInspector = new User($database);
     $deleteInspector->id = $_POST['inspector_id'];
 
     if ($deleteInspector->delete()) {
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_inspector'])) 
 }
 
 // Get all inspection types
-$inspectionType = new InspectionType($db_core);
+$inspectionType = new InspectionType($database);
 $inspectionTypes = $inspectionType->readAll();
 
 // Handle inspector assignment
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
     $inspection_id = $_POST['inspection_id'];
     $inspector_id = $_POST['inspector_id'];
 
-    $inspection = new Inspection($db_scheduling);
+    $inspection = new Inspection($database);
     $inspection->id = $inspection_id;
     $inspection->inspector_id = $inspector_id;
 
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_inspector'])) 
 $totalInspectors = $user->countActiveInspectors();
 $activeToday = $user->countActiveInspectorsToday();
 
-$inspectionModel = new Inspection($db_scheduling);
+$inspectionModel = new Inspection($database);
 $inspectionStats = $inspectionModel->getInspectionStatsByStatus();
 $scheduledInspections = ($inspectionStats['scheduled'] ?? 0) + ($inspectionStats['in_progress'] ?? 0);
 $completedInspections = $inspectionStats['completed'] ?? 0;

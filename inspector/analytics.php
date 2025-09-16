@@ -10,15 +10,13 @@ require_once '../utils/access_control.php';
 requirePermission('analytics');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspection = new Inspection($db_scheduling);
-$business = new Business($db_core);
+$inspection = new Inspection($database);
+$business = new Business($database);
 
 // Get analytics data
 $totalInspections = $inspection->countAll();

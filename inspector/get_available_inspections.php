@@ -15,8 +15,7 @@ if (!isset($_SESSION['user_id'])) {
 requirePermission('inspectors', 'index.php');
 
 $database = new Database();
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 
 try {
     // Get inspections that don't have an assigned inspector

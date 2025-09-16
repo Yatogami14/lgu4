@@ -12,16 +12,14 @@ require_once '../utils/access_control.php';
 requirePermission('violations');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // --- Handle Violation Create/Update ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $violationModel = new Violation($db_violations);
+    $violationModel = new Violation($database);
 
     // Handle Create
     if (isset($_POST['action']) && $_POST['action'] === 'create_violation') {
@@ -62,12 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all violations from database
-$violationModel = new Violation($db_violations);
+$violationModel = new Violation($database);
 $violationsStmt = $violationModel->readByInspectorId($_SESSION['user_id']);
 $violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
 $violationStats = $violationModel->getViolationStatsByInspectorId($_SESSION['user_id']);
 // Get businesses for create modal
-$businessModel = new Business($db_core);
+$businessModel = new Business($database);
 $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

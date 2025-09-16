@@ -31,19 +31,10 @@ class Business {
                   SET name=:name, address=:address, owner_id=:owner_id, contact_number=:contact_number, 
                       email=:email, business_type=:business_type, registration_number=:registration_number";
 
-        // Sanitize input
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->address = htmlspecialchars(strip_tags($this->address));
-        $this->contact_number = htmlspecialchars(strip_tags($this->contact_number));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->business_type = htmlspecialchars(strip_tags($this->business_type));
-        $this->registration_number = htmlspecialchars(strip_tags($this->registration_number));
-        $this->owner_id = !empty($this->owner_id) ? htmlspecialchars(strip_tags($this->owner_id)) : null;
-
         $params = [
             ":name" => $this->name,
             ":address" => $this->address,
-            ":owner_id" => $this->owner_id,
+            ":owner_id" => !empty($this->owner_id) ? $this->owner_id : null,
             ":contact_number" => $this->contact_number,
             ":email" => $this->email,
             ":business_type" => $this->business_type,
@@ -51,7 +42,10 @@ class Business {
         ];
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $pdo = $this->database->getConnection(Database::DB_CORE);
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $this->id = $pdo->lastInsertId();
             return true;
         } catch (PDOException $e) {
             error_log("Business creation failed: " . $e->getMessage());
@@ -141,48 +135,31 @@ class Business {
 
     // Update business
     public function update() {
-        $query = "UPDATE " . $this->table_name . "
-                SET name=:name, address=:address, owner_id=:owner_id, inspector_id=:inspector_id,
-                    contact_number=:contact_number, email=:email, 
-                    business_type=:business_type, registration_number=:registration_number,
-                    establishment_date=:establishment_date, inspection_frequency=:inspection_frequency,
-                    last_inspection_date=:last_inspection_date, next_inspection_date=:next_inspection_date,
-                    is_compliant=:is_compliant, compliance_score=:compliance_score
-                WHERE id=:id";
+        $fields = [];
+        $params = [':id' => $this->id];
 
-        // Sanitize input
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->address = htmlspecialchars(strip_tags($this->address));
-        $this->owner_id = htmlspecialchars(strip_tags($this->owner_id));
-        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
-        $this->contact_number = htmlspecialchars(strip_tags($this->contact_number));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->business_type = htmlspecialchars(strip_tags($this->business_type));
-        $this->registration_number = htmlspecialchars(strip_tags($this->registration_number));
-        $this->establishment_date = htmlspecialchars(strip_tags($this->establishment_date));
-        $this->inspection_frequency = htmlspecialchars(strip_tags($this->inspection_frequency));
-        $this->last_inspection_date = htmlspecialchars(strip_tags($this->last_inspection_date));
-        $this->next_inspection_date = htmlspecialchars(strip_tags($this->next_inspection_date));
-        $this->is_compliant = htmlspecialchars(strip_tags($this->is_compliant));
-        $this->compliance_score = htmlspecialchars(strip_tags($this->compliance_score));
+        // Build the SET clause dynamically based on which properties are not null
+        if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = $this->name; }
+        if ($this->address !== null) { $fields[] = "address=:address"; $params[':address'] = $this->address; }
+        if ($this->owner_id !== null) { $fields[] = "owner_id=:owner_id"; $params[':owner_id'] = $this->owner_id; }
+        if ($this->inspector_id !== null) { $fields[] = "inspector_id=:inspector_id"; $params[':inspector_id'] = $this->inspector_id; }
+        if ($this->contact_number !== null) { $fields[] = "contact_number=:contact_number"; $params[':contact_number'] = $this->contact_number; }
+        if ($this->email !== null) { $fields[] = "email=:email"; $params[':email'] = $this->email; }
+        if ($this->business_type !== null) { $fields[] = "business_type=:business_type"; $params[':business_type'] = $this->business_type; }
+        if ($this->registration_number !== null) { $fields[] = "registration_number=:registration_number"; $params[':registration_number'] = $this->registration_number; }
+        if ($this->establishment_date !== null) { $fields[] = "establishment_date=:establishment_date"; $params[':establishment_date'] = $this->establishment_date; }
+        if ($this->inspection_frequency !== null) { $fields[] = "inspection_frequency=:inspection_frequency"; $params[':inspection_frequency'] = $this->inspection_frequency; }
+        if ($this->last_inspection_date !== null) { $fields[] = "last_inspection_date=:last_inspection_date"; $params[':last_inspection_date'] = $this->last_inspection_date; }
+        if ($this->next_inspection_date !== null) { $fields[] = "next_inspection_date=:next_inspection_date"; $params[':next_inspection_date'] = $this->next_inspection_date; }
+        if ($this->is_compliant !== null) { $fields[] = "is_compliant=:is_compliant"; $params[':is_compliant'] = $this->is_compliant; }
+        if ($this->compliance_score !== null) { $fields[] = "compliance_score=:compliance_score"; $params[':compliance_score'] = $this->compliance_score; }
 
-        $params = [
-            ':name' => $this->name,
-            ':address' => $this->address,
-            ':owner_id' => $this->owner_id,
-            ':inspector_id' => $this->inspector_id,
-            ':contact_number' => $this->contact_number,
-            ':email' => $this->email,
-            ':business_type' => $this->business_type,
-            ':registration_number' => $this->registration_number,
-            ':establishment_date' => $this->establishment_date,
-            ':inspection_frequency' => $this->inspection_frequency,
-            ':last_inspection_date' => $this->last_inspection_date,
-            ':next_inspection_date' => $this->next_inspection_date,
-            ':is_compliant' => $this->is_compliant,
-            ':compliance_score' => $this->compliance_score,
-            ':id' => $this->id
-        ];
+        if (empty($fields)) {
+            // Nothing to update
+            return true;
+        }
+
+        $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
 
         try {
             $this->database->query(Database::DB_CORE, $query, $params);
@@ -212,10 +189,6 @@ class Business {
      */
     public function assignInspector() {
         $query = "UPDATE " . $this->table_name . " SET inspector_id = :inspector_id WHERE id = :id";
-
-        // Sanitize
-        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
-        $this->id = htmlspecialchars(strip_tags($this->id));
 
         $params = [
             ':inspector_id' => $this->inspector_id,
@@ -316,7 +289,7 @@ class Business {
                   FROM " . Database::DB_SCHEDULING . ".inspections 
                   WHERE business_id = ? AND compliance_score IS NOT NULL";
 
-        $stats = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
+        $stats = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
         
         // Format the results
         $stats['avg_compliance'] = $stats['avg_compliance'] ? round($stats['avg_compliance']) : 0;
@@ -333,8 +306,8 @@ class Business {
         $query = "SELECT COUNT(*) as active_violations_count 
                   FROM " . Database::DB_VIOLATIONS . ".violations 
                   WHERE business_id = ? AND status IN ('open', 'in_progress')";
-        
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
+
+        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query, [$business_id]);
 
         return $row['active_violations_count'] ?? 0;
     }
@@ -349,7 +322,7 @@ class Business {
                   ORDER BY i.updated_at DESC
                   LIMIT ?";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [$business_id, (int)$limit]);
+        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id, (int)$limit]);
     }
 
     // Get businesses by owner ID
@@ -360,7 +333,7 @@ class Business {
                   WHERE b.owner_id = ?
                   ORDER BY b.created_at DESC";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [$owner_id]);
+        return $this->database->query(Database::DB_CORE, $query, [$owner_id]);
     }
 
     // Calculate next inspection date based on frequency
@@ -436,7 +409,7 @@ class Business {
 
         // Get the most recent completed inspection date
         $query_last_date = "SELECT MAX(completed_date) as last_date FROM " . Database::DB_SCHEDULING . ".inspections WHERE business_id = ? AND status = 'completed'";
-        $last_date_row = $this->database->fetch(Database::DB_CORE, $query_last_date, [$this->id]);
+        $last_date_row = $this->database->fetch(Database::DB_SCHEDULING, $query_last_date, [$this->id]);
         $last_inspection_date = $last_date_row['last_date'] ?? null;
 
         // Load current business data to get inspection frequency
@@ -518,7 +491,7 @@ class Business {
         $query = "SELECT MAX(completed_date) as last_inspection_date
                   FROM " . Database::DB_SCHEDULING . ".inspections
                   WHERE business_id = ? AND status = 'completed'";
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
+        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
         return $row['last_inspection_date'] ?? null;
     }
 }

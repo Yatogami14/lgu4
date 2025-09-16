@@ -11,11 +11,6 @@ require_once '../utils/access_control.php';
 requirePermission('inspections');
 
 $database = new Database();
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
-$db_media = $database->getConnection(Database::DB_MEDIA);
-$db_core = $database->getConnection(Database::DB_CORE); // For potential user/business lookups
-
 
 // Get inspection ID from URL
 $inspection_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -25,7 +20,7 @@ if ($inspection_id <= 0) {
 }
 
 // Fetch inspection details
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $inspection->id = $inspection_id;
 $inspection_data = $inspection->readOne();
 
@@ -35,12 +30,12 @@ if (!$inspection_data) {
 }
 
 // Fetch associated media
-$media_model = new InspectionMedia($db_media);
+$media_model = new InspectionMedia($database);
 $media_files_stmt = $media_model->readByInspectionId($inspection_id);
 $media_files = $media_files_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch associated violations
-$violation_model = new Violation($db_violations);
+$violation_model = new Violation($database);
 $violations_stmt = $violation_model->readByInspectionId($inspection_id);
 $violations = $violations_stmt->fetchAll(PDO::FETCH_ASSOC);
 

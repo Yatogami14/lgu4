@@ -1,18 +1,21 @@
 <?php
-require_once '../utils/session_manager.php';
+require_once '../utils/session_manager.php'; // This will start the session
 
 // This script handles logout for the community portal.
 
 // Clear "Remember Me" token from the database
 if (isset($_SESSION['user_id'])) {
     require_once '../config/database.php';
-    require_once '../models/User.php';
+    require_once '../models/Auth.php';
     
     $database = new Database();
-    $db_core = $database->getConnection(Database::DB_CORE);
-    $user = new User($db_core);
-    $user->id = $_SESSION['user_id'];
-    $user->clearRememberMeToken();
+    $auth = new Auth($database);
+    $auth->clearRememberMeToken($_SESSION['user_id']);
+}
+
+// Clear the "Remember Me" cookie from the browser
+if (isset($_COOKIE['remember_me'])) {
+    setcookie('remember_me', '', time() - 3600, '/');
 }
 
 session_unset();

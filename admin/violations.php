@@ -12,27 +12,23 @@ require_once '../utils/access_control.php';
 requirePermission('violations');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_reports = $database->getConnection(Database::DB_REPORTS);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // Get all inspectors for the modal
-$inspectorUser = new User($db_core);
+$inspectorUser = new User($database);
 $all_inspectors = $inspectorUser->readByRole('inspector')->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all inspection types for the modal
 require_once '../models/InspectionType.php';
-$inspectionTypeModel = new InspectionType($db_core);
+$inspectionTypeModel = new InspectionType($database);
 $allInspectionTypes = $inspectionTypeModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
 
 // --- Handle Violation Create/Update ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $violationModel = new Violation($db_violations);
+    $violationModel = new Violation($database);
 
     // Handle Create Inspection from Violation
     if (isset($_POST['action']) && $_POST['action'] === 'create_inspection_from_violation') {
@@ -46,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $inspection->notes = $_POST['notes'];
 
         if ($inspection->create()) {
-            $new_inspection_id = $db_scheduling->lastInsertId();
+            $new_inspection_id = $inspection->id;
             $violationModel->id = $_POST['violation_id'];
             if ($violationModel->linkToInspection($new_inspection_id)) {
                 $_SESSION['success_message'] = 'Inspection created and linked to violation successfully!';
@@ -99,13 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all violations from database
-$violationModel = new Violation($db_violations);
+$violationModel = new Violation($database);
 $violationsStmt = $violationModel->readAll();
 $violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
 $violationStats = $violationModel->getViolationStats();
 
 // Get businesses for create modal
-$businessModel = new Business($db_core);
+$businessModel = new Business($database);
 $allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>

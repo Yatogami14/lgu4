@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $business->registration_number = $_POST['registration_number'];
         $business->contact_number = $_POST['contact_number'];
         $business->email = $_POST['email'];
+        $business->owner_id = $_POST['owner_id'] ?? null;
 
         if ($business->update()) {
             $_SESSION['success_message'] = 'Business updated successfully!';

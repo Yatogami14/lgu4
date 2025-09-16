@@ -12,20 +12,26 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['user_role'] != 'business_owner' 
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 $inspection = new Inspection($database);
-$business = new Business($db_core);
+$business = new Business($database);
 
 // Get user-specific data based on role
 if ($_SESSION['user_role'] == 'business_owner') {
-    $userInspections = $inspection->readByUserId($_SESSION['user_id'], 5);
-    $userBusinesses = $business->readByOwnerId($_SESSION['user_id']);
+    $userBusinessesStmt = $business->readByOwnerId($_SESSION['user_id']);
+    $userBusinesses = $userBusinessesStmt->fetchAll(PDO::FETCH_ASSOC);
+    $business_ids = [];
+    if (!empty($userBusinesses)) {
+        $business_ids = array_column($userBusinesses, 'id');
+    }
+    $userInspections = [];
+    if (!empty($business_ids)) {
+        $userInspections = $inspection->readByBusinessIds($business_ids);
+    }
 } else {
     // For community users, show public data
     $recentInspections = $inspection->readRecent(5);

@@ -11,9 +11,6 @@ require_once '../utils/access_control.php';
 requirePermission('dashboard');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
 
 // Get current user info
 $user = new User($database);

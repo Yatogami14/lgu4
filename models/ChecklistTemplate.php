@@ -1,6 +1,6 @@
 <?php
 class ChecklistTemplate {
-    private $conn;
+    private $database;
     private $table_name = "checklist_templates";
 
     // Object properties
@@ -15,10 +15,10 @@ class ChecklistTemplate {
 
     /**
      * Constructor with database connection.
-     * @param PDO $db
+     * @param Database $database
      */
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     /**
@@ -30,7 +30,8 @@ class ChecklistTemplate {
                   FROM " . $this->table_name . " ct
                   LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON ct.inspection_type_id = it.id
                   ORDER BY ct.inspection_type_id, ct.category, ct.id";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
+        $stmt = $pdo->prepare($query);
         $stmt->execute();
         return $stmt;
     }
@@ -45,8 +46,8 @@ class ChecklistTemplate {
         $query = "SELECT * FROM " . $this->table_name . " 
                   WHERE inspection_type_id = ? 
                   ORDER BY category, id";
-        
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspection_type_id, PDO::PARAM_INT);
         $stmt->execute();
         
@@ -68,11 +69,8 @@ class ChecklistTemplate {
      */
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $row = $this->database->fetch(Database::DB_CHECKLIST, $query, [$this->id]);
 
         if ($row) {
             $this->id = $row['id'];
@@ -83,7 +81,7 @@ class ChecklistTemplate {
             $this->input_type = $row['input_type'];
             $this->options = $row['options'];
             $this->created_at = $row['created_at'];
-            return true;
+            return $row;
         }
         return false;
     }
@@ -97,27 +95,21 @@ class ChecklistTemplate {
                   SET inspection_type_id=:inspection_type_id, category=:category, question=:question, 
                       required=:required, input_type=:input_type, options=:options";
 
-        $stmt = $this->conn->prepare($query);
-
-        // Sanitize
-        $this->inspection_type_id = htmlspecialchars(strip_tags($this->inspection_type_id));
-        $this->category = htmlspecialchars(strip_tags($this->category));
-        $this->question = htmlspecialchars(strip_tags($this->question));
-        $this->required = $this->required ? 1 : 0;
-        $this->input_type = htmlspecialchars(strip_tags($this->input_type));
-        // The 'options' property is expected to be a valid JSON string or null.
-        $this->options = !empty($this->options) ? $this->options : null;
+        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
+        $stmt = $pdo->prepare($query);
 
         // Bind
         $stmt->bindParam(":inspection_type_id", $this->inspection_type_id);
         $stmt->bindParam(":category", $this->category);
         $stmt->bindParam(":question", $this->question);
-        $stmt->bindParam(":required", $this->required, PDO::PARAM_INT);
+        $required = $this->required ? 1 : 0;
+        $stmt->bindParam(":required", $required, PDO::PARAM_INT);
         $stmt->bindParam(":input_type", $this->input_type);
-        $stmt->bindParam(":options", $this->options);
+        $options = !empty($this->options) ? $this->options : null;
+        $stmt->bindParam(":options", $options);
 
         if ($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
+            $this->id = $pdo->lastInsertId();
             return true;
         }
         error_log("ChecklistTemplate creation failed: " . implode(";", $stmt->errorInfo()));
@@ -129,36 +121,29 @@ class ChecklistTemplate {
      * @return bool
      */
     public function update() {
-        $query = "UPDATE " . $this->table_name . "
-                  SET inspection_type_id=:inspection_type_id, category=:category, question=:question, 
-                      required=:required, input_type=:input_type, options=:options
-                  WHERE id=:id";
+        $fields = [];
+        $params = [':id' => $this->id];
 
-        $stmt = $this->conn->prepare($query);
+        if ($this->inspection_type_id !== null) { $fields[] = "inspection_type_id=:inspection_type_id"; $params[':inspection_type_id'] = $this->inspection_type_id; }
+        if ($this->category !== null) { $fields[] = "category=:category"; $params[':category'] = $this->category; }
+        if ($this->question !== null) { $fields[] = "question=:question"; $params[':question'] = $this->question; }
+        if ($this->required !== null) { $fields[] = "required=:required"; $params[':required'] = $this->required ? 1 : 0; }
+        if ($this->input_type !== null) { $fields[] = "input_type=:input_type"; $params[':input_type'] = $this->input_type; }
+        if ($this->options !== null) { $fields[] = "options=:options"; $params[':options'] = !empty($this->options) ? $this->options : null; }
 
-        // Sanitize
-        $this->id = htmlspecialchars(strip_tags($this->id));
-        $this->inspection_type_id = htmlspecialchars(strip_tags($this->inspection_type_id));
-        $this->category = htmlspecialchars(strip_tags($this->category));
-        $this->question = htmlspecialchars(strip_tags($this->question));
-        $this->required = $this->required ? 1 : 0;
-        $this->input_type = htmlspecialchars(strip_tags($this->input_type));
-        $this->options = !empty($this->options) ? $this->options : null;
-
-        // Bind
-        $stmt->bindParam(":id", $this->id);
-        $stmt->bindParam(":inspection_type_id", $this->inspection_type_id);
-        $stmt->bindParam(":category", $this->category);
-        $stmt->bindParam(":question", $this->question);
-        $stmt->bindParam(":required", $this->required, PDO::PARAM_INT);
-        $stmt->bindParam(":input_type", $this->input_type);
-        $stmt->bindParam(":options", $this->options);
-
-        if ($stmt->execute()) {
-            return true;
+        if (empty($fields)) {
+            return true; // Nothing to update
         }
-        error_log("ChecklistTemplate update failed: " . implode(";", $stmt->errorInfo()));
-        return false;
+
+        $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
+
+        try {
+            $this->database->query(Database::DB_CHECKLIST, $query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("ChecklistTemplate update failed for ID {$this->id}: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -167,7 +152,8 @@ class ChecklistTemplate {
      */
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
 
         if ($stmt->execute()) {

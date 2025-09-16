@@ -1,4 +1,42 @@
+# ===================================================================
+# Apache 2.4 .htaccess
+#
+# SECURITY
+# - Disable directory browsing
+# - Deny access to sensitive files
+# - Add security headers to prevent common attacks
+#
+# REWRITES
+# - Rewrite index.html to index.php
+# ===================================================================
+
+# Turn on the rewrite engine
 RewriteEngine On
 RewriteBase /
+
+# -------------------------------------------------------------------
+# SECURITY CONFIGURATION
+# -------------------------------------------------------------------
+
+# Disable directory browsing for security
+Options -Indexes
+
+# Deny access to sensitive files and directories
+# Block access to files with specific extensions or that end with a tilde
+<FilesMatch "(\.(htaccess|htpasswd|ini|log|sh|bak|sql)|~)$">
+    Require all denied
+</FilesMatch>
+# Block access to common sensitive files by name
+<FilesMatch "^(composer\.json|composer\.lock|README\.md|SECURITY\.md)$">
+    Require all denied
+</FilesMatch>
+# Block access to important directories
+RewriteRule ^config/ - [F,L]
+RewriteRule ^vendor/ - [F,L]
+
+# -------------------------------------------------------------------
+# REWRITE RULES
+# -------------------------------------------------------------------
+
+# Rewrite index.html to index.php
 RewriteRule ^index\.html$ index.php [L]
-RewriteRule ^admin/(.*)$ admin/$1 [L]

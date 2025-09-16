@@ -9,13 +9,12 @@ require_once '../utils/access_control.php';
 requirePermission('inspection_types_management');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$inspectionType = new InspectionType($db_core);
+$inspectionType = new InspectionType($database);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

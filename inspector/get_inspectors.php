@@ -8,18 +8,11 @@ require_once '../utils/access_control.php';
 requirePermission('businesses');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 
 // Get all inspectors
-$query = "SELECT id, name, email, department, certification FROM users WHERE role = 'inspector' ORDER BY name";
-$stmt = $db_core->prepare($query);
-$stmt->execute();
-
-$inspectors = array();
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $inspectors[] = $row;
-}
+$inspectorsStmt = $user->readByRole('inspector');
+$inspectors = $inspectorsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Return JSON response
 header('Content-Type: application/json');

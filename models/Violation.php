@@ -33,17 +33,8 @@ class Violation {
                     due_date = :due_date,
                     created_by = :created_by";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
         $stmt = $pdo->prepare($query);
-
-        // Sanitize
-        $this->inspection_id = htmlspecialchars(strip_tags($this->inspection_id));
-        $this->business_id = htmlspecialchars(strip_tags($this->business_id));
-        $this->description = htmlspecialchars(strip_tags($this->description));
-        $this->severity = htmlspecialchars(strip_tags($this->severity));
-        $this->status = htmlspecialchars(strip_tags($this->status));
-        $this->due_date = !empty($this->due_date) ? htmlspecialchars(strip_tags($this->due_date)) : null;
-        $this->created_by = htmlspecialchars(strip_tags($this->created_by));
 
         // Bind
         $stmt->bindParam(":inspection_id", $this->inspection_id);
@@ -51,7 +42,8 @@ class Violation {
         $stmt->bindParam(":description", $this->description);
         $stmt->bindParam(":severity", $this->severity);
         $stmt->bindParam(":status", $this->status);
-        $stmt->bindParam(":due_date", $this->due_date);
+        $due_date = !empty($this->due_date) ? $this->due_date : null;
+        $stmt->bindParam(":due_date", $due_date);
         $stmt->bindParam(":created_by", $this->created_by);
 
         if ($stmt->execute()) {
@@ -64,41 +56,28 @@ class Violation {
     }
 
     public function update() {
-        $query = "UPDATE " . $this->table_name . "
-                SET
-                    description = :description,
-                    severity = :severity,
-                    status = :status,
-                    due_date = :due_date,
-                    resolved_date = :resolved_date
-                WHERE
-                    id = :id";
+        $fields = [];
+        $params = [':id' => $this->id];
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
+        if ($this->description !== null) { $fields[] = "description=:description"; $params[':description'] = $this->description; }
+        if ($this->severity !== null) { $fields[] = "severity=:severity"; $params[':severity'] = $this->severity; }
+        if ($this->status !== null) { $fields[] = "status=:status"; $params[':status'] = $this->status; }
+        if ($this->due_date !== null) { $fields[] = "due_date=:due_date"; $params[':due_date'] = $this->due_date; }
+        if ($this->resolved_date !== null) { $fields[] = "resolved_date=:resolved_date"; $params[':resolved_date'] = $this->resolved_date; }
 
-        // Sanitize
-        $this->description = htmlspecialchars(strip_tags($this->description));
-        $this->severity = htmlspecialchars(strip_tags($this->severity));
-        $this->status = htmlspecialchars(strip_tags($this->status));
-        $this->due_date = !empty($this->due_date) ? htmlspecialchars(strip_tags($this->due_date)) : null;
-        $this->resolved_date = !empty($this->resolved_date) ? htmlspecialchars(strip_tags($this->resolved_date)) : null;
-        $this->id = htmlspecialchars(strip_tags($this->id));
-
-        // Bind
-        $stmt->bindParam(":description", $this->description);
-        $stmt->bindParam(":severity", $this->severity);
-        $stmt->bindParam(":status", $this->status);
-        $stmt->bindParam(":due_date", $this->due_date);
-        $stmt->bindParam(":resolved_date", $this->resolved_date);
-        $stmt->bindParam(":id", $this->id);
-
-        if ($stmt->execute()) {
-            return true;
+        if (empty($fields)) {
+            return true; // Nothing to update
         }
 
-        error_log("Violation update failed: " . implode(";", $stmt->errorInfo()));
-        return false;
+        $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
+
+        try {
+            $this->database->query(Database::DB_VIOLATIONS, $query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Violation update failed for ID {$this->id}: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -114,10 +93,6 @@ class Violation {
 
         $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
         $stmt = $pdo->prepare($query);
-
-        // Sanitize
-        $inspection_id = htmlspecialchars(strip_tags($inspection_id));
-        $this->id = htmlspecialchars(strip_tags($this->id));
 
         // Bind
         $stmt->bindParam(':inspection_id', $inspection_id, PDO::PARAM_INT);
@@ -140,8 +115,8 @@ class Violation {
                   WHERE v.inspection_id = 0 AND v.status = 'open'
                   ORDER BY v.created_at ASC
                   LIMIT :limit";
-        
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -163,8 +138,8 @@ class Violation {
         }
 
         $query .= " ORDER BY v.created_at DESC";
-
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
 
         if (!empty($business_ids)) {
             // Bind each business ID to the placeholder
@@ -188,7 +163,8 @@ class Violation {
                   WHERE v.inspection_id = ?
                   ORDER BY v.created_at DESC";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspection_id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
@@ -213,8 +189,8 @@ class Violation {
             $query .= " WHERE i.business_id IN (" . $in_clause . ")";
         }
 
-        $stmt = $this->conn->prepare($query);
-
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         if (!empty($business_ids)) {
             foreach ($business_ids as $k => $id) {
                 $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
@@ -238,7 +214,8 @@ class Violation {
                   FROM " . $this->table_name . "
                   GROUP BY severity";
 
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->execute();
         
         $stats = [];
@@ -269,7 +246,8 @@ class Violation {
                   WHERE i.inspector_id = ?
                   ORDER BY v.created_at DESC";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
@@ -290,7 +268,8 @@ class Violation {
                   LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
                   WHERE i.inspector_id = ?";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -308,7 +287,8 @@ class Violation {
                   WHERE v.created_by = ?
                   ORDER BY v.created_at DESC";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
@@ -328,7 +308,8 @@ class Violation {
                   FROM " . $this->table_name . "
                   WHERE created_by = ?";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
         $stmt->execute();
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -350,7 +331,8 @@ class Violation {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
                   WHERE status IN ('open', 'in_progress') AND business_id IN (" . $in_clause . ")";
         
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
+        $stmt = $pdo->prepare($query);
         foreach ($business_ids as $k => $id) {
             $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
         }

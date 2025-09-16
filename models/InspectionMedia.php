@@ -1,6 +1,6 @@
 <?php
 class InspectionMedia {
-    private $conn;
+    private $database;
     private $table_name = "inspection_media";
 
     public $id;
@@ -13,8 +13,8 @@ class InspectionMedia {
     public $file_size;
     public $created_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     public function create() {
@@ -27,30 +27,25 @@ class InspectionMedia {
                     file_type = :file_type,
                     file_size = :file_size";
 
-        $stmt = $this->conn->prepare($query);
+        $params = [
+            ":inspection_id" => $this->inspection_id,
+            ":uploaded_by" => $this->uploaded_by,
+            ":file_path" => $this->file_path,
+            ":filename" => $this->filename,
+            ":file_type" => $this->file_type,
+            ":file_size" => $this->file_size,
+        ];
 
-        // Sanitize
-        $this->inspection_id = htmlspecialchars(strip_tags($this->inspection_id));
-        $this->uploaded_by = htmlspecialchars(strip_tags($this->uploaded_by));
-        $this->file_path = htmlspecialchars(strip_tags($this->file_path));
-        $this->filename = htmlspecialchars(strip_tags($this->filename));
-        $this->file_type = htmlspecialchars(strip_tags($this->file_type));
-        $this->file_size = htmlspecialchars(strip_tags($this->file_size));
-
-        // Bind
-        $stmt->bindParam(":inspection_id", $this->inspection_id);
-        $stmt->bindParam(":uploaded_by", $this->uploaded_by);
-        $stmt->bindParam(":file_path", $this->file_path);
-        $stmt->bindParam(":filename", $this->filename);
-        $stmt->bindParam(":file_type", $this->file_type);
-        $stmt->bindParam(":file_size", $this->file_size);
-
-        if ($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
+        try {
+            $pdo = $this->database->getConnection(Database::DB_MEDIA);
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $this->id = $pdo->lastInsertId();
             return true;
+        } catch (PDOException $e) {
+            error_log("InspectionMedia creation failed: " . $e->getMessage());
+            return false;
         }
-
-        return false;
     }
 
     public function updateAiAnalysis() {
@@ -60,22 +55,18 @@ class InspectionMedia {
                 WHERE
                     id = :id";
 
-        $stmt = $this->conn->prepare($query);
+        $params = [
+            ":ai_analysis" => $this->ai_analysis,
+            ":id" => $this->id,
+        ];
 
-        // Sanitize
-        // The analysis is JSON, so we just pass it through. htmlspecialchars would corrupt it.
-        $this->id = htmlspecialchars(strip_tags($this->id));
-
-        // Bind
-        $stmt->bindParam(":ai_analysis", $this->ai_analysis);
-        $stmt->bindParam(":id", $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_MEDIA, $query, $params);
             return true;
+        } catch (PDOException $e) {
+            error_log("Failed to update AI analysis for media ID {$this->id}: " . $e->getMessage());
+            return false;
         }
-
-        error_log("Failed to update AI analysis for media ID: " . $this->id);
-        return false;
     }
 
     public function readByInspectionId($inspection_id) {
@@ -83,10 +74,7 @@ class InspectionMedia {
                   WHERE inspection_id = ? 
                   ORDER BY created_at ASC";
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $inspection_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->query(Database::DB_MEDIA, $query, [$inspection_id]);
     }
 }
 ?>

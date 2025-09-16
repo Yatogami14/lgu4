@@ -22,48 +22,40 @@ class Notification {
                 SET user_id=:user_id, message=:message, type=:type,
                     related_entity_type=:related_entity_type, related_entity_id=:related_entity_id";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
+        $params = [
+            ":user_id" => $this->user_id,
+            ":message" => $this->message,
+            ":type" => $this->type,
+            ":related_entity_type" => $this->related_entity_type,
+            ":related_entity_id" => $this->related_entity_id
+        ];
 
-        // Sanitize input
-        $this->user_id = htmlspecialchars(strip_tags($this->user_id));
-        $this->message = htmlspecialchars(strip_tags($this->message));
-        $this->type = htmlspecialchars(strip_tags($this->type));
-        $this->related_entity_type = htmlspecialchars(strip_tags($this->related_entity_type));
-        $this->related_entity_id = htmlspecialchars(strip_tags($this->related_entity_id));
-
-        // Bind parameters
-        $stmt->bindParam(":user_id", $this->user_id);
-        $stmt->bindParam(":message", $this->message);
-        $stmt->bindParam(":type", $this->type);
-        $stmt->bindParam(":related_entity_type", $this->related_entity_type);
-        $stmt->bindParam(":related_entity_id", $this->related_entity_id);
-
-        if ($stmt->execute()) {
+        try {
+            $pdo = $this->database->getConnection(Database::DB_REPORTS);
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $this->id = $pdo->lastInsertId();
             return true;
+        } catch (PDOException $e) {
+            error_log("Notification creation failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Read single notification
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $this->database->fetch(Database::DB_REPORTS, $query, [$this->id]);
 
         if ($row) {
-            $this->user_id = $row['user_id'];
-            $this->message = $row['message'];
-            $this->type = $row['type'];
-            $this->is_read = $row['is_read'];
-            $this->related_entity_type = $row['related_entity_type'];
-            $this->related_entity_id = $row['related_entity_id'];
-            $this->created_at = $row['created_at'];
-            return true;
+            $this->user_id = $row['user_id'] ?? null;
+            $this->message = $row['message'] ?? null;
+            $this->type = $row['type'] ?? null;
+            $this->is_read = $row['is_read'] ?? null;
+            $this->related_entity_type = $row['related_entity_type'] ?? null;
+            $this->related_entity_id = $row['related_entity_id'] ?? null;
+            $this->created_at = $row['created_at'] ?? null;
+            return $row;
         }
         return false;
     }
@@ -78,19 +70,15 @@ class Notification {
             $query .= " LIMIT ?";
         }
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $user_id);
-
+        $params = [$user_id];
         if ($limit) {
-            $stmt->bindParam(2, $limit, PDO::PARAM_INT);
+            $params[] = $limit;
         }
-
-        $stmt->execute();
-
-        $notifications = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $notifications[] = $row;
+        try {
+            $notifications = $this->database->fetchAll(Database::DB_REPORTS, $query, $params);
+        } catch (PDOException $e) {
+            error_log("Error reading unread notifications by user: " . $e->getMessage());
+            return [];
         }
         return $notifications;
     }
@@ -105,19 +93,15 @@ class Notification {
             $query .= " LIMIT ?";
         }
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $user_id);
-
+        $params = [$user_id];
         if ($limit) {
-            $stmt->bindParam(2, $limit, PDO::PARAM_INT);
+            $params[] = $limit;
         }
-
-        $stmt->execute();
-
-        $notifications = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $notifications[] = $row;
+        try {
+            $notifications = $this->database->fetchAll(Database::DB_REPORTS, $query, $params);
+        } catch (PDOException $e) {
+            error_log("Error reading notifications by user: " . $e->getMessage());
+            return [];
         }
         return $notifications;
     }
@@ -125,67 +109,65 @@ class Notification {
     // Mark notification as read
     public function markAsRead() {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_REPORTS, $query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Error marking notification as read (ID: {$this->id}): " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Mark all notifications as read for user
     public function markAllAsRead($user_id) {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE user_id = ? AND is_read = 0";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $user_id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_REPORTS, $query, [$user_id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Error marking all notifications as read for user (ID: {$user_id}): " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Count unread notifications for user
     public function countUnread($user_id) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . "
                   WHERE user_id = ? AND is_read = 0";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $user_id);
-        $stmt->execute();
+        $row = [];
+        try {
+            $row = $this->database->fetch(Database::DB_REPORTS, $query, [$user_id]);
+        } catch (PDOException $e) {
+            error_log("Error counting unread notifications for user (ID: {$user_id}): " . $e->getMessage());
+            return 0;
+        }
 
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['count'];
     }
 
     // Delete notification
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_REPORTS, $query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Error deleting notification (ID: {$this->id}): " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Delete old notifications (cleanup)
     public function deleteOld($days = 30) {
         $query = "DELETE FROM " . $this->table_name . "
                   WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $days, PDO::PARAM_INT);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query(Database::DB_REPORTS, $query, [$days]);
             return true;
+        } catch (PDOException $e) {
+            error_log("Error deleting old notifications (days: {$days}): " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Create notification for inspection scheduled

@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 
-    $violation = new Violation($db_violations);
+    $violation = new Violation($database);
     $violation->id = $_POST['violation_id'];
     $violation->description = $_POST['description'];
     $violation->severity = $_POST['severity'];
@@ -50,7 +50,7 @@ if ($inspection_id <= 0) {
 }
 
 // Fetch inspection details
-$inspection = new Inspection($db_scheduling);
+$inspection = new Inspection($database);
 $inspection->id = $inspection_id;
 $inspection_data = $inspection->readOne();
 
@@ -60,12 +60,12 @@ if (!$inspection_data) {
 }
 
 // Fetch associated media
-$media_model = new InspectionMedia($db_media);
+$media_model = new InspectionMedia($database);
 $media_files_stmt = $media_model->readByInspectionId($inspection_id);
 $media_files = $media_files_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch associated violations
-$violation_model = new Violation($db_violations);
+$violation_model = new Violation($database);
 $violations_stmt = $violation_model->readByInspectionId($inspection_id);
 $violations = $violations_stmt->fetchAll(PDO::FETCH_ASSOC);
 

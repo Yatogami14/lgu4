@@ -8,13 +8,8 @@ require_once '../utils/access_control.php';
 requirePermission('assigned_inspections');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
 $inspection = new Inspection($database);
-$user = new User($db_core);
-$user->id = $_SESSION['user_id'];
-$user->readOne();
 
 // Admins see all assigned inspections
 $inspections = $inspection->readAllAssigned();

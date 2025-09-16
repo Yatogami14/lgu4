@@ -9,22 +9,18 @@ require_once '../utils/access_control.php';
 requirePermission('profile');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_reports = $database->getConnection(Database::DB_REPORTS);
 
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
-$notification = new Notification($db_reports);
+$notification = new Notification($database);
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['update_profile'])) {
         $user->name = $_POST['name'];
         $user->email = $_POST['email'];
-        $user->department = $_POST['department'];
-        $user->certification = $_POST['certification'];
         
         if ($user->update()) {
             $success_message = "Profile updated successfully!";

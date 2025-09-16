@@ -15,14 +15,6 @@ require_once '../models/InspectionType.php';
 require_once '../utils/access_control.php';
 
 $database = new Database();
-
-// Establish connections to all necessary databases
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_media = $database->getConnection(Database::DB_MEDIA);
-$db_violations = $database->getConnection(Database::DB_VIOLATIONS);
-$db_checklist = $database->getConnection(Database::DB_CHECKLIST);
-$db_reports = $database->getConnection(Database::DB_REPORTS);
 // --- AI Analysis Endpoint ---
 // This block handles AJAX requests for text analysis.
 if (isset($_POST['action']) && $_POST['action'] === 'analyze_text') {
@@ -60,7 +52,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'analyze_media') {
         exit;
     }
 
-    $media = new InspectionMedia($db_media);
+    $media = new InspectionMedia($database);
     $media->inspection_id = $inspection_id;
     $media->file_path = $dbPath;
     $media->filename = $fileName;
@@ -80,10 +72,9 @@ if (isset($_POST['action']) && $_POST['action'] === 'analyze_media') {
     $analyzer = new GeminiAnalyzer(GEMINI_API_KEY);
     $result = $analyzer->analyzeMedia($filePath);
 
-    if (!isset($result['error'])) {
-        $media->ai_analysis = json_encode($result);
-        $media->updateAiAnalysis();
-    }
+    // Always save the result, whether it's a successful analysis or an error report from the analyzer.
+    $media->ai_analysis = json_encode($result);
+    $media->updateAiAnalysis();
 
     echo json_encode($result);
     exit;
@@ -156,8 +147,8 @@ $user->readOne();
 
 $inspection = new Inspection($database);
 $business = new Business($database);
-$checklistTemplateModel = new ChecklistTemplate($db_checklist);
-$inspectionTypeModel = new InspectionType($db_core);
+$checklistTemplateModel = new ChecklistTemplate($database);
+$inspectionTypeModel = new InspectionType($database);
 
 
 // Get inspection ID from URL
@@ -206,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $inspection->notes_ai_analysis = null;
         }
 
-        if ($inspection->update()) {
+        if ($inspection->complete()) {
             header('Location: inspections.php?success=Inspection completed successfully');
             exit;
         }

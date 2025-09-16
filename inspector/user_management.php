@@ -1,6 +1,7 @@
 <?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
+require_once '../models/Auth.php';
 require_once '../models/User.php';
 require_once '../utils/access_control.php';
 require_once '../utils/logger.php'; // Include logger
@@ -15,14 +16,13 @@ if (!isset($_SESSION['user_id'])) {
 requirePermission('user_management', 'index.php');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$user = new User($db_core);
+$user = new User($database);
 $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 // Handle user creation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
-    $newUser = new User($db_core);
+    $newUser = new User($database);
     $newUser->name = $_POST['name'];
     $newUser->email = $_POST['email'];
     $newUser->password = $_POST['password'];
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
 
 // Handle user update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
-    $updateUser = new User($db_core);
+    $updateUser = new User($database);
     $updateUser->id = $_POST['user_id'];
     $updateUser->name = $_POST['name'];
     $updateUser->email = $_POST['email'];
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_user'])) {
 
 // Handle user deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
-    $deleteUser = new User($db_core);
+    $deleteUser = new User($database);
     $deleteUser->id = $_POST['user_id'];
     
     if ($deleteUser->delete()) {
@@ -81,14 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
 // Handle password reset
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     if (!empty($_POST['new_password']) && $_POST['new_password'] === $_POST['confirm_new_password']) {
-        $resetUser = new User($db_core);
-        $resetUser->id = $_POST['user_id'];
+        $auth = new Auth($database);
         
-        if ($resetUser->updatePassword($_POST['new_password'])) {
+        if ($auth->updatePassword($_POST['user_id'], $_POST['new_password'])) {
             $_SESSION['success_message'] = 'Password updated successfully!';
         } else {
             $_SESSION['error_message'] = 'Failed to update password.';
-            logError("Failed to update password for user ID: " . $resetUser->id);
+            logError("Failed to update password for user ID: " . $_POST['user_id']);
         }
     } else {
         $_SESSION['error_message'] = 'Passwords do not match or are empty.';

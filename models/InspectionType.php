@@ -1,6 +1,6 @@
 <?php
 class InspectionType {
-    private $conn;
+    private $database;
     private $table_name = "inspection_types";
 
     public $id;
@@ -8,14 +8,15 @@ class InspectionType {
     public $description;
     public $created_at;
 
-    public function __construct($db) {
-        $this->conn = $db;
+    public function __construct(Database $database) {
+        $this->database = $database;
     }
 
     // Read all inspection types
     public function readAll() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY name ASC";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->execute();
         return $stmt;
     }
@@ -23,17 +24,14 @@ class InspectionType {
     // Read single inspection type
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $row = $this->database->fetch(Database::DB_CORE, $query, [$this->id]);
 
         if ($row) {
             $this->name = $row['name'];
             $this->description = $row['description'];
             $this->created_at = $row['created_at'];
-            return true;
+            return $row;
         }
         return false;
     }
@@ -43,17 +41,15 @@ class InspectionType {
         $query = "INSERT INTO " . $this->table_name . "
                 SET name=:name, description=:description";
 
-        $stmt = $this->conn->prepare($query);
-
-        // Sanitize input
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->description = htmlspecialchars(strip_tags($this->description));
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
 
         // Bind parameters
         $stmt->bindParam(":name", $this->name);
         $stmt->bindParam(":description", $this->description);
 
         if ($stmt->execute()) {
+            $this->id = $pdo->lastInsertId();
             return true;
         }
         return false;
@@ -61,31 +57,32 @@ class InspectionType {
 
     // Update inspection type
     public function update() {
-        $query = "UPDATE " . $this->table_name . "
-                SET name=:name, description=:description
-                WHERE id=:id";
+        $fields = [];
+        $params = [':id' => $this->id];
 
-        $stmt = $this->conn->prepare($query);
+        if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = $this->name; }
+        if ($this->description !== null) { $fields[] = "description=:description"; $params[':description'] = $this->description; }
 
-        // Sanitize input
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->description = htmlspecialchars(strip_tags($this->description));
-
-        // Bind parameters
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":description", $this->description);
-        $stmt->bindParam(":id", $this->id);
-
-        if ($stmt->execute()) {
-            return true;
+        if (empty($fields)) {
+            return true; // Nothing to update
         }
-        return false;
+
+        $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
+
+        try {
+            $this->database->query(Database::DB_CORE, $query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("InspectionType update failed for ID {$this->id}: " . $e->getMessage());
+            return false;
+        }
     }
 
     // Delete inspection type
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $this->id);
 
         if ($stmt->execute()) {
@@ -97,7 +94,8 @@ class InspectionType {
     // Get inspection type by name
     public function getByName($name) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE name = ? LIMIT 0,1";
-        $stmt = $this->conn->prepare($query);
+        $pdo = $this->database->getConnection(Database::DB_CORE);
+        $stmt = $pdo->prepare($query);
         $stmt->bindParam(1, $name);
         $stmt->execute();
 

@@ -17,21 +17,22 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Check for "Remember Me" cookie if user is not logged in via session
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me'])) {
-    require_once dirname(__DIR__) . '/models/User.php';
+    require_once dirname(__DIR__) . '/models/Auth.php';
 
     list($selector, $validator) = explode(':', $_COOKIE['remember_me'], 2);
 
     if ($selector && $validator) {
-        $user = new User($db_core);
+        $auth = new Auth($database);
 
-        if ($user->validateRememberMeToken($selector, $validator)) {
+        $user_data = $auth->validateRememberMeToken($selector, $validator);
+        if ($user_data) {
             // Log the user in
-            $_SESSION['user_id'] = $user->id;
-            $_SESSION['user_role'] = $user->role;
-            $_SESSION['user_name'] = $user->name;
+            $_SESSION['user_id'] = $user_data['id'];
+            $_SESSION['user_role'] = $user_data['role'];
+            $_SESSION['user_name'] = $user_data['name'];
 
             // Regenerate the token for security (prevents token theft and reuse)
-            $token_data = $user->generateRememberMeToken();
+            $token_data = $auth->generateRememberMeToken($user_data['id']);
             if ($token_data) {
                 $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
                 setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie

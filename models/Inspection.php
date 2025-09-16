@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/Business.php';
 class Inspection {
     private $table_name = "inspections";
     private $database;
@@ -29,19 +30,10 @@ class Inspection {
                 SET business_id=:business_id, inspector_id=:inspector_id, 
                     inspection_type_id=:inspection_type_id, scheduled_date=:scheduled_date,
                     status=:status, priority=:priority, notes=:notes";
-
-        // Sanitize input
-        $this->business_id = htmlspecialchars(strip_tags($this->business_id));
-        $this->inspector_id = !empty($this->inspector_id) ? htmlspecialchars(strip_tags($this->inspector_id)) : null;
-        $this->inspection_type_id = htmlspecialchars(strip_tags($this->inspection_type_id));
-        $this->scheduled_date = htmlspecialchars(strip_tags($this->scheduled_date));
-        $this->status = htmlspecialchars(strip_tags($this->status));
-        $this->priority = htmlspecialchars(strip_tags($this->priority));
-        $this->notes = htmlspecialchars(strip_tags($this->notes));
-
+        
         $params = [
             ":business_id" => $this->business_id,
-            ":inspector_id" => $this->inspector_id,
+            ":inspector_id" => !empty($this->inspector_id) ? $this->inspector_id : null,
             ":inspection_type_id" => $this->inspection_type_id,
             ":scheduled_date" => $this->scheduled_date,
             ":status" => $this->status,
@@ -50,7 +42,10 @@ class Inspection {
         ];
 
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, $params);
+            $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $this->id = $pdo->lastInsertId();
             return true;
         } catch (PDOException $e) {
             error_log("Inspection creation failed: " . $e->getMessage());
@@ -143,41 +138,31 @@ class Inspection {
     }
 
     // Update inspection
-    public function update() {
+    public function complete() {
         $query = "UPDATE " . $this->table_name . "
                 SET completed_date=:completed_date, status=:status, compliance_score=:compliance_score, total_violations=:total_violations, 
                     notes=:notes, notes_ai_analysis=:notes_ai_analysis, draft_data = NULL
                 WHERE id=:id";
 
-        // Sanitize input
         // If status is 'completed' and completed_date is not set, set it to now.
         if ($this->status === 'completed' && empty($this->completed_date)) {
             $this->completed_date = date('Y-m-d H:i:s');
         }
-        $this->completed_date = !empty($this->completed_date) ? htmlspecialchars(strip_tags($this->completed_date)) : null;
-        $this->status = htmlspecialchars(strip_tags($this->status));
-        $this->compliance_score = htmlspecialchars(strip_tags($this->compliance_score));
-        $this->total_violations = htmlspecialchars(strip_tags($this->total_violations));
-        $this->notes = htmlspecialchars(strip_tags($this->notes));
-        // notes_ai_analysis is JSON, so we don't use strip_tags
-        $this->notes_ai_analysis = !empty($this->notes_ai_analysis) ? $this->notes_ai_analysis : null;
-        $this->id = htmlspecialchars(strip_tags($this->id));
         
         $params = [
-            ":completed_date" => $this->completed_date,
+            ":completed_date" => !empty($this->completed_date) ? $this->completed_date : null,
             ":status" => $this->status,
             ":compliance_score" => $this->compliance_score,
             ":total_violations" => $this->total_violations,
             ":notes" => $this->notes,
-            ":notes_ai_analysis" => $this->notes_ai_analysis,
-            ":id" => $this->id,
+            ":notes_ai_analysis" => !empty($this->notes_ai_analysis) ? $this->notes_ai_analysis : null,
+            ":id" => $this->id
         ];
 
         try {
             $this->database->query(Database::DB_SCHEDULING, $query, $params);
             // If the inspection is marked as completed, trigger an update on the parent business's compliance status.
             if ($this->status === 'completed' && $this->business_id) {
-                require_once 'Business.php';
                 $business = new Business($this->database);
                 $business->id = $this->business_id;
                 $business->updateComplianceStatus();
@@ -196,15 +181,11 @@ class Inspection {
                       notes = :notes,
                       status = 'in_progress'
                   WHERE id = :id";
-        
-        // Sanitize
-        $notes = htmlspecialchars(strip_tags($notes));
-        $this->id = htmlspecialchars(strip_tags($this->id));
-        
+
         $params = [
             ':draft_data' => $draftData,
             ':notes' => $notes,
-            ':id' => $this->id,
+            ':id' => $this->id
         ];
 
         try {
@@ -234,13 +215,9 @@ class Inspection {
                 SET inspector_id=:inspector_id, updated_at=NOW()
                 WHERE id=:id";
 
-        // Sanitize input
-        $this->inspector_id = htmlspecialchars(strip_tags($this->inspector_id));
-        $this->id = htmlspecialchars(strip_tags($this->id));
-
         $params = [
             ":inspector_id" => $this->inspector_id,
-            ":id" => $this->id,
+            ":id" => $this->id
         ];
 
         try {
@@ -331,18 +308,6 @@ class Inspection {
                   ORDER BY i.scheduled_date DESC";
 
         return $this->database->query(Database::DB_SCHEDULING, $query, [$inspector_id]);
-    }
-
-    // Get inspections by user ID
-    public function readByUserId($user_id, $limit = 5) {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, it.name as inspection_type
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  WHERE i.inspector_id = ?
-                  ORDER BY i.scheduled_date DESC LIMIT " . (int)$limit;
-
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$user_id]);
     }
 
     // Get available inspections (not assigned to any inspector)
