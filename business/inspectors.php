@@ -44,7 +44,7 @@ $inspectors = $user->readByRole('inspector');
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Total Inspectors</p>
-                        <p class="text-2xl font-bold">3</p>
+                        <p class="text-2xl font-bold"><?php echo count($inspectors); ?></p>
                     </div>
                     <i class="fas fa-users text-3xl text-blue-500"></i>
                 </div>
@@ -95,7 +95,14 @@ $inspectors = $user->readByRole('inspector');
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($inspector = $inspectors->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php if (empty($inspectors)): ?>
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No inspectors found.
+                        </td>
+                    </tr>
+                    <?php else: ?>
+                    <?php foreach ($inspectors as $inspector): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -135,7 +142,8 @@ $inspectors = $user->readByRole('inspector');
                             </button>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
