@@ -16,37 +16,37 @@ class database {
             self::DB_CHECKLIST => [
                 'host' => getenv('DB_CHECKLIST_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_CHECKLIST_NAME') ?: 'hsi_lgu_checklist_assessment',
-                'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_lgu_checklist_assessment',
+                'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_lca',
                 'password' => getenv('DB_CHECKLIST_PASS') ?: 'Admin123'
             ],
             self::DB_CORE => [
                 'host' => getenv('DB_CORE_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_CORE_NAME') ?: 'hsi_lgu_core',
-                'username' => getenv('DB_CORE_USER') ?: 'hsi_lgu_core',
+                'username' => getenv('DB_CORE_USER') ?: 'hsi_hlc',
                 'password' => getenv('DB_CORE_PASS') ?: 'Admin123'
             ],
             self::DB_SCHEDULING => [
                 'host' => getenv('DB_SCHEDULING_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_SCHEDULING_NAME') ?: 'hsi_lgu_inspection_scheduling',
-                'username' => getenv('DB_SCHEDULING_USER') ?: 'hsi_lgu_inspection_scheduling',
+                'username' => getenv('DB_SCHEDULING_USER') ?: 'hsi_hlis',
                 'password' => getenv('DB_SCHEDULING_PASS') ?: 'Admin123'
             ],
             self::DB_MEDIA => [
                 'host' => getenv('DB_MEDIA_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_MEDIA_NAME') ?: 'hsi_lgu_media_uploads',
-                'username' => getenv('DB_MEDIA_USER') ?: 'hsi_lgu_media_uploads',
+                'username' => getenv('DB_MEDIA_USER') ?: 'hsi_hlmu',
                 'password' => getenv('DB_MEDIA_PASS') ?: 'Admin123'
             ],
             self::DB_REPORTS => [
                 'host' => getenv('DB_REPORTS_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_REPORTS_NAME') ?: 'hsi_lgu_reports_notifications',
-                'username' => getenv('DB_REPORTS_USER') ?: 'hsi_lgu_reports_notifications',
+                'username' => getenv('DB_REPORTS_USER') ?: 'hsi_hlrn',
                 'password' => getenv('DB_REPORTS_PASS') ?: 'Admin123'
             ],
             self::DB_VIOLATIONS => [
                 'host' => getenv('DB_VIOLATIONS_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_VIOLATIONS_NAME') ?: 'hsi_lgu_violations_ticketing',
-                'username' => getenv('DB_VIOLATIONS_USER') ?: 'hsi_lgu_violations_ticketing',
+                'username' => getenv('DB_VIOLATIONS_USER') ?: 'hsi_hlvt',
                 'password' => getenv('DB_VIOLATIONS_PASS') ?: 'Admin123'
             ]
         ];

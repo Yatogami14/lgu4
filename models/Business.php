@@ -82,7 +82,7 @@ class Business {
             $this->updated_at = $row['updated_at'] ?? null;
             return $row;
         }
-        return false;
+        return null;
     }
 
     // Read all businesses
