@@ -50,6 +50,10 @@ if (!class_exists('Database')) {
             ]
         ];
 
+        public function __construct() {
+            
+        }
+
         public function getConnection($database) {
             if (!isset($this->connections[$database])) {
                 if (!isset($this->config[$database])) {

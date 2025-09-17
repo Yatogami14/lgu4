@@ -23,7 +23,7 @@ const ROLE_PERMISSIONS = [
         'checklist_management', 'inspection_types_management', 'inspectors'
     ],
     'inspector' => [
-        'dashboard', 'assigned_inspections', 'profile', 'violations', 'inspections', 'businesses'
+        'dashboard', 'assigned_inspections', 'profile', 'violations', 'inspections', 'businesses', 'inspectors'
     ],
     'business_owner' => [
         'dashboard', 'violations', 'profile', 'businesses', 'inspections', 'analytics'
