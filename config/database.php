@@ -85,6 +85,12 @@ class database {
             $database = self::DB_SCHEDULING;
         } elseif (strpos($query, 'hsi_lgu_checklist_assessment.') !== false) {
             $database = self::DB_CHECKLIST;
+        } elseif (strpos($query, 'hsi_lgu_media_uploads.') !== false) {
+            $database = self::DB_MEDIA;
+        } elseif (strpos($query, 'hsi_lgu_violations_ticketing.') !== false) {
+            $database = self::DB_VIOLATIONS;
+        } elseif (strpos($query, 'hsi_lgu_reports_notifications.') !== false) {
+            $database = self::DB_REPORTS;
         }
 
         $pdo = $this->getConnection($database);
@@ -95,7 +101,7 @@ class database {
             // DEBUG: Log the query and parameters for troubleshooting
             $this->debugQuery($query, $params);
             
-            // Validate parameters before execution
+            // Validate parameters before execution - THIS WILL THROW EXCEPTION IF MISMATCH
             $this->validateParameters($query, $params);
             
             $stmt->execute($params);
@@ -107,7 +113,9 @@ class database {
             error_log("Database: " . $database);
             error_log("Params: " . print_r($params, true));
             error_log("Params count: " . count($params));
-            throw $e;
+            
+            // Re-throw the exception with more helpful message
+            throw new PDOException("Query failed: " . $e->getMessage() . " - Check error logs for details");
         }
     }
 
@@ -133,6 +141,7 @@ class database {
         
         $totalExpectedParams = count($namedParams) + $positionalParams;
         error_log("Total expected parameters: " . $totalExpectedParams);
+        error_log("=================================");
     }
 
     /**
@@ -140,7 +149,18 @@ class database {
      */
     private function validateParameters($query, $params) {
         if (empty($params)) {
-            return; // No parameters to validate
+            // If no parameters are provided but query has placeholders, that's an error
+            $positionalParams = substr_count($query, '?');
+            preg_match_all('/:(\w+)/', $query, $matches);
+            $namedParams = !empty($matches[1]) ? $matches[1] : [];
+            
+            if ($positionalParams > 0 || !empty($namedParams)) {
+                $errorMsg = "PARAMETER MISMATCH ERROR: Query expects parameters but none provided";
+                error_log($errorMsg);
+                error_log("Query: " . $query);
+                throw new PDOException($errorMsg);
+            }
+            return;
         }
 
         // Count named parameters
@@ -156,18 +176,19 @@ class database {
         $totalExpectedParams = count($namedParams) + $positionalParams;
         
         if ($totalExpectedParams !== count($params)) {
-            $errorMsg = "Parameter mismatch in query. Expected: $totalExpectedParams, Provided: " . count($params);
+            $errorMsg = "PARAMETER MISMATCH ERROR: Expected $totalExpectedParams parameters, but provided " . count($params);
             error_log($errorMsg);
             error_log("Query: " . $query);
             error_log("Params: " . print_r($params, true));
             
+            // Throw a more descriptive exception
             throw new PDOException($errorMsg);
         }
 
         // Additional validation for named parameters
         if (!empty($namedParams) && !empty($params)) {
             $firstKey = key($params);
-            $usingNamedParams = is_string($firstKey) && $firstKey[0] === ':';
+            $usingNamedParams = is_string($firstKey) && (strpos($firstKey, ':') === 0);
             
             if ($usingNamedParams) {
                 foreach ($namedParams as $paramName) {
@@ -190,6 +211,32 @@ class database {
     public function fetch($database, $query, $params = []) {
         $stmt = $this->query($database, $query, $params);
         return $stmt->fetch();
+    }
+
+    /**
+     * Safe method that returns empty array instead of throwing exception
+     */
+    public function safeFetchAll($database, $query, $params = []) {
+        try {
+            $stmt = $this->query($database, $query, $params);
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("Safe fetch all failed: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Safe method that returns false instead of throwing exception
+     */
+    public function safeFetch($database, $query, $params = []) {
+        try {
+            $stmt = $this->query($database, $query, $params);
+            return $stmt->fetch();
+        } catch (PDOException $e) {
+            error_log("Safe fetch failed: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -226,6 +273,21 @@ class database {
     }
 
     /**
+     * Safe helper methods that won't throw exceptions
+     */
+    public function safeFetchAllCore($query, $params = []) {
+        return $this->safeFetchAll(self::DB_CORE, $query, $params);
+    }
+
+    public function safeFetchCore($query, $params = []) {
+        return $this->safeFetch(self::DB_CORE, $query, $params);
+    }
+
+    public function safeFetchAllScheduling($query, $params = []) {
+        return $this->safeFetchAll(self::DB_SCHEDULING, $query, $params);
+    }
+
+    /**
      * Insert method with error handling
      */
     public function insert($database, $table, $data) {
@@ -252,28 +314,50 @@ class database {
     }
 
     /**
-     * Safe query execution with fallback for parameter mismatches
+     * Method to manually fix parameter mismatches (for emergency use)
      */
-    public function safeQuery($database, $query, $params = []) {
-        try {
-            return $this->query($database, $query, $params);
-        } catch (PDOException $e) {
-            if (strpos($e->getMessage(), 'Invalid parameter number') !== false) {
-                error_log("Parameter mismatch detected, attempting to fix...");
-                
-                // Try to execute without parameters as fallback
-                try {
-                    $pdo = $this->getConnection($database);
-                    $stmt = $pdo->prepare($query);
-                    $stmt->execute();
-                    return $stmt;
-                } catch (PDOException $e2) {
-                    error_log("Fallback query also failed: " . $e2->getMessage());
-                    throw $e; // Re-throw original error
-                }
-            }
-            throw $e;
+    public function executeFixedQuery($database, $query, $expectedParamCount) {
+        $pdo = $this->getConnection($database);
+        
+        // Remove any parameters if they don't match
+        if (substr_count($query, '?') !== $expectedParamCount) {
+            // This is a hacky fix - remove extra parameters from query
+            $query = preg_replace('/\?/', '', $query, substr_count($query, '?') - $expectedParamCount);
         }
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Emergency method to execute query without parameters (use with caution)
+     */
+    public function executeWithoutParams($database, $query) {
+        $pdo = $this->getConnection($database);
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Count rows in a table
+     */
+    public function count($database, $table, $where = '', $params = []) {
+        $query = "SELECT COUNT(*) as count FROM $table";
+        if (!empty($where)) {
+            $query .= " WHERE $where";
+        }
+        
+        $result = $this->fetch($database, $query, $params);
+        return $result ? (int)$result['count'] : 0;
+    }
+
+    /**
+     * Check if a record exists
+     */
+    public function exists($database, $table, $where, $params = []) {
+        return $this->count($database, $table, $where, $params) > 0;
     }
 }
 ?>
