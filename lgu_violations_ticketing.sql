@@ -3,8 +3,6 @@
 --
 -- Database: `hsi_lgu_violations_ticketing`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_violations_ticketing`;
-CREATE DATABASE `hsi_lgu_violations_ticketing`;
 USE `hsi_lgu_violations_ticketing`;
 
 
@@ -71,8 +69,3 @@ ALTER TABLE `violations`
 --
 ALTER TABLE `violations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

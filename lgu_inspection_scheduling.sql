@@ -2,8 +2,6 @@
 --
 -- Database: `hsi_lgu_inspection_scheduling`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_inspection_scheduling`;
-CREATE DATABASE `hsi_lgu_inspection_scheduling`;
 USE `hsi_lgu_inspection_scheduling`;
 
 
@@ -42,7 +40,7 @@ INSERT INTO `inspections` (`id`, `business_id`, `inspector_id`, `inspection_type
 (3, 3, 2, 3, '2024-01-14 14:00:00', NULL, 'completed', 'low', 92, 1, NULL, NULL, NULL, NULL, '2025-09-16 14:06:16', '2025-09-16 14:06:16'),
 (4, 4, NULL, 1, '2024-01-20 09:00:00', NULL, 'scheduled', 'medium', NULL, 0, NULL, NULL, NULL, NULL, '2025-09-16 14:06:16', '2025-09-16 14:06:16'),
 (5, 5, 8, 2, '2024-01-21 10:00:00', '2025-09-16 16:32:10', 'completed', 'high', 100, 0, '', NULL, NULL, NULL, '2025-09-16 14:06:16', '2025-09-16 14:32:10'),
-(6, 6, 8, 4, '2025-09-16 00:00:00', NULL, '', 'low', NULL, 0, 'Bilis ya', NULL, NULL, NULL, '2025-09-16 14:35:43', '2025-09-16 14:36:39'),
+(6, 6, 8, 4, '2025-09-16 00:00:00', NULL, 'scheduled', 'low', NULL, 0, 'Bilis ya', NULL, NULL, NULL, '2025-09-16 14:35:43', '2025-09-16 14:36:39'),
 (7, 1, 8, 5, '2025-09-17 01:00:00', NULL, 'scheduled', 'low', NULL, 0, 'Follow-up on violation (ID: 7): &quot;may ipis yung lugaw&quot;', NULL, NULL, NULL, '2025-09-16 14:40:20', '2025-09-17 13:31:22');
 
 -- --------------------------------------------------------
@@ -111,8 +109,3 @@ ALTER TABLE `inspections`
 --
 ALTER TABLE `inspector_specializations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

@@ -2,8 +2,6 @@
 --
 -- Database: `hsi_lgu_media_uploads`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_media_uploads`;
-CREATE DATABASE `hsi_lgu_media_uploads`;
 USE `hsi_lgu_media_uploads`;
 
 
@@ -70,8 +68,3 @@ ALTER TABLE `inspection_media`
 --
 ALTER TABLE `inspection_media`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
