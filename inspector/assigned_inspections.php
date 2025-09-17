@@ -71,7 +71,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
             <p class="text-gray-600">Overview of all inspections currently assigned to inspectors.</p>
         </div>
 
-        <?php if ($assigned_inspections->rowCount() > 0): ?>
+        <?php if (!empty($assigned_inspections)): ?>
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -86,7 +86,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <?php while ($row = $assigned_inspections->fetch(PDO::FETCH_ASSOC)): ?>
+                        <?php foreach ($assigned_inspections as $row): ?>
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900"><?php echo $row['business_name']; ?></div>
@@ -128,7 +128,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 <?php endif; ?>
                             </td>
                         </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

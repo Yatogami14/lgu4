@@ -79,9 +79,9 @@ $businesses = $business->readAll();
                             <label class="block text-sm font-medium text-gray-700">Business</label>
                             <select name="business_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Select Business</option>
-                                <?php while ($business_row = $businesses->fetch(PDO::FETCH_ASSOC)): ?>
-                                    <option value="<?php echo $business_row['id']; ?>"><?php echo $business_row['name']; ?></option>
-                                <?php endwhile; ?>
+                                <?php foreach ($businesses as $business_row): ?>
+                                    <option value="<?php echo $business_row['id']; ?>"><?php echo htmlspecialchars($business_row['name']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div>

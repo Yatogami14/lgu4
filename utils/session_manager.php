@@ -1,6 +1,17 @@
 <?php
 // Initialize database-backed sessions
 try {
+    // Load environment variables from .env file if the Dotenv package is installed.
+    if (file_exists(dirname(__DIR__) . '/vendor/autoload.php')) {
+        require_once dirname(__DIR__) . '/vendor/autoload.php';
+        // Check if the Dotenv class exists to avoid fatal errors if `composer install` hasn't been run.
+        if (class_exists('Dotenv\Dotenv')) {
+            $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+            $dotenv->load();
+        }
+    }
+
+    // Existing database and session handler setup
     require_once dirname(__DIR__) . '/config/database.php';
     require_once dirname(__DIR__) . '/utils/DatabaseSessionHandler.php';
 

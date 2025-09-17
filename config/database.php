@@ -1,94 +1,122 @@
 <?php
-if (!class_exists('database')) {
-    class database {
-        const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
-        const DB_CORE = 'hsi_lgu_core';
-        const DB_SCHEDULING = 'hsi_lgu_inspection_scheduling';
-        const DB_MEDIA = 'hsi_lgu_media_uploads';
-        const DB_VIOLATIONS = 'hsi_lgu_violations_ticketing';
-        const DB_REPORTS = 'hsi_lgu_reports_notifications';
+class database {
+    const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
+    const DB_CORE = 'hsi_lgu_core';
+    const DB_SCHEDULING = 'hsi_lgu_inspection_scheduling';
+    const DB_MEDIA = 'hsi_lgu_media_uploads';
+    const DB_VIOLATIONS = 'hsi_lgu_violations_ticketing';
+    const DB_REPORTS = 'hsi_lgu_reports_notifications';
 
-        private $connections = [];
-        private $config = [
-            'hsi_lgu_checklist_assessment' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_checklist_assessment',
-                'username' => 'hsi_lgu_checklist_assessment',
-                'password' => 'Admin123'
+    private $connections = [];
+    private $config = [];
+
+    public function __construct() {
+        // Load configuration from environment variables with fallbacks for development.
+        $this->config = [
+            self::DB_CHECKLIST => [
+                'host' => getenv('DB_CHECKLIST_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_CHECKLIST_NAME') ?: 'hsi_lgu_checklist_assessment',
+                'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_lgu_checklist_assessment',
+                'password' => getenv('DB_CHECKLIST_PASS') ?: 'Admin123'
             ],
-            'hsi_lgu_core' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_core',
-                'username' => 'hsi_lgu_core',
-                'password' => 'Admin123'
+            self::DB_CORE => [
+                'host' => getenv('DB_CORE_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_CORE_NAME') ?: 'hsi_lgu_core',
+                'username' => getenv('DB_CORE_USER') ?: 'hsi_lgu_core',
+                'password' => getenv('DB_CORE_PASS') ?: 'Admin123'
             ],
-            'hsi_lgu_inspection_scheduling' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_inspection_scheduling',
-                'username' => 'hsi_lgu_inspection_scheduling',
-                'password' => 'Admin123'
+            self::DB_SCHEDULING => [
+                'host' => getenv('DB_SCHEDULING_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_SCHEDULING_NAME') ?: 'hsi_lgu_inspection_scheduling',
+                'username' => getenv('DB_SCHEDULING_USER') ?: 'hsi_lgu_inspection_scheduling',
+                'password' => getenv('DB_SCHEDULING_PASS') ?: 'Admin123'
             ],
-            'hsi_lgu_media_uploads' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_media_uploads',
-                'username' => 'hsi_lgu_media_uploads',
-                'password' => 'Admin123'
+            self::DB_MEDIA => [
+                'host' => getenv('DB_MEDIA_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_MEDIA_NAME') ?: 'hsi_lgu_media_uploads',
+                'username' => getenv('DB_MEDIA_USER') ?: 'hsi_lgu_media_uploads',
+                'password' => getenv('DB_MEDIA_PASS') ?: 'Admin123'
             ],
-            'hsi_lgu_reports_notifications' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_reports_notifications',
-                'username' => 'hsi_lgu_reports_notifications',
-                'password' => 'Admin123'
+            self::DB_REPORTS => [
+                'host' => getenv('DB_REPORTS_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_REPORTS_NAME') ?: 'hsi_lgu_reports_notifications',
+                'username' => getenv('DB_REPORTS_USER') ?: 'hsi_lgu_reports_notifications',
+                'password' => getenv('DB_REPORTS_PASS') ?: 'Admin123'
             ],
-            'hsi_lgu_violations_ticketing' => [
-                'host' => 'localhost',
-                'dbname' => 'hsi_lgu_violations_ticketing',
-                'username' => 'hsi_lgu_violations_ticketing',
-                'password' => 'Admin123'
+            self::DB_VIOLATIONS => [
+                'host' => getenv('DB_VIOLATIONS_HOST') ?: 'localhost',
+                'dbname' => getenv('DB_VIOLATIONS_NAME') ?: 'hsi_lgu_violations_ticketing',
+                'username' => getenv('DB_VIOLATIONS_USER') ?: 'hsi_lgu_violations_ticketing',
+                'password' => getenv('DB_VIOLATIONS_PASS') ?: 'Admin123'
             ]
         ];
+    }
 
-        public function getConnection($database) {
-            if (!isset($this->connections[$database])) {
-                if (!isset($this->config[$database])) {
-                    throw new Exception("Database configuration for '$database' not found.");
-                }
-
-                $config = $this->config[$database];
-                try {
-                    $this->connections[$database] = new PDO(
-                        "mysql:host={$config['host']};dbname={$config['dbname']};charset=utf8",
-                        $config['username'],
-                        $config['password']
-                    );
-                    $this->connections[$database]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                    $this->connections[$database]->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-                    $this->connections[$database]->exec("SET time_zone = '+08:00'");
-                } catch (PDOException $e) {
-                    error_log("Database connection failed for $database: " . $e->getMessage());
-                    throw $e;
-                }
+    public function getConnection($database) {
+        if (!isset($this->connections[$database])) {
+            if (!isset($this->config[$database])) {
+                throw new Exception("Database configuration for '$database' not found.");
             }
 
-            return $this->connections[$database];
+            $config = $this->config[$database];
+            try {
+                $this->connections[$database] = new PDO(
+                    "mysql:host={$config['host']};dbname={$config['dbname']};charset=utf8mb4",
+                    $config['username'],
+                    $config['password']
+                );
+                $this->connections[$database]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $this->connections[$database]->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+                $this->connections[$database]->exec("SET time_zone = '+08:00'");
+            } catch (PDOException $e) {
+                error_log("Database connection failed for $database: " . $e->getMessage());
+                throw $e;
+            }
         }
 
-        public function query($database, $query, $params = []) {
-            $pdo = $this->getConnection($database);
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
-            return $stmt;
-        }
+        return $this->connections[$database];
+    }
 
-        public function fetchAll($database, $query, $params = []) {
-            $stmt = $this->query($database, $query, $params);
-            return $stmt->fetchAll();
-        }
+    public function query($database, $query, $params = []) {
+        $pdo = $this->getConnection($database);
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt;
+    }
 
-        public function fetch($database, $query, $params = []) {
-            $stmt = $this->query($database, $query, $params);
-            return $stmt->fetch();
-        }
+    public function fetchAll($database, $query, $params = []) {
+        $stmt = $this->query($database, $query, $params);
+        return $stmt->fetchAll();
+    }
+
+    public function fetch($database, $query, $params = []) {
+        $stmt = $this->query($database, $query, $params);
+        return $stmt->fetch();
+    }
+
+    /**
+     * Helper method to easily query the core database
+     */
+    public function queryCore($query, $params = []) {
+        return $this->query(self::DB_CORE, $query, $params);
+    }
+
+    /**
+     * Helper method to easily query the scheduling database
+     */
+    public function queryScheduling($query, $params = []) {
+        return $this->query(self::DB_SCHEDULING, $query, $params);
+    }
+
+    /**
+     * Additional helper methods for other databases
+     */
+    public function fetchAllCore($query, $params = []) {
+        return $this->fetchAll(self::DB_CORE, $query, $params);
+    }
+
+    public function fetchCore($query, $params = []) {
+        return $this->fetch(self::DB_CORE, $query, $params);
     }
 }
 ?>

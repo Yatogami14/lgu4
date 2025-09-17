@@ -99,7 +99,7 @@ $businessStats = $business->getBusinessStats();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($business_row = $businesses->fetch(PDO::FETCH_ASSOC)): 
+                    <?php foreach ($businesses as $business_row): 
                         $stats = $business->getComplianceStats($business_row['id']);
                     ?>
                     <tr>
@@ -133,7 +133,7 @@ $businessStats = $business->getBusinessStats();
                             </a>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

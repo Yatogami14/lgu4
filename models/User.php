@@ -81,15 +81,12 @@ class User {
 
         $query .= " ORDER BY created_at DESC";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-
+        $params = [];
         if ($role) {
-            $stmt->bindParam(":role", $role);
+            $params[':role'] = $role;
         }
 
-        $stmt->execute();
-        return $stmt;
+        return $this->database->fetchAll(Database::DB_CORE, $query, $params);
     }
 
     // Search users by name or email
@@ -98,19 +95,11 @@ class User {
                   WHERE name LIKE :keywords OR email LIKE :keywords
                   ORDER BY name ASC";
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-
         // Sanitize
         $keywords = htmlspecialchars(strip_tags($keywords));
         $keywords = "%{$keywords}%";
 
-        // Bind
-        $stmt->bindParam(":keywords", $keywords);
-
-        $stmt->execute();
-
-        return $stmt;
+        return $this->database->fetchAll(Database::DB_CORE, $query, [':keywords' => $keywords]);
     }
 
 

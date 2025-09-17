@@ -9,11 +9,31 @@
 -- mysql -u root -p < database_setup.sql
 -- =================================================================
 
+-- =================================================================
+-- User Creation
+-- =================================================================
+-- This section creates the users required by the application.
+-- NOTE: The password 'Admin123' is for development only. 
+-- Replace it with a strong, secure password in production.
+
+DROP USER IF EXISTS 'hsi_lgu_core'@'localhost';
+DROP USER IF EXISTS 'hsi_lgu_checklist_assessment'@'localhost';
+DROP USER IF EXISTS 'hsi_lgu_inspection_scheduling'@'localhost';
+DROP USER IF EXISTS 'hsi_lgu_media_uploads'@'localhost';
+DROP USER IF EXISTS 'hsi_lgu_violations_ticketing'@'localhost';
+DROP USER IF EXISTS 'hsi_lgu_reports_notifications'@'localhost';
+
+CREATE USER 'hsi_lgu_core'@'localhost' IDENTIFIED BY 'Admin123';
+CREATE USER 'hsi_lgu_checklist_assessment'@'localhost' IDENTIFIED BY 'Admin123';
+CREATE USER 'hsi_lgu_inspection_scheduling'@'localhost' IDENTIFIED BY 'Admin123';
+CREATE USER 'hsi_lgu_media_uploads'@'localhost' IDENTIFIED BY 'Admin123';
+CREATE USER 'hsi_lgu_violations_ticketing'@'localhost' IDENTIFIED BY 'Admin123';
+CREATE USER 'hsi_lgu_reports_notifications'@'localhost' IDENTIFIED BY 'Admin123';
+
+-- =================================================================
+
 --
 -- Database: `hsi_lgu_checklist_assessment`
---
-DROP DATABASE IF EXISTS `hsi_lgu_checklist_assessment`;
-CREATE DATABASE `hsi_lgu_checklist_assessment`;
 USE `hsi_lgu_checklist_assessment`;
 
 
@@ -117,8 +137,6 @@ ALTER TABLE `inspection_responses`
 --
 -- Database: `hsi_lgu_core`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_core`;
-CREATE DATABASE `hsi_lgu_core`;
 USE `hsi_lgu_core`;
 
 
@@ -330,8 +348,6 @@ ALTER TABLE `users`
 --
 -- Database: `hsi_lgu_inspection_scheduling`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_inspection_scheduling`;
-CREATE DATABASE `hsi_lgu_inspection_scheduling`;
 USE `hsi_lgu_inspection_scheduling`;
 
 
@@ -443,8 +459,6 @@ ALTER TABLE `inspector_specializations`
 --
 -- Database: `hsi_lgu_media_uploads`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_media_uploads`;
-CREATE DATABASE `hsi_lgu_media_uploads`;
 USE `hsi_lgu_media_uploads`;
 
 
@@ -515,8 +529,6 @@ ALTER TABLE `inspection_media`
 --
 -- Database: `hsi_lgu_reports_notifications`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_reports_notifications`;
-CREATE DATABASE `hsi_lgu_reports_notifications`;
 USE `hsi_lgu_reports_notifications`;
 
 
@@ -575,8 +587,6 @@ ALTER TABLE `notifications`
 --
 -- Database: `hsi_lgu_violations_ticketing`
 --
-DROP DATABASE IF EXISTS `hsi_lgu_violations_ticketing`;
-CREATE DATABASE `hsi_lgu_violations_ticketing`;
 USE `hsi_lgu_violations_ticketing`;
 
 
@@ -643,3 +653,34 @@ ALTER TABLE `violations`
 --
 ALTER TABLE `violations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+-- =================================================================
+-- Grant Privileges
+-- =================================================================
+-- This section grants the necessary permissions for the application to function.
+
+-- Grant base privileges for each user to their own database
+GRANT ALL PRIVILEGES ON `hsi_lgu_core`.* TO 'hsi_lgu_core'@'localhost';
+GRANT ALL PRIVILEGES ON `hsi_lgu_checklist_assessment`.* TO 'hsi_lgu_checklist_assessment'@'localhost';
+GRANT ALL PRIVILEGES ON `hsi_lgu_inspection_scheduling`.* TO 'hsi_lgu_inspection_scheduling'@'localhost';
+GRANT ALL PRIVILEGES ON `hsi_lgu_media_uploads`.* TO 'hsi_lgu_media_uploads'@'localhost';
+GRANT ALL PRIVILEGES ON `hsi_lgu_violations_ticketing`.* TO 'hsi_lgu_violations_ticketing'@'localhost';
+GRANT ALL PRIVILEGES ON `hsi_lgu_reports_notifications`.* TO 'hsi_lgu_reports_notifications'@'localhost';
+
+-- Grant necessary cross-database SELECT permissions for application functionality
+-- All service users need to read from the core database (e.g., for business names, user details)
+GRANT SELECT ON `hsi_lgu_core`.* TO 'hsi_lgu_checklist_assessment'@'localhost';
+GRANT SELECT ON `hsi_lgu_core`.* TO 'hsi_lgu_inspection_scheduling'@'localhost';
+GRANT SELECT ON `hsi_lgu_core`.* TO 'hsi_lgu_media_uploads'@'localhost';
+GRANT SELECT ON `hsi_lgu_core`.* TO 'hsi_lgu_violations_ticketing'@'localhost';
+GRANT SELECT ON `hsi_lgu_core`.* TO 'hsi_lgu_reports_notifications'@'localhost';
+
+-- The core user needs to read from service databases for dashboards and analytics
+GRANT SELECT ON `hsi_lgu_inspection_scheduling`.* TO 'hsi_lgu_core'@'localhost';
+GRANT SELECT ON `hsi_lgu_violations_ticketing`.* TO 'hsi_lgu_core'@'localhost';
+GRANT SELECT ON `hsi_lgu_checklist_assessment`.* TO 'hsi_lgu_core'@'localhost';
+
+-- Specific service-to-service permissions
+GRANT SELECT ON `hsi_lgu_violations_ticketing`.* TO 'hsi_lgu_inspection_scheduling'@'localhost';
+
+FLUSH PRIVILEGES;

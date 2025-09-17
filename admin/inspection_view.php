@@ -61,13 +61,11 @@ if (!$inspection_data) {
 
 // Fetch associated media
 $media_model = new InspectionMedia($database);
-$media_files_stmt = $media_model->readByInspectionId($inspection_id);
-$media_files = $media_files_stmt->fetchAll(PDO::FETCH_ASSOC);
+$media_files = $media_model->readByInspectionId($inspection_id);
 
 // Fetch associated violations
 $violation_model = new Violation($database);
-$violations_stmt = $violation_model->readByInspectionId($inspection_id);
-$violations = $violations_stmt->fetchAll(PDO::FETCH_ASSOC);
+$violations = $violation_model->readByInspectionId($inspection_id);
 
 // Decode AI analysis JSON
 $notes_analysis = !empty($inspection_data['notes_ai_analysis']) ? json_decode($inspection_data['notes_ai_analysis'], true) : null;

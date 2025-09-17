@@ -14,7 +14,7 @@ $user->id = $_SESSION['user_id'];
 $user->readOne();
 
 $inspection = new Inspection($database);
-$assigned_inspections = $inspection->readByInspector($_SESSION['user_id'])->fetchAll(PDO::FETCH_ASSOC);
+$assigned_inspections = $inspection->readByInspector($_SESSION['user_id']);
 
 $stats = [
     'total_assigned' => count($assigned_inspections),

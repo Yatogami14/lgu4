@@ -22,8 +22,7 @@ $business = new Business($database);
 
 // Get user-specific data based on role
 if ($_SESSION['user_role'] == 'business_owner') {
-    $userBusinessesStmt = $business->readByOwnerId($_SESSION['user_id']);
-    $userBusinesses = $userBusinessesStmt->fetchAll(PDO::FETCH_ASSOC);
+    $userBusinesses = $business->readByOwnerId($_SESSION['user_id']);
     $business_ids = [];
     if (!empty($userBusinesses)) {
         $business_ids = array_column($userBusinesses, 'id');
@@ -35,11 +34,7 @@ if ($_SESSION['user_role'] == 'business_owner') {
 } else {
     // For community users, show public data
     $recentInspections = $inspection->readRecent(5);
-    $allBusinesses = $business->readAll();
-    $businessesArray = [];
-    while ($row = $allBusinesses->fetch(PDO::FETCH_ASSOC)) {
-        $businessesArray[] = $row;
-    }
+    $businessesArray = $business->readAll();
 }
 ?>
 <!DOCTYPE html>

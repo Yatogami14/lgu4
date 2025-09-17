@@ -46,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
             // 2. Get Admin Emails
             $adminUserModel = new User($database);
-            $admins = $adminUserModel->readByRole('admin')->fetchAll(PDO::FETCH_ASSOC);
-            $super_admins = $adminUserModel->readByRole('super_admin')->fetchAll(PDO::FETCH_ASSOC);
+            $admins = $adminUserModel->readByRole('admin');
+            $super_admins = $adminUserModel->readByRole('super_admin');
             $all_admin_users = array_merge($admins, $super_admins);
             $admin_emails = array_unique(array_column($all_admin_users, 'email'));
 
@@ -93,13 +93,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Get violations reported by this user
-$violationsStmt = $violationModel->readByCreatorId($_SESSION['user_id']);
-$violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
+$violations = $violationModel->readByCreatorId($_SESSION['user_id']);
 $violationStats = $violationModel->getViolationStatsByCreatorId($_SESSION['user_id']);
 
 // Get all businesses for the reporting form
 $businessModel = new Business($database);
-$allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allBusinesses = $businessModel->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

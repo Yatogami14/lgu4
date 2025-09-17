@@ -169,7 +169,7 @@ $userRoleCounts = $user->getUserCountByRole();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($userRow = $users->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php foreach ($users as $userRow): ?>
                     <tr 
                         data-id="<?php echo htmlspecialchars($userRow['id']); ?>"
                         data-name="<?php echo htmlspecialchars($userRow['name']); ?>"
@@ -210,7 +210,7 @@ $userRoleCounts = $user->getUserCountByRole();
                             </button>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

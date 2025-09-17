@@ -17,8 +17,7 @@ $user->readOne();
 
 // Get businesses owned by the current user
 $businessModel = new Business($database);
-$owned_businesses_stmt = $businessModel->readByOwnerId($user->id);
-$owned_businesses = $owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC);
+$owned_businesses = $businessModel->readByOwnerId($user->id);
 
 ?>
 <!DOCTYPE html>

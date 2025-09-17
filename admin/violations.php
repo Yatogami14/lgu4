@@ -19,12 +19,12 @@ $user->readOne();
 
 // Get all inspectors for the modal
 $inspectorUser = new User($database);
-$all_inspectors = $inspectorUser->readByRole('inspector')->fetchAll(PDO::FETCH_ASSOC);
+$all_inspectors = $inspectorUser->readByRole('inspector');
 
 // Get all inspection types for the modal
 require_once '../models/InspectionType.php';
 $inspectionTypeModel = new InspectionType($database);
-$allInspectionTypes = $inspectionTypeModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allInspectionTypes = $inspectionTypeModel->readAll();
 
 // --- Handle Violation Create/Update ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -96,13 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all violations from database
 $violationModel = new Violation($database);
-$violationsStmt = $violationModel->readAll();
-$violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
+$violations = $violationModel->readAll();
 $violationStats = $violationModel->getViolationStats();
 
 // Get businesses for create modal
 $businessModel = new Business($database);
-$allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allBusinesses = $businessModel->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

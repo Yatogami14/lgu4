@@ -74,7 +74,7 @@ class InspectionMedia {
                   WHERE inspection_id = ? 
                   ORDER BY created_at ASC";
 
-        return $this->database->query(Database::DB_MEDIA, $query, [$inspection_id]);
+        return $this->database->fetchAll(Database::DB_MEDIA, $query, [$inspection_id]);
     }
 }
 ?>

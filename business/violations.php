@@ -18,8 +18,8 @@ $user->readOne();
 
 // Get businesses owned by the current user
 $businessModel = new Business($database);
-$owned_businesses_stmt = $businessModel->readByOwnerId($user->id);
-$business_ids = array_column($owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC), 'id');
+$owned_businesses = $businessModel->readByOwnerId($user->id);
+$business_ids = array_column($owned_businesses, 'id');
 
 // Get violations for the owned businesses
 $violationModel = new Violation($database);
@@ -27,8 +27,7 @@ $violations = [];
 $violationStats = ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
 
 if (!empty($business_ids)) {
-    $violationsStmt = $violationModel->readAll($business_ids);
-    $violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
+    $violations = $violationModel->readAll($business_ids);
     $violationStats = $violationModel->getViolationStats($business_ids);
 }
 ?>

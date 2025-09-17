@@ -109,53 +109,44 @@ class Violation {
      * @return array
      */
     public function readCommunityReportsAwaitingAction($limit = 5) {
-        $query = "SELECT v.*, b.name as business_name
+        $query = "SELECT v.*
                   FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id
                   WHERE v.inspection_id = 0 AND v.status = 'open'
                   ORDER BY v.created_at ASC
                   LIMIT :limit";
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [':limit' => $limit]);
+        return $this->hydrateViolationsWithBusinessData($violations);
     }
+
     /**
      * Read all violations, optionally filtered by an array of business IDs.
      * @param array $business_ids
-     * @return PDOStatement
+     * @return array
      */
     public function readAll($business_ids = []) {
-        $query = "SELECT v.*, b.name as business_name 
+        // Step 1: Fetch violations from the violations database.
+        $query = "SELECT v.*
                   FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id";
-
+                  ";
+        $params = [];
         if (!empty($business_ids)) {
             // Create placeholders for the IN clause
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
             $query .= " WHERE v.business_id IN (" . $in_clause . ")";
+            $params = $business_ids;
         }
 
         $query .= " ORDER BY v.created_at DESC";
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-
-        if (!empty($business_ids)) {
-            // Bind each business ID to the placeholder
-            foreach ($business_ids as $k => $id) {
-                $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
-            }
-        }
-
-        $stmt->execute();
-        return $stmt;
+        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, $params);
+        // Step 2: Hydrate with business data from the core database.
+        return $this->hydrateViolationsWithBusinessData($violations);
     }
 
     /**
      * Read all violations for a specific inspection.
      * @param int $inspection_id
-     * @return PDOStatement
+     * @return array
      */
     public function readByInspectionId($inspection_id) {
         $query = "SELECT v.* 
@@ -163,11 +154,7 @@ class Violation {
                   WHERE v.inspection_id = ?
                   ORDER BY v.created_at DESC";
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $inspection_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [$inspection_id]);
     }
 
     /**
@@ -176,31 +163,34 @@ class Violation {
      * @return array
      */
     public function getViolationStats($business_ids = []) {
-        $query = "SELECT
-                    COUNT(v.id) as total,
-                    SUM(CASE WHEN v.status = 'open' THEN 1 ELSE 0 END) as open,
-                    SUM(CASE WHEN v.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                    SUM(CASE WHEN v.status = 'resolved' THEN 1 ELSE 0 END) as resolved
+        $query = "SELECT COUNT(v.id) as total,
+                         SUM(CASE WHEN v.status = 'open' THEN 1 ELSE 0 END) as open,
+                         SUM(CASE WHEN v.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                         SUM(CASE WHEN v.status = 'resolved' THEN 1 ELSE 0 END) as resolved
                   FROM " . $this->table_name . " v";
-    
+        
+        $params = [];
         if (!empty($business_ids)) {
-            $query .= " LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id";
-            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $query .= " WHERE i.business_id IN (" . $in_clause . ")";
-        }
+            // Step 1: Get inspection IDs for the given businesses from the scheduling DB
+            $bus_in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $inspection_query = "SELECT id FROM inspections WHERE business_id IN ($bus_in_clause)";
+            $inspection_rows = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, $business_ids);
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        if (!empty($business_ids)) {
-            foreach ($business_ids as $k => $id) {
-                $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
+            if (empty($inspection_rows)) {
+                return ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
             }
+            $inspection_ids = array_column($inspection_rows, 'id');
+            
+            // Step 2: Filter violations by the fetched inspection IDs
+            $insp_in_clause = implode(',', array_fill(0, count($inspection_ids), '?'));
+            $query .= " WHERE v.inspection_id IN ($insp_in_clause)";
+            $params = $inspection_ids;
         }
 
-        $stmt->execute();
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, $params);
 
-        return $stats;
+        // Ensure all keys exist even if SUM returns NULL
+        return array_map(fn($v) => $v ?? 0, $stats);
     }
 
     /**
@@ -236,21 +226,26 @@ class Violation {
     /**
      * Read all violations for a specific inspector.
      * @param int $inspector_id
-     * @return PDOStatement
+     * @return array
      */
     public function readByInspectorId($inspector_id) {
-        $query = "SELECT v.*, b.name as business_name
-                  FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  WHERE i.inspector_id = ?
-                  ORDER BY v.created_at DESC";
-        
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
+        // Step 1: Get all inspections for the inspector from the scheduling DB
+        $inspection_query = "SELECT id, business_id FROM inspections WHERE inspector_id = ?";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, [$inspector_id]);
+
+        if (empty($inspections)) {
+            return [];
+        }
+
+        $inspection_ids = array_column($inspections, 'id');
+
+        // Step 2: Get all violations for those inspection IDs from the violations DB
+        $vio_in_clause = implode(',', array_fill(0, count($inspection_ids), '?'));
+        $violation_query = "SELECT * FROM " . $this->table_name . " WHERE inspection_id IN ($vio_in_clause) ORDER BY created_at DESC";
+        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $violation_query, $inspection_ids);
+
+        // Step 3: Hydrate with business data
+        return $this->hydrateViolationsWithBusinessData($violations);
     }
 
     /**
@@ -259,39 +254,43 @@ class Violation {
      * @return array
      */
     public function getViolationStatsByInspectorId($inspector_id) {
-        $query = "SELECT
-                    COUNT(v.id) as total,
-                    SUM(CASE WHEN v.status = 'open' THEN 1 ELSE 0 END) as open,
-                    SUM(CASE WHEN v.status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                    SUM(CASE WHEN v.status = 'resolved' THEN 1 ELSE 0 END) as resolved
-                  FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_SCHEDULING . ".inspections i ON v.inspection_id = i.id
-                  WHERE i.inspector_id = ?";
+        // Step 1: Get inspection IDs for the inspector
+        $inspection_query = "SELECT id FROM inspections WHERE inspector_id = ?";
+        $inspection_rows = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, [$inspector_id]);
+
+        if (empty($inspection_rows)) {
+            return ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
+        }
+        $inspection_ids = array_column($inspection_rows, 'id');
+
+        // Step 2: Get stats for those inspection IDs
+        $in_clause = implode(',', array_fill(0, count($inspection_ids), '?'));
+        $query = "SELECT COUNT(id) as total,
+                         SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
+                         SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                         SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
+                  FROM " . $this->table_name . "
+                  WHERE inspection_id IN ($in_clause)";
         
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $inspector_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, $inspection_ids);
+
+        // Ensure all keys exist even if SUM returns NULL
+        return array_map(fn($v) => $v ?? 0, $stats);
     }
 
     /**
      * Read all violations for a specific creator.
      * @param int $creator_id
-     * @return PDOStatement
+     * @return array
      */
     public function readByCreatorId($creator_id) {
-        $query = "SELECT v.*, b.name as business_name
+        $query = "SELECT v.*
                   FROM " . $this->table_name . " v
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON v.business_id = b.id
                   WHERE v.created_by = ?
                   ORDER BY v.created_at DESC";
         
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
+        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [$creator_id]);
+        return $this->hydrateViolationsWithBusinessData($violations);
     }
 
     /**
@@ -308,12 +307,8 @@ class Violation {
                   FROM " . $this->table_name . "
                   WHERE created_by = ?";
         
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $creator_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, [$creator_id]);
+
         // Ensure all keys exist even if SUM returns NULL
         return array_map(fn($v) => $v ?? 0, $stats);
     }
@@ -330,15 +325,38 @@ class Violation {
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
                   WHERE status IN ('open', 'in_progress') AND business_id IN (" . $in_clause . ")";
-        
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        foreach ($business_ids as $k => $id) {
-            $stmt->bindValue(($k + 1), $id, PDO::PARAM_INT);
-        }
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query, $business_ids);
         return $row['count'] ?? 0;
+    }
+
+    /**
+     * Hydrates an array of violations with business names from the core database.
+     * @param array $violations
+     * @return array
+     */
+    private function hydrateViolationsWithBusinessData(array $violations) {
+        if (empty($violations)) {
+            return [];
+        }
+
+        $business_ids = array_unique(array_column($violations, 'business_id'));
+        if (empty($business_ids)) {
+            return $violations; // No businesses to hydrate
+        }
+
+        $businesses = [];
+        $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+        $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
+        foreach ($businesses_data as $business) {
+            $businesses[$business['id']] = $business;
+        }
+
+        foreach ($violations as &$violation) {
+            $violation['business_name'] = $businesses[$violation['business_id']]['name'] ?? 'N/A';
+        }
+
+        return $violations;
     }
 }
 ?>

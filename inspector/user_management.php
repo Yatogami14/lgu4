@@ -149,7 +149,7 @@ $users = $user->readAll();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($userRow = $users->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php foreach ($users as $userRow): ?>
                     <tr data-id="<?php echo $userRow['id']; ?>">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -186,7 +186,7 @@ $users = $user->readAll();
                             </button>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

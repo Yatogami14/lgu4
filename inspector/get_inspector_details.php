@@ -30,12 +30,7 @@ $inspector->id = $inspector_id;
 if ($inspector->readOne()) {
     // Get inspector specializations using the new model
     $specializationModel = new Specialization($database);
-    $specializationsStmt = $specializationModel->readByUserId($inspector_id);
-    $specializations_data = [];
-    
-    while ($spec = $specializationsStmt->fetch(PDO::FETCH_ASSOC)) {
-        $specializations_data[] = $spec;
-    }
+    $specializations_data = $specializationModel->readByUserId($inspector_id);
     
     echo json_encode([
         'success' => true,

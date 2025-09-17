@@ -55,17 +55,12 @@ class Inspection {
 
     // Read single inspection
     public function readOne() {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, b.owner_id as business_owner_id,
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.id = ? LIMIT 0,1";
-
+        // Step 1: Fetch the base inspection record from the scheduling database.
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$this->id]);
 
         if ($row) {
+            // Step 2: Populate the base properties of the object.
             $this->business_id = $row['business_id'] ?? null;
             $this->inspector_id = $row['inspector_id'] ?? null;
             $this->inspection_type_id = $row['inspection_type_id'] ?? null;
@@ -80,6 +75,36 @@ class Inspection {
             $this->draft_data = $row['draft_data'] ?? null;
             $this->created_at = $row['created_at'] ?? null;
             $this->updated_at = $row['updated_at'] ?? null;
+
+            // Step 3: Fetch related data from the core database and hydrate the row.
+            if ($this->business_id) {
+                $business_query = "SELECT name, address, owner_id FROM businesses WHERE id = ?";
+                $business_row = $this->database->fetch(Database::DB_CORE, $business_query, [$this->business_id]);
+                $row['business_name'] = $business_row['name'] ?? 'N/A';
+                $row['business_address'] = $business_row['address'] ?? 'N/A';
+                $row['business_owner_id'] = $business_row['owner_id'] ?? null;
+            } else {
+                $row['business_name'] = 'N/A';
+                $row['business_address'] = 'N/A';
+                $row['business_owner_id'] = null;
+            }
+
+            if ($this->inspection_type_id) {
+                $type_query = "SELECT name FROM inspection_types WHERE id = ?";
+                $type_row = $this->database->fetch(Database::DB_CORE, $type_query, [$this->inspection_type_id]);
+                $row['inspection_type'] = $type_row['name'] ?? 'N/A';
+            } else {
+                $row['inspection_type'] = 'N/A';
+            }
+
+            if ($this->inspector_id) {
+                $inspector_query = "SELECT name FROM users WHERE id = ?";
+                $inspector_row = $this->database->fetch(Database::DB_CORE, $inspector_query, [$this->inspector_id]);
+                $row['inspector_name'] = $inspector_row['name'] ?? 'Unassigned';
+            } else {
+                $row['inspector_name'] = 'Unassigned';
+            }
+
             return $row;
         }
         return false;
@@ -87,54 +112,217 @@ class Inspection {
 
     // Read all inspections
     public function readAll() {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch all inspections from the scheduling database without joins.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  ORDER BY scheduled_date DESC";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database in separate, efficient queries.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
 
     // Read recent inspections
     public function readRecent($limit = 5) {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
+        // Step 1: Fetch recent inspections from the scheduling database without joins.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  ORDER BY updated_at DESC LIMIT " . (int)$limit;
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all the foreign keys needed from the core database.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch the related data from the core database in separate, efficient queries.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
 
     // Read all assigned inspections
     public function readAllAssigned() {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.inspector_id IS NOT NULL
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch all assigned inspections from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE inspector_id IS NOT NULL
+                  ORDER BY scheduled_date DESC";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_column($inspections, 'inspector_id'));
+
+        // Step 3: Fetch related data from the core database in separate, efficient queries.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
 
     // Get upcoming inspections
     public function readUpcoming($limit = 5) {
-        $query = "SELECT i.*, b.name as business_name, it.name as inspection_type
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  WHERE i.status = 'scheduled' AND i.scheduled_date >= CURDATE()
-                  ORDER BY i.scheduled_date ASC LIMIT " . (int)$limit;
+        // Step 1: Fetch upcoming inspections from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE status = 'scheduled' AND scheduled_date >= CURDATE()
+                  ORDER BY scheduled_date ASC LIMIT " . (int)$limit;
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+        }
+
+        return $inspections;
     }
 
     // Update inspection
@@ -268,7 +456,7 @@ class Inspection {
 
     // Count active violations
     public function countActiveViolations() {
-        $query = "SELECT COUNT(*) as count FROM " . Database::DB_VIOLATIONS . ".violations WHERE status IN ('open', 'in_progress')";
+        $query = "SELECT COUNT(*) as count FROM violations WHERE status IN ('open', 'in_progress')";
         // This query targets a different DB, so we need a connection to it.
         // The database manager handles this. We just need to specify the DB.
         $row = $this->database->fetch(Database::DB_VIOLATIONS, $query);
@@ -284,42 +472,154 @@ class Inspection {
 
     // Get inspections by status
     public function readByStatus($status) {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.status = ?
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch inspections by status from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE status = ?
+                  ORDER BY scheduled_date DESC";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$status]);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query, [$status]);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
-
     // Get inspections by inspector
     public function readByInspector($inspector_id) {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.inspector_id = ?
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch inspections for the inspector from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE inspector_id = ?
+                  ORDER BY scheduled_date DESC";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$inspector_id]);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query, [$inspector_id]);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspector_row = $this->database->fetch(Database::DB_CORE, "SELECT name FROM users WHERE id = ?", [$inspector_id]);
+        $inspector_name = $inspector_row['name'] ?? 'Unassigned';
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspector_name;
+        }
+
+        return $inspections;
     }
 
     // Get available inspections (not assigned to any inspector)
     public function getAvailableInspections() {
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, it.name as inspection_type
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  WHERE i.inspector_id IS NULL OR i.inspector_id = ''
-                  ORDER BY i.scheduled_date ASC";
+        // Step 1: Fetch available inspections from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE inspector_id IS NULL OR inspector_id = '' OR inspector_id = 0
+                  ORDER BY scheduled_date ASC";
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+        }
+
+        return $inspections;
     }
 
     // Get inspection counts by status
@@ -350,13 +650,38 @@ class Inspection {
 
     // Get inspections by business ID
     public function readByBusinessId($business_id) {
-        $query = "SELECT i.id, i.scheduled_date, it.name as inspection_type
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  WHERE i.business_id = ?
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch inspections for the business from the scheduling database.
+        $query = "SELECT id, scheduled_date, inspection_type_id
+                  FROM " . $this->table_name . "
+                  WHERE business_id = ?
+                  ORDER BY scheduled_date DESC";
+        
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id]);
 
-        return $this->database->query(Database::DB_SCHEDULING, $query, [$business_id]);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique inspection_type_ids.
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+
+        // Step 3: Fetch the inspection type names from the core database.
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type['name'];
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']] ?? 'N/A';
+            unset($inspection['inspection_type_id']); // Clean up the ID field
+        }
+
+        return $inspections;
     }
 
     // Get inspections by a list of business IDs
@@ -364,18 +689,62 @@ class Inspection {
         if (empty($business_ids)) {
             return [];
         }
-        $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.business_id IN (" . $in_clause . ")
-                  ORDER BY i.scheduled_date DESC";
+        // Step 1: Fetch inspections for the businesses from the scheduling database.
+        $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE business_id IN (" . $in_clause . ")
+                  ORDER BY scheduled_date DESC";
+        
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids_from_result = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids_from_result)) {
+            $bus_in_clause = implode(',', array_fill(0, count($business_ids_from_result), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $type_in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $insp_in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($insp_in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
 
     /**
@@ -440,17 +809,54 @@ class Inspection {
         if (empty($business_ids)) {
             return [];
         }
+
+        // Step 1: Fetch recent inspections for the given businesses.
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-        $query = "SELECT i.*, b.name as business_name, b.address as business_address, 
-                         it.name as inspection_type, u.name as inspector_name
-                  FROM " . $this->table_name . " i
-                  LEFT JOIN " . Database::DB_CORE . ".businesses b ON i.business_id = b.id
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.business_id IN (" . $in_clause . ")
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE business_id IN (" . $in_clause . ")
                   ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
+
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids_from_result = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids_from_result)) {
+            $bus_in_clause = implode(',', array_fill(0, count($business_ids_from_result), '?'));
+            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $type_in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type['name'];
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']] ?? 'N/A';
+            // Note: inspector_name is not used in the calling page, but added for consistency.
+            $inspection['inspector_name'] = 'N/A'; // Placeholder, can be hydrated if needed.
+        }
+
+        return $inspections;
     }
 
     /**

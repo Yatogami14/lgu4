@@ -32,7 +32,7 @@ $inspections = $inspection->readAllAssigned();
             <p class="text-gray-600">Overview of all inspections currently assigned to inspectors.</p>
         </div>
 
-        <?php if ($inspections->rowCount() > 0): ?>
+        <?php if (!empty($inspections)): ?>
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -47,7 +47,7 @@ $inspections = $inspection->readAllAssigned();
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <?php while ($row = $inspections->fetch(PDO::FETCH_ASSOC)): ?>
+                        <?php foreach ($inspections as $row): ?>
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900"><?php echo $row['business_name']; ?></div>
@@ -81,7 +81,7 @@ $inspections = $inspection->readAllAssigned();
                                 <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-green-600 hover:text-green-900"><i class="fas fa-eye"></i> View</a>
                             </td>
                         </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

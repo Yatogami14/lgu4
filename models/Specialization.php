@@ -17,15 +17,43 @@ class Specialization {
     /**
      * Get all specializations for a given user.
      * @param int $user_id
-     * @return PDOStatement
+     * @return array
      */
     public function readByUserId($user_id) {
-        $query = "SELECT its.*, it.name as inspection_type_name, it.description
-                  FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " its
-                  JOIN " . Database::DB_CORE . ".inspection_types it ON its.inspection_type_id = it.id
-                  WHERE its.user_id = ?";
-        
-        return $this->database->query(Database::DB_SCHEDULING, $query, [$user_id]);
+        // Step 1: Get all specializations for the user from the scheduling DB
+        $query = "SELECT * FROM " . $this->table_name . " WHERE user_id = ?";
+        $specializations = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$user_id]);
+
+        if (empty($specializations)) {
+            return [];
+        }
+
+        // Step 2: Collect all inspection_type_ids
+        $inspection_type_ids = array_unique(array_column($specializations, 'inspection_type_id'));
+
+        // Step 3: Fetch inspection type details from the core DB
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_query = "SELECT id, name, description FROM inspection_types WHERE id IN ($in_clause)";
+            $types_data = $this->database->fetchAll(Database::DB_CORE, $types_query, $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        // Step 4: Hydrate the specializations with the type names and descriptions
+        foreach ($specializations as &$spec) {
+            if (isset($inspection_types[$spec['inspection_type_id']])) {
+                $spec['inspection_type_name'] = $inspection_types[$spec['inspection_type_id']]['name'];
+                $spec['description'] = $inspection_types[$spec['inspection_type_id']]['description'];
+            } else {
+                $spec['inspection_type_name'] = 'N/A';
+                $spec['description'] = 'N/A';
+            }
+        }
+
+        return $specializations;
     }
 
     /**
@@ -33,7 +61,7 @@ class Specialization {
      * @return bool
      */
     public function create() {
-        $query = "INSERT INTO " . Database::DB_SCHEDULING . "." . $this->table_name . " 
+        $query = "INSERT INTO " . $this->table_name . " 
                   SET user_id=:user_id, inspection_type_id=:inspection_type_id, 
                       proficiency_level=:proficiency_level, certification_date=:certification_date";
         
@@ -61,7 +89,7 @@ class Specialization {
      * @return bool
      */
     public function delete() {
-        $query = "DELETE FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " WHERE id = ?";
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         
         try {
             $this->database->query(Database::DB_SCHEDULING, $query, [$this->id]);
@@ -75,16 +103,55 @@ class Specialization {
     /**
      * Get all inspectors who have a specific specialization.
      * @param int $inspection_type_id
-     * @return PDOStatement
+     * @return array
      */
     public function getInspectorsBySpecialization($inspection_type_id) {
-        $query = "SELECT u.*, its.proficiency_level, its.certification_date
-                  FROM " . Database::DB_CORE . ".users u
-                  JOIN " . Database::DB_SCHEDULING . "." . $this->table_name . " its ON u.id = its.user_id
-                  WHERE its.inspection_type_id = ? AND u.role = 'inspector'
-                  ORDER BY its.proficiency_level DESC, u.name ASC";
+        // Step 1: Get all specializations for the given type from the scheduling DB
+        $query = "SELECT * FROM " . $this->table_name . " WHERE inspection_type_id = ?";
+        $specializations = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$inspection_type_id]);
+
+        if (empty($specializations)) {
+            return [];
+        }
+
+        // Step 2: Collect all user_ids
+        $user_ids = array_unique(array_column($specializations, 'user_id'));
+
+        // Step 3: Fetch inspector details from the core DB
+        $inspectors = [];
+        if (!empty($user_ids)) {
+            $in_clause = implode(',', array_fill(0, count($user_ids), '?'));
+            $users_query = "SELECT * FROM users WHERE id IN ($in_clause) AND role = 'inspector'";
+            $users_data = $this->database->fetchAll(Database::DB_CORE, $users_query, $user_ids);
+            foreach ($users_data as $user) {
+                $inspectors[$user['id']] = $user;
+            }
+        }
+
+        // Step 4: Combine the data
+        $result = [];
+        foreach ($specializations as $spec) {
+            if (isset($inspectors[$spec['user_id']])) {
+                $result[] = array_merge($inspectors[$spec['user_id']], [
+                    'proficiency_level' => $spec['proficiency_level'],
+                    'certification_date' => $spec['certification_date']
+                ]);
+            }
+        }
+
+        // Step 5: Sort the results as the original query did
+        usort($result, function($a, $b) {
+            $proficiencyOrder = ['expert' => 3, 'intermediate' => 2, 'beginner' => 1];
+            $a_prof = $proficiencyOrder[$a['proficiency_level']] ?? 0;
+            $b_prof = $proficiencyOrder[$b['proficiency_level']] ?? 0;
+
+            if ($a_prof !== $b_prof) {
+                return $b_prof <=> $a_prof; // DESC
+            }
+            return $a['name'] <=> $b['name']; // ASC
+        });
         
-        return $this->database->query(Database::DB_SCHEDULING, $query, [$inspection_type_id]);
+        return $result;
     }
 
     /**
@@ -94,8 +161,7 @@ class Specialization {
      * @return bool
      */
     public function userHasSpecialization($user_id, $inspection_type_id) {
-        $query = "SELECT id FROM " . Database::DB_SCHEDULING . "." . $this->table_name . " 
-                  WHERE user_id = ? AND inspection_type_id = ?";
+        $query = "SELECT id FROM " . $this->table_name . " WHERE user_id = ? AND inspection_type_id = ?";
         $result = $this->database->fetch(Database::DB_SCHEDULING, $query, [$user_id, $inspection_type_id]);
         return !empty($result);
     }

@@ -165,7 +165,7 @@ if ($inspection_id) {
 }
 
 // Get all inspection types for the dropdown
-$allInspectionTypes = $inspectionTypeModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allInspectionTypes = $inspectionTypeModel->readAll();
 
 // Get the checklist for the current inspection
 $current_checklist = [];

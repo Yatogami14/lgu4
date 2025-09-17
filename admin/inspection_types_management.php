@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$allTypes = $inspectionType->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allTypes = $inspectionType->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -92,7 +92,7 @@ class Business {
                   LEFT JOIN users u ON b.owner_id = u.id
                   ORDER BY b.created_at DESC";
 
-        return $this->database->query(Database::DB_CORE, $query);
+        return $this->database->fetchAll(Database::DB_CORE, $query);
     }
 
     /**
@@ -265,7 +265,7 @@ class Business {
         $keywords = htmlspecialchars(strip_tags($keywords));
         $keywords = "%{$keywords}%";
 
-        return $this->database->query(Database::DB_CORE, $query, [$keywords, $keywords, $keywords]);
+        return $this->database->fetchAll(Database::DB_CORE, $query, [$keywords, $keywords, $keywords]);
     }
 
     // Get businesses by type
@@ -276,26 +276,28 @@ class Business {
                   WHERE b.business_type = ?
                   ORDER BY b.created_at DESC";
 
-        return $this->database->query(Database::DB_CORE, $query, [$business_type]);
+        return $this->database->fetchAll(Database::DB_CORE, $query, [$business_type]);
     }
 
     // Get compliance statistics for business
     public function getComplianceStats($business_id) {
-        $query = "SELECT 
+        $query = "SELECT
                     COUNT(id) as total_inspections,
                     AVG(CASE WHEN status = 'completed' THEN compliance_score ELSE NULL END) as avg_compliance,
                     SUM(total_violations) as total_violations,
                     SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_inspections
-                  FROM " . Database::DB_SCHEDULING . ".inspections 
+                  FROM inspections
                   WHERE business_id = ?";
 
         $stats = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
-        
+
         // Format the results
-        $stats['avg_compliance'] = $stats['avg_compliance'] ? round($stats['avg_compliance']) : 0;
-        $stats['compliance_rate'] = $stats['total_inspections'] > 0 ? 
+        $stats['avg_compliance'] = !empty($stats['avg_compliance']) ? round($stats['avg_compliance']) : 0;
+        $stats['total_violations'] = $stats['total_violations'] ?? 0;
+        $stats['completed_inspections'] = $stats['completed_inspections'] ?? 0;
+        $stats['compliance_rate'] = ($stats['total_inspections'] > 0) ?
             round(($stats['completed_inspections'] / $stats['total_inspections']) * 100) : 0;
-        
+
         return $stats;
     }
 
@@ -303,8 +305,8 @@ class Business {
     public function countActiveViolationsByBusinessId($business_id) {
         // This assumes a 'violations' table exists with 'business_id' and 'status' columns.
         // The status 'open' and 'in_progress' are considered active.
-        $query = "SELECT COUNT(*) as active_violations_count 
-                  FROM " . Database::DB_VIOLATIONS . ".violations 
+        $query = "SELECT COUNT(*) as active_violations_count
+                  FROM violations
                   WHERE business_id = ? AND status IN ('open', 'in_progress')";
 
         $row = $this->database->fetch(Database::DB_VIOLATIONS, $query, [$business_id]);
@@ -314,15 +316,49 @@ class Business {
 
     // Get recent inspections for business
     public function getRecentInspections($business_id, $limit = 5) {
-        $query = "SELECT i.*, it.name as inspection_type, u.name as inspector_name
-                  FROM " . Database::DB_SCHEDULING . ".inspections i
-                  LEFT JOIN " . Database::DB_CORE . ".inspection_types it ON i.inspection_type_id = it.id
-                  LEFT JOIN " . Database::DB_CORE . ".users u ON i.inspector_id = u.id
-                  WHERE i.business_id = ?
-                  ORDER BY i.updated_at DESC
+        // Step 1: Fetch recent inspections from the scheduling database.
+        $query = "SELECT *
+                  FROM inspections
+                  WHERE business_id = ?
+                  ORDER BY updated_at DESC
                   LIMIT ?";
+        
+        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id, (int)$limit]);
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id, (int)$limit]);
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database.
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        foreach ($inspections as &$inspection) {
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+
+        return $inspections;
     }
 
     // Get businesses by owner ID
@@ -333,7 +369,7 @@ class Business {
                   WHERE b.owner_id = ?
                   ORDER BY b.created_at DESC";
 
-        return $this->database->query(Database::DB_CORE, $query, [$owner_id]);
+        return $this->database->fetchAll(Database::DB_CORE, $query, [$owner_id]);
     }
 
     // Calculate next inspection date based on frequency
@@ -406,11 +442,8 @@ class Business {
         // Get the average compliance score from all completed inspections for this business
         $stats = $this->getComplianceStats($this->id);
         $avg_compliance = $stats['avg_compliance'];
-
-        // Get the most recent completed inspection date
-        $query_last_date = "SELECT MAX(completed_date) as last_date FROM " . Database::DB_SCHEDULING . ".inspections WHERE business_id = ? AND status = 'completed'";
-        $last_date_row = $this->database->fetch(Database::DB_SCHEDULING, $query_last_date, [$this->id]);
-        $last_inspection_date = $last_date_row['last_date'] ?? null;
+        // Get the most recent completed inspection date using the refactored method
+        $last_inspection_date = $this->getLastCompletedInspectionDate($this->id);
 
         // Load current business data to get inspection frequency
         $current_data = $this->readOne();
@@ -489,7 +522,7 @@ class Business {
      */
     public function getLastCompletedInspectionDate($business_id) {
         $query = "SELECT MAX(completed_date) as last_inspection_date
-                  FROM " . Database::DB_SCHEDULING . ".inspections
+                  FROM inspections
                   WHERE business_id = ? AND status = 'completed'";
         $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
         return $row['last_inspection_date'] ?? null;

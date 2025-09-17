@@ -11,8 +11,7 @@ $database = new Database();
 $user = new User($database);
 
 // Get all inspectors
-$inspectorsStmt = $user->readByRole('inspector');
-$inspectors = $inspectorsStmt->fetchAll(PDO::FETCH_ASSOC);
+$inspectors = $user->readByRole('inspector');
 
 // Return JSON response
 header('Content-Type: application/json');

@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all checklist templates and inspection types
-$allTemplates = $checklistTemplate->readAll()->fetchAll(PDO::FETCH_ASSOC);
-$allInspectionTypes = $inspectionType->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allTemplates = $checklistTemplate->readAll();
+$allInspectionTypes = $inspectionType->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

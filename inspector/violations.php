@@ -61,12 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all violations from database
 $violationModel = new Violation($database);
-$violationsStmt = $violationModel->readByInspectorId($_SESSION['user_id']);
-$violations = $violationsStmt->fetchAll(PDO::FETCH_ASSOC);
+$violations = $violationModel->readByInspectorId($_SESSION['user_id']);
 $violationStats = $violationModel->getViolationStatsByInspectorId($_SESSION['user_id']);
 // Get businesses for create modal
 $businessModel = new Business($database);
-$allBusinesses = $businessModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allBusinesses = $businessModel->readAll();
 ?>
 <!DOCTYPE html>
 <head>

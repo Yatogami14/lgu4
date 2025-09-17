@@ -19,24 +19,23 @@ $inspection = new Inspection($database);
 
 try {
     // Get inspections that don't have an assigned inspector
-    $availableInspections = $inspection->getAvailableInspections();
+    $availableInspectionsData = $inspection->getAvailableInspections();
 
-    $inspections = [];
-    while ($row = $availableInspections->fetch(PDO::FETCH_ASSOC)) {
-        $inspections[] = [
+    // The method now returns an array directly. We can map it to ensure only needed fields are sent.
+    $inspections = array_map(function($row) {
+        return [
             'id' => $row['id'],
             'business_name' => $row['business_name'],
             'inspection_type' => $row['inspection_type'],
             'scheduled_date' => $row['scheduled_date'],
             'status' => $row['status']
         ];
-    }
+    }, $availableInspectionsData);
 
     echo json_encode([
         'success' => true,
         'inspections' => $inspections
     ]);
-
 } catch (Exception $e) {
     error_log("Error fetching available inspections: " . $e->getMessage());
     http_response_code(500);

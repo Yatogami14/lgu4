@@ -15,10 +15,7 @@ class InspectionType {
     // Read all inspection types
     public function readAll() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY name ASC";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->execute();
-        return $stmt;
+        return $this->database->fetchAll(Database::DB_CORE, $query);
     }
 
     // Read single inspection type

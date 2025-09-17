@@ -117,7 +117,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($business_row = $businesses->fetch(PDO::FETCH_ASSOC)): 
+                    <?php foreach ($businesses as $business_row): 
                         $stats = $business->getComplianceStats($business_row['id']);
                     ?>
                     <tr>
@@ -157,7 +157,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             </a>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

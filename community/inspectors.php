@@ -95,7 +95,7 @@ $inspectors = $user->readByRole('inspector');
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php while ($inspector = $inspectors->fetch(PDO::FETCH_ASSOC)): ?>
+                    <?php foreach ($inspectors as $inspector): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -135,7 +135,7 @@ $inspectors = $user->readByRole('inspector');
                             </button>
                         </td>
                     </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

@@ -21,8 +21,7 @@ $database = new Database();
 $db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
 $inspection = new Inspection($database);
-$stmt = $inspection->readByBusinessId($_GET['business_id']);
-$inspections = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$inspections = $inspection->readByBusinessId($_GET['business_id']);
 
 echo json_encode(['success' => true, 'inspections' => $inspections]);
 ?>

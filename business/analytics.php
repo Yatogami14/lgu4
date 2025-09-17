@@ -21,8 +21,7 @@ $business = new Business($database);
 $violation = new Violation($database);
 
 // Get analytics data scoped to the business owner's businesses
-$owned_businesses_stmt = $business->readByOwnerId($_SESSION['user_id']);
-$owned_businesses = $owned_businesses_stmt->fetchAll(PDO::FETCH_ASSOC);
+$owned_businesses = $business->readByOwnerId($_SESSION['user_id']);
 $business_ids = array_column($owned_businesses, 'id');
 
 $totalInspections = 0;

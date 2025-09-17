@@ -41,8 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['request_inspection']))
 }
 
 // Get user-specific data for business owner
-$user_businesses_stmt = $business->readByOwnerId($_SESSION['user_id']);
-$user_businesses = $user_businesses_stmt->fetchAll(PDO::FETCH_ASSOC);
+$user_businesses = $business->readByOwnerId($_SESSION['user_id']);
 $business_ids = array_column($user_businesses, 'id');
 
 // Initialize stats
@@ -65,7 +64,7 @@ $chart_labels = json_encode(array_column($compliance_trend, 'inspection_date'));
 $chart_data = json_encode(array_column($compliance_trend, 'avg_score'));
 
 // Get all inspection types for the modal
-$allInspectionTypes = $inspectionTypeModel->readAll()->fetchAll(PDO::FETCH_ASSOC);
+$allInspectionTypes = $inspectionTypeModel->readAll();
 
 // Get success/error messages
 $success_message = $_SESSION['success_message'] ?? '';
