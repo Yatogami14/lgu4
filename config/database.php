@@ -1,58 +1,52 @@
 <?php
-// Check if class is already defined to prevent redeclaration
-if (!class_exists('Database')) {
-    class Database {
-        // Constants for database keys, mapping to the config array below
+if (!class_exists('database')) {
+    class database {
+        const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
         const DB_CORE = 'hsi_lgu_core';
         const DB_SCHEDULING = 'hsi_lgu_inspection_scheduling';
         const DB_MEDIA = 'hsi_lgu_media_uploads';
         const DB_VIOLATIONS = 'hsi_lgu_violations_ticketing';
-        const DB_CHECKLIST = 'hsi_lgu_checklist_assessment';
         const DB_REPORTS = 'hsi_lgu_reports_notifications';
 
         private $connections = [];
-        private $config = [];
-
-        public function __construct() {
-            $this->config = [
-                'hsi_lgu_checklist_assessment' => [ // DB_CHECKLIST
-                    'host' => getenv('DB_CHECKLIST_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_CHECKLIST_NAME') ?: 'hsi_lgu_checklist_assessment',
-                    'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_lgu_checklist_assessment',
-                    'password' => getenv('DB_CHECKLIST_PASS') ?: 'Admin123'
-                ],
-                'hsi_lgu_core' => [ // DB_CORE
-                    'host' => getenv('DB_CORE_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_CORE_NAME') ?: 'hsi_lgu_core',
-                    'username' => getenv('DB_CORE_USER') ?: 'hsi_lgu_core',
-                    'password' => getenv('DB_CORE_PASS') ?: 'Admin123'
-                ],
-                'hsi_lgu_inspection_scheduling' => [ // DB_SCHEDULING
-                    'host' => getenv('DB_SCHEDULING_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_SCHEDULING_NAME') ?: 'hsi_lgu_inspection_scheduling',
-                    'username' => getenv('DB_SCHEDULING_USER') ?: 'hsi_lgu_inspection_scheduling',
-                    'password' => getenv('DB_SCHEDULING_PASS') ?: 'Admin123'
-                ],
-                'hsi_lgu_media_uploads' => [ // DB_MEDIA
-                    'host' => getenv('DB_MEDIA_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_MEDIA_NAME') ?: 'hsi_lgu_media_uploads',
-                    'username' => getenv('DB_MEDIA_USER') ?: 'hsi_lgu_media_uploads',
-                    'password' => getenv('DB_MEDIA_PASS') ?: 'Admin123'
-                ],
-                'hsi_lgu_reports_notifications' => [ // DB_REPORTS
-                    'host' => getenv('DB_REPORTS_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_REPORTS_NAME') ?: 'hsi_lgu_reports_notifications',
-                    'username' => getenv('DB_REPORTS_USER') ?: 'hsi_lgu_reports_notifications',
-                    'password' => getenv('DB_REPORTS_PASS') ?: 'Admin123'
-                ],
-                'hsi_lgu_violations_ticketing' => [ // DB_VIOLATIONS
-                    'host' => getenv('DB_VIOLATIONS_HOST') ?: 'localhost',
-                    'dbname' => getenv('DB_VIOLATIONS_NAME') ?: 'hsi_lgu_violations_ticketing',
-                    'username' => getenv('DB_VIOLATIONS_USER') ?: 'hsi_lgu_violations_ticketing',
-                    'password' => getenv('DB_VIOLATIONS_PASS') ?: 'Admin123'
-                ]
-            ];
-        }
+        private $config = [
+            'hsi_lgu_checklist_assessment' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_checklist_assessment',
+                'username' => 'hsi_lgu_checklist_assessment',
+                'password' => 'Admin123'
+            ],
+            'hsi_lgu_core' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_core',
+                'username' => 'hsi_lgu_core',
+                'password' => 'Admin123'
+            ],
+            'hsi_lgu_inspection_scheduling' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_inspection_scheduling',
+                'username' => 'hsi_lgu_inspection_scheduling',
+                'password' => 'Admin123'
+            ],
+            'hsi_lgu_media_uploads' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_media_uploads',
+                'username' => 'hsi_lgu_media_uploads',
+                'password' => 'Admin123'
+            ],
+            'hsi_lgu_reports_notifications' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_reports_notifications',
+                'username' => 'hsi_lgu_reports_notifications',
+                'password' => 'Admin123'
+            ],
+            'hsi_lgu_violations_ticketing' => [
+                'host' => 'localhost',
+                'dbname' => 'hsi_lgu_violations_ticketing',
+                'username' => 'hsi_lgu_violations_ticketing',
+                'password' => 'Admin123'
+            ]
+        ];
 
         public function getConnection($database) {
             if (!isset($this->connections[$database])) {
