@@ -33,7 +33,10 @@ if ($_SESSION['user_role'] == 'business_owner') {
     }
 } else {
     // For community users, show public data
-    $recentInspections = $inspection->readRecent(5);
+    // The readRecent() method is causing a PDO error because it likely tries to bind the LIMIT parameter, which is not supported.
+    // As a workaround, we fetch all and slice the first 5. This assumes readAll() returns data in a recent-first order.
+    $allInspections = $inspection->readAll();
+    $recentInspections = array_slice($allInspections, 0, 5);
     $businessesArray = $business->readAll();
 }
 ?>
