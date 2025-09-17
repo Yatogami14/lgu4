@@ -5,7 +5,8 @@ try {
     require_once dirname(__DIR__) . '/utils/DatabaseSessionHandler.php';
 
     $database = new Database();
-    $handler = new DatabaseSessionHandler($database);
+    $db_connection = $database->getConnection(Database::DB_CORE);
+    $handler = new DatabaseSessionHandler($db_connection);
     session_set_save_handler($handler, true);
 } catch (Exception $e) {
     // If database fails, use default session handler
