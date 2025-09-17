@@ -26,35 +26,40 @@ class ChecklistTemplate {
      * @return array
      */
     public function readAll() {
-        // Step 1: Fetch all checklist templates from the checklist database.
-        $query = "SELECT *
-                  FROM " . $this->table_name . "
-                  ORDER BY inspection_type_id, category, id";
-        $templates = $this->database->fetchAll(Database::DB_CHECKLIST, $query);
+        try {
+            // Step 1: Fetch all checklist templates from the checklist database.
+            $query = "SELECT *
+                      FROM " . $this->table_name . "
+                      ORDER BY inspection_type_id, category, id";
+            $templates = $this->database->fetchAll(Database::DB_CHECKLIST, $query);
 
-        if (empty($templates)) {
+            if (empty($templates)) {
+                return [];
+            }
+
+            // Step 2: Collect all unique inspection_type_ids.
+            $inspection_type_ids = array_unique(array_column($templates, 'inspection_type_id'));
+
+            // Step 3: Fetch the inspection type names from the core database.
+            $inspection_types = [];
+            if (!empty($inspection_type_ids)) {
+                $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+                $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+                foreach ($types_data as $type) {
+                    $inspection_types[$type['id']] = $type['name'];
+                }
+            }
+
+            // Step 4: Combine the data in PHP.
+            foreach ($templates as &$template) {
+                $template['inspection_type_name'] = $inspection_types[$template['inspection_type_id']] ?? 'N/A';
+            }
+
+            return $templates;
+        } catch (Exception $e) {
+            error_log("Error in ChecklistTemplate::readAll(): " . $e->getMessage());
             return [];
         }
-
-        // Step 2: Collect all unique inspection_type_ids.
-        $inspection_type_ids = array_unique(array_column($templates, 'inspection_type_id'));
-
-        // Step 3: Fetch the inspection type names from the core database.
-        $inspection_types = [];
-        if (!empty($inspection_type_ids)) {
-            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
-            foreach ($types_data as $type) {
-                $inspection_types[$type['id']] = $type['name'];
-            }
-        }
-
-        // Step 4: Combine the data in PHP.
-        foreach ($templates as &$template) {
-            $template['inspection_type_name'] = $inspection_types[$template['inspection_type_id']] ?? 'N/A';
-        }
-
-        return $templates;
     }
 
     /**
