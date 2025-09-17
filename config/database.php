@@ -16,7 +16,7 @@ class database {
             self::DB_CHECKLIST => [
                 'host' => getenv('DB_CHECKLIST_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_CHECKLIST_NAME') ?: 'hsi_lgu_checklist_assessment',
-                'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_lca',
+                'username' => getenv('DB_CHECKLIST_USER') ?: 'hsi_hsi_lca',
                 'password' => getenv('DB_CHECKLIST_PASS') ?: 'Admin123'
             ],
             self::DB_CORE => [
@@ -237,54 +237,6 @@ class database {
             error_log("Safe fetch failed: " . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Helper method to easily query the core database
-     */
-    public function queryCore($query, $params = []) {
-        return $this->query(self::DB_CORE, $query, $params);
-    }
-
-    /**
-     * Helper method to easily query the scheduling database
-     */
-    public function queryScheduling($query, $params = []) {
-        return $this->query(self::DB_SCHEDULING, $query, $params);
-    }
-
-    /**
-     * Additional helper methods for other databases
-     */
-    public function fetchAllCore($query, $params = []) {
-        return $this->fetchAll(self::DB_CORE, $query, $params);
-    }
-
-    public function fetchCore($query, $params = []) {
-        return $this->fetch(self::DB_CORE, $query, $params);
-    }
-
-    public function fetchAllScheduling($query, $params = []) {
-        return $this->fetchAll(self::DB_SCHEDULING, $query, $params);
-    }
-
-    public function fetchScheduling($query, $params = []) {
-        return $this->fetch(self::DB_SCHEDULING, $query, $params);
-    }
-
-    /**
-     * Safe helper methods that won't throw exceptions
-     */
-    public function safeFetchAllCore($query, $params = []) {
-        return $this->safeFetchAll(self::DB_CORE, $query, $params);
-    }
-
-    public function safeFetchCore($query, $params = []) {
-        return $this->safeFetch(self::DB_CORE, $query, $params);
-    }
-
-    public function safeFetchAllScheduling($query, $params = []) {
-        return $this->safeFetchAll(self::DB_SCHEDULING, $query, $params);
     }
 
     /**
