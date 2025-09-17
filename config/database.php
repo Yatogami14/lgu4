@@ -92,7 +92,10 @@ class database {
         try {
             $stmt = $pdo->prepare($query);
             
-            // Validate parameter count before execution
+            // DEBUG: Log the query and parameters for troubleshooting
+            $this->debugQuery($query, $params);
+            
+            // Validate parameters before execution
             $this->validateParameters($query, $params);
             
             $stmt->execute($params);
@@ -106,6 +109,30 @@ class database {
             error_log("Params count: " . count($params));
             throw $e;
         }
+    }
+
+    /**
+     * Debug query and parameters for troubleshooting
+     */
+    private function debugQuery($query, $params) {
+        error_log("=== QUERY DEBUG ===");
+        error_log("Query: " . $query);
+        error_log("Params count: " . count($params));
+        error_log("Params: " . print_r($params, true));
+        
+        // Count expected parameters
+        $namedParams = [];
+        preg_match_all('/:(\w+)/', $query, $matches);
+        if (!empty($matches[1])) {
+            $namedParams = $matches[1];
+            error_log("Named parameters found: " . implode(', ', $namedParams));
+        }
+        
+        $positionalParams = substr_count($query, '?');
+        error_log("Positional parameters found: " . $positionalParams);
+        
+        $totalExpectedParams = count($namedParams) + $positionalParams;
+        error_log("Total expected parameters: " . $totalExpectedParams);
     }
 
     /**
@@ -222,6 +249,31 @@ class database {
         
         $params = array_merge($data, $whereParams);
         return $this->query($database, $query, $params);
+    }
+
+    /**
+     * Safe query execution with fallback for parameter mismatches
+     */
+    public function safeQuery($database, $query, $params = []) {
+        try {
+            return $this->query($database, $query, $params);
+        } catch (PDOException $e) {
+            if (strpos($e->getMessage(), 'Invalid parameter number') !== false) {
+                error_log("Parameter mismatch detected, attempting to fix...");
+                
+                // Try to execute without parameters as fallback
+                try {
+                    $pdo = $this->getConnection($database);
+                    $stmt = $pdo->prepare($query);
+                    $stmt->execute();
+                    return $stmt;
+                } catch (PDOException $e2) {
+                    error_log("Fallback query also failed: " . $e2->getMessage());
+                    throw $e; // Re-throw original error
+                }
+            }
+            throw $e;
+        }
     }
 }
 ?>
