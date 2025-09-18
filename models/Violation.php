@@ -1,7 +1,7 @@
 <?php
 class Violation {
     private $database;
-    private $table_name = "hsi_lgu_violations_ticketing.violations";
+    private $table_name = "violations";
 
     public $id;
     public $inspection_id;
@@ -330,7 +330,7 @@ class Violation {
 
         $businesses = [];
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-        $businesses_data = $this->database->fetchAll("SELECT id, name FROM hsi_lgu_core.businesses WHERE id IN ($in_clause)", $business_ids);
+        $businesses_data = $this->database->fetchAll("SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
         foreach ($businesses_data as $business) {
             $businesses[$business['id']] = $business;
         }
