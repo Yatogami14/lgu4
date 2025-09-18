@@ -109,13 +109,13 @@ if (isset($_SESSION['user_id'])) {
                 <i class="fas fa-bars text-xl"></i>
             </button>
 
-            <div class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 md:flex-none">
-                <i class="fas fa-shield-alt text-blue-600 text-xl sm:text-2xl"></i>
+            <a href="<?php echo $base_path; ?>/index.html" class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 md:flex-none">
+                <img src="<?php echo $base_path; ?>/logo/logo.png" alt="Logo" class="h-8 w-auto">
                 <div class="min-w-0 flex-1 md:flex-none">
                     <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate">LGU Health & Safety</h1>
                     <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Inspection Platform</p>
                 </div>
-            </div>
+            </a>
 
             <div class="flex items-center space-x-1 sm:space-x-4 flex-shrink-0">
                 <?php if (isset($_SESSION['user_id'])): ?>

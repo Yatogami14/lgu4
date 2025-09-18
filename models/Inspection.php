@@ -55,55 +55,40 @@ class Inspection {
 
     // Read single inspection
     public function readOne() {
-        // Step 1: Fetch the base inspection record from the scheduling database.
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
+        $query = "SELECT
+                    i.*,
+                    b.name as business_name,
+                    b.address as business_address,
+                    b.owner_id as business_owner_id,
+                    it.name as inspection_type,
+                    u_insp.name as inspector_name
+                  FROM " . $this->table_name . " i
+                  LEFT JOIN businesses b ON i.business_id = b.id
+                  LEFT JOIN inspection_types it ON i.inspection_type_id = it.id
+                  LEFT JOIN users u_insp ON i.inspector_id = u_insp.id
+                  WHERE i.id = ? LIMIT 0,1";
+
         $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
-            // Step 2: Populate the base properties of the object.
-            $this->business_id = $row['business_id'] ?? null;
-            $this->inspector_id = $row['inspector_id'] ?? null;
-            $this->inspection_type_id = $row['inspection_type_id'] ?? null;
-            $this->scheduled_date = $row['scheduled_date'] ?? null;
-            $this->completed_date = $row['completed_date'] ?? null;
-            $this->status = $row['status'] ?? null;
-            $this->priority = $row['priority'] ?? null;
-            $this->compliance_score = $row['compliance_score'] ?? null;
-            $this->total_violations = $row['total_violations'] ?? null;
-            $this->notes = $row['notes'] ?? null;
-            $this->notes_ai_analysis = $row['notes_ai_analysis'] ?? null;
-            $this->draft_data = $row['draft_data'] ?? null;
-            $this->created_at = $row['created_at'] ?? null;
-            $this->updated_at = $row['updated_at'] ?? null;
+            // Populate the object properties
+            $this->business_id = $row['business_id'];
+            $this->inspector_id = $row['inspector_id'];
+            $this->inspection_type_id = $row['inspection_type_id'];
+            $this->scheduled_date = $row['scheduled_date'];
+            $this->completed_date = $row['completed_date'];
+            $this->status = $row['status'];
+            $this->priority = $row['priority'];
+            $this->compliance_score = $row['compliance_score'];
+            $this->total_violations = $row['total_violations'];
+            $this->notes = $row['notes'];
+            $this->notes_ai_analysis = $row['notes_ai_analysis'];
+            $this->draft_data = $row['draft_data'];
+            $this->created_at = $row['created_at'];
+            $this->updated_at = $row['updated_at'];
 
-            // Step 3: Fetch related data from the core database and hydrate the row.
-            if ($this->business_id) {
-                $business_query = "SELECT name, address, owner_id FROM businesses WHERE id = ?";
-                $business_row = $this->database->fetch($business_query, [$this->business_id]);
-                $row['business_name'] = $business_row['name'] ?? 'N/A';
-                $row['business_address'] = $business_row['address'] ?? 'N/A';
-                $row['business_owner_id'] = $business_row['owner_id'] ?? null;
-            } else {
-                $row['business_name'] = 'N/A';
-                $row['business_address'] = 'N/A';
-                $row['business_owner_id'] = null;
-            }
-
-            if ($this->inspection_type_id) {
-                $type_query = "SELECT name FROM inspection_types WHERE id = ?";
-                $type_row = $this->database->fetch($type_query, [$this->inspection_type_id]);
-                $row['inspection_type'] = $type_row['name'] ?? 'N/A';
-            } else {
-                $row['inspection_type'] = 'N/A';
-            }
-
-            if ($this->inspector_id) {
-                $inspector_query = "SELECT name FROM users WHERE id = ?";
-                $inspector_row = $this->database->fetch($inspector_query, [$this->inspector_id]);
-                $row['inspector_name'] = $inspector_row['name'] ?? 'Unassigned';
-            } else {
-                $row['inspector_name'] = 'Unassigned';
-            }
+            // Ensure inspector_name is set to 'Unassigned' if null
+            $row['inspector_name'] = $row['inspector_name'] ?? 'Unassigned';
 
             return $row;
         }

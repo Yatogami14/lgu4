@@ -77,18 +77,25 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, created_at, updated_at
+        $query = "SELECT id, name, email, role, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
         $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
-            $this->id = $row['id'];
-            $this->name = $row['name'];
-            $this->email = $row['email'];
-            $this->role = $row['role'];
+            $this->id = $row['id'] ?? null;
+            $this->name = $row['name'] ?? null;
+            $this->email = $row['email'] ?? null;
+            $this->role = $row['role'] ?? null;
+            $this->department = $row['department'] ?? null;
+            $this->certification = $row['certification'] ?? null;
+            $this->avatar = $row['avatar'] ?? null;
+            $this->created_at = $row['created_at'] ?? null;
+            $this->updated_at = $row['updated_at'] ?? null;
+            return $row;
         }
+        return null;
     }
     /**
      * Read all users with pagination and optional role filter.
