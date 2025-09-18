@@ -113,7 +113,7 @@ $all_inspectors = $inspectorUser->readByRole('inspector');
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Scheduled Date</label>
-                            <input type="datetime-local" name="scheduled_date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <input type="datetime-local" name="scheduled_date" required min="<?php echo date('Y-m-d\TH:i'); ?>" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Priority</label>

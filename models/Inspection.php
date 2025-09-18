@@ -171,8 +171,8 @@ class Inspection {
         // Step 1: Fetch recent inspections from the scheduling database without joins.
         $query = "SELECT *
                   FROM " . $this->table_name . "
-                  ORDER BY updated_at DESC LIMIT " . (int)$limit;
-        $inspections = $this->database->fetchAll($query);
+                  ORDER BY updated_at DESC LIMIT ?";
+        $inspections = $this->database->fetchAll($query, [$limit]);
 
         if (empty($inspections)) {
             return [];
@@ -285,9 +285,9 @@ class Inspection {
         $query = "SELECT *
                   FROM " . $this->table_name . "
                   WHERE status = 'scheduled' AND scheduled_date >= CURDATE()
-                  ORDER BY scheduled_date ASC LIMIT " . (int)$limit;
+                  ORDER BY scheduled_date ASC LIMIT ?";
 
-        $inspections = $this->database->fetchAll($query);
+        $inspections = $this->database->fetchAll($query, [$limit]);
 
         if (empty($inspections)) {
             return [];
