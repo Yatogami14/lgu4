@@ -317,13 +317,14 @@ class Business {
     // Get recent inspections for business
     public function getRecentInspections($business_id, $limit = 5) {
         // Step 1: Fetch recent inspections from the scheduling database.
+        $limit = (int)$limit;
         $query = "SELECT *
                   FROM inspections
                   WHERE business_id = ?
                   ORDER BY updated_at DESC
-                  LIMIT ?";
+                  LIMIT $limit";
         
-        $inspections = $this->database->fetchAll($query, [$business_id, (int)$limit]);
+        $inspections = $this->database->fetchAll($query, [$business_id]);
 
         if (empty($inspections)) {
             return [];

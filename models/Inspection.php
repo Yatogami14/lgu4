@@ -816,7 +816,7 @@ class Inspection {
         $query = "SELECT *
                   FROM " . $this->table_name . "
                   WHERE business_id IN (" . $in_clause . ")
-                  ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
+                  ORDER BY updated_at DESC LIMIT " . (int)$limit;
 
         $inspections = $this->database->fetchAll($query, $business_ids);
 
