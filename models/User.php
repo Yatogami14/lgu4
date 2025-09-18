@@ -88,17 +88,8 @@ class User {
             $this->name = $row['name'];
             $this->email = $row['email'];
             $this->role = $row['role'];
-            $this->department = $row['department'] ?? null;
-            $this->certification = $row['certification'] ?? null;
-            $this->avatar = $row['avatar'] ?? null;
-            $this->created_at = $row['created_at'];
-            $this->updated_at = $row['updated_at'];
-            $this->password = null; // Password hash is not exposed
-            return $row;
         }
-        return null;
     }
-
     /**
      * Read all users with pagination and optional role filter.
      * @param string|null $role
