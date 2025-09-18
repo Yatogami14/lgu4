@@ -410,9 +410,10 @@ class Inspection {
 
         try {
             $this->database->query($query, $params);
+            error_log("Inspection->assignInspector success: Assigned inspector_id {$this->inspector_id} to inspection_id {$this->id}");
             return true;
         } catch (PDOException $e) {
-            error_log("Inspection->assignInspector failed: " . $e->getMessage());
+            error_log("Inspection->assignInspector failed: " . $e->getMessage() . " for inspection_id {$this->id}, inspector_id {$this->inspector_id}");
             return false;
         }
     }

@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 // Get all inspections
 $inspections = $inspection->readAll();
 $businesses = $business->readAll();
+$inspectors = $user->readByRole('inspector');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -223,7 +224,13 @@ $businesses = $business->readAll();
                         <label class="block text-sm font-medium text-gray-700">Notes</label>
                         <textarea name="notes" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                     </div>
-                    <input type="hidden" name="inspector_id" value="<?php echo $user->id; ?>">
+                    <label class="block text-sm font-medium text-gray-700">Inspector</label>
+                    <select name="inspector_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <option value="">Select Inspector</option>
+                        <?php foreach ($inspectors as $inspector): ?>
+                            <option value="<?php echo $inspector['id']; ?>"><?php echo htmlspecialchars($inspector['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
