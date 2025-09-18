@@ -129,15 +129,9 @@ if (isset($_SESSION['user_id'])) {
                     </div>
                 </div>
 
-                <?php if ($user->role == 'admin' || $user->role == 'super_admin' || $user->role == 'inspector'): ?>
-                <a href="<?php echo $base_path; ?>/admin/admin_logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
+                <a href="<?php echo $base_path; ?>/logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm" title="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </a>
-                <?php else: ?>
-                <a href="<?php echo $portal_prefix; ?>logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
-                    <i class="fas fa-sign-out-alt"></i>
-                </a>
-                <?php endif; ?>
 
                 <?php else: ?>
                 <a href="public_login.php" class="bg-blue-600 text-white rounded-md px-4 py-2 text-sm hover:bg-blue-700">

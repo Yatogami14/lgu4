@@ -37,8 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
-        // Redirect all users to admin login page
-        header('Location: admin/admin_login.php');
+        // Redirect to the appropriate dashboard based on role
+        $role = $user->role;
+        $redirect_path = 'admin/index.php'; // Default for admin/super_admin
+        switch ($role) {
+            case 'inspector':
+                $redirect_path = 'inspector/index.php';
+                break;
+            case 'business_owner':
+                $redirect_path = 'business/index.php';
+                break;
+            case 'community_user':
+                $redirect_path = 'community/index.php';
+                break;
+        }
+        header("Location: $redirect_path");
         exit;
     } else {
         $error_message = "Invalid email or password.";
@@ -143,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <a href="admin/admin_register.php" class="block bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200">
                     <i class="fas fa-shield-alt mr-2"></i>Register as Admin
                 </a>
-                <a href="business/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
+                <a href="admin/admin_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-building mr-2"></i>Register as Business
                 </a>
                 <a href="community/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">

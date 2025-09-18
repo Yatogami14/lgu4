@@ -878,5 +878,57 @@ class Inspection {
 
         return $this->database->fetchAll($query, [':days' => $days]);
     }
+    /**
+     * Update the status of an inspection.
+     * @param string $status
+     * @return bool
+     */
+    public function updateStatus($status) {
+        $query = "UPDATE " . $this->table_name . "
+                  SET status = :status,
+                      updated_at = NOW()
+                  WHERE id = :id";
+
+        $params = [
+            ':status' => $status,
+            ':id' => $this->id
+        ];
+
+        try {
+            $this->database->query($query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Inspection status update failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Reschedule an inspection by updating the scheduled date and inspector.
+     * @param string $new_scheduled_date
+     * @param int|null $new_inspector_id
+     * @return bool
+     */
+    public function reschedule($new_scheduled_date, $new_inspector_id) {
+        $query = "UPDATE " . $this->table_name . "
+                  SET scheduled_date = :scheduled_date,
+                      inspector_id = :inspector_id,
+                      updated_at = NOW()
+                  WHERE id = :id";
+
+        $params = [
+            ':scheduled_date' => $new_scheduled_date,
+            ':inspector_id' => !empty($new_inspector_id) ? $new_inspector_id : null,
+            ':id' => $this->id
+        ];
+
+        try {
+            $this->database->query($query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Inspection reschedule failed: " . $e->getMessage());
+            return false;
+        }
+    }
 }
 ?>

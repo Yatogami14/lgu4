@@ -30,7 +30,8 @@ class Violation {
                     description = :description,
                     severity = :severity,
                     status = :status,
-                    due_date = :due_date";
+                    due_date = :due_date,
+                    created_by = :created_by";
 
         $params = [
             ':inspection_id' => $this->inspection_id,
@@ -38,7 +39,8 @@ class Violation {
             ':description' => $this->description,
             ':severity' => $this->severity,
             ':status' => $this->status,
-            ':due_date' => !empty($this->due_date) ? $this->due_date : null
+            ':due_date' => !empty($this->due_date) ? $this->due_date : null,
+            ':created_by' => !empty($this->created_by) ? $this->created_by : null
         ];
 
         try {
@@ -270,10 +272,12 @@ class Violation {
      * @return array
      */
     public function readByCreatorId($creator_id) {
-        // The 'created_by' column does not exist in the database schema.
-        // Returning an empty array to prevent fatal errors.
-        // To restore this functionality, the 'created_by' column must be added to the 'violations' table.
-        return [];
+        $query = "SELECT v.*
+                  FROM " . $this->table_name . " v
+                  WHERE v.created_by = ?
+                  ORDER BY v.created_at DESC";
+        $violations = $this->database->fetchAll($query, [$creator_id]);
+        return $this->hydrateViolationsWithBusinessData($violations);
     }
 
     /**
@@ -282,9 +286,14 @@ class Violation {
      * @return array
      */
     public function getViolationStatsByCreatorId($creator_id) {
-        // The 'created_by' column does not exist in the database schema.
-        // Returning zero stats to prevent fatal errors.
-        return ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
+        $query = "SELECT COUNT(id) as total,
+                         SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
+                         SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+                         SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
+                  FROM " . $this->table_name . "
+                  WHERE created_by = ?";
+        $stats = $this->database->fetch($query, [$creator_id]);
+        return array_map(fn($v) => $v ?? 0, $stats);
     }
 
     /**

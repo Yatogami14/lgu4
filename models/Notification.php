@@ -215,13 +215,33 @@ class Notification {
     }
 
     // Create notification for inspection assignment
-    public function createAssignmentNotification($inspector_id, $business_name, $inspection_id) {
+    public function createAssignmentNotification($inspector_id, $business_name, $inspection_id, $reason = "assigned to you") {
         $this->user_id = $inspector_id;
-        $this->message = "You have been assigned a new inspection for " . $business_name;
+        $this->message = "An inspection for {$business_name} has been {$reason}.";
         $this->type = "info";
         $this->related_entity_type = "inspection";
         $this->related_entity_id = $inspection_id;
         
+        return $this->create();
+    }
+
+    // Create notification for a rescheduled inspection
+    public function createRescheduleNotification($inspector_id, $business_name, $inspection_id, $new_date) {
+        $this->user_id = $inspector_id;
+        $this->message = "The inspection for {$business_name} has been rescheduled to {$new_date}.";
+        $this->type = "info";
+        $this->related_entity_type = "inspection";
+        $this->related_entity_id = $inspection_id;
+        return $this->create();
+    }
+
+    // Create notification for an unassigned inspection
+    public function createUnassignmentNotification($inspector_id, $business_name, $inspection_id, $reason) {
+        $this->user_id = $inspector_id;
+        $this->message = "The inspection for {$business_name} is no longer assigned to you because it was {$reason}.";
+        $this->type = "warning";
+        $this->related_entity_type = "inspection";
+        $this->related_entity_id = $inspection_id;
         return $this->create();
     }
 }
