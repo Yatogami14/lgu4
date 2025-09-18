@@ -9,8 +9,8 @@ require_once '../utils/DatabaseSessionHandler.php';
 requirePermission('active_sessions');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$handler = new DatabaseSessionHandler($db_core);
+$db = $database->getConnection();
+$handler = new DatabaseSessionHandler($db);
 
 // Handle force logout
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['force_logout'])) {

@@ -4,8 +4,6 @@ require_once 'config/database.php';
 require_once 'models/Business.php';
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-
 $businessModel = new Business($database);
 
 // Handle search

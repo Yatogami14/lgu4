@@ -6,11 +6,11 @@ require_once '../utils/session_manager.php';
 // Clear "Remember Me" token from the database
 if (isset($_SESSION['user_id'])) {
     require_once '../config/database.php';
-    require_once '../models/Auth.php';
+    require_once '../models/User.php';
 
     $database = new Database();
-    $auth = new Auth($database);
-    $auth->clearRememberMeToken($_SESSION['user_id']);
+    $user = new User($database);
+    $user->clearRememberMeToken($_SESSION['user_id']);
 }
 
 // Clear the "Remember Me" cookie from the browser

@@ -42,7 +42,7 @@ class Inspection {
         ];
 
         try {
-            $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
+            $pdo = $this->database->getConnection();
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $this->id = $pdo->lastInsertId();
@@ -57,7 +57,7 @@ class Inspection {
     public function readOne() {
         // Step 1: Fetch the base inspection record from the scheduling database.
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$this->id]);
+        $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
             // Step 2: Populate the base properties of the object.
@@ -79,7 +79,7 @@ class Inspection {
             // Step 3: Fetch related data from the core database and hydrate the row.
             if ($this->business_id) {
                 $business_query = "SELECT name, address, owner_id FROM businesses WHERE id = ?";
-                $business_row = $this->database->fetch(Database::DB_CORE, $business_query, [$this->business_id]);
+                $business_row = $this->database->fetch($business_query, [$this->business_id]);
                 $row['business_name'] = $business_row['name'] ?? 'N/A';
                 $row['business_address'] = $business_row['address'] ?? 'N/A';
                 $row['business_owner_id'] = $business_row['owner_id'] ?? null;
@@ -91,7 +91,7 @@ class Inspection {
 
             if ($this->inspection_type_id) {
                 $type_query = "SELECT name FROM inspection_types WHERE id = ?";
-                $type_row = $this->database->fetch(Database::DB_CORE, $type_query, [$this->inspection_type_id]);
+                $type_row = $this->database->fetch($type_query, [$this->inspection_type_id]);
                 $row['inspection_type'] = $type_row['name'] ?? 'N/A';
             } else {
                 $row['inspection_type'] = 'N/A';
@@ -99,7 +99,7 @@ class Inspection {
 
             if ($this->inspector_id) {
                 $inspector_query = "SELECT name FROM users WHERE id = ?";
-                $inspector_row = $this->database->fetch(Database::DB_CORE, $inspector_query, [$this->inspector_id]);
+                $inspector_row = $this->database->fetch($inspector_query, [$this->inspector_id]);
                 $row['inspector_name'] = $inspector_row['name'] ?? 'Unassigned';
             } else {
                 $row['inspector_name'] = 'Unassigned';
@@ -116,7 +116,7 @@ class Inspection {
         $query = "SELECT *
                   FROM " . $this->table_name . "
                   ORDER BY scheduled_date DESC";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll($query);
 
         if (empty($inspections)) {
             return [];
@@ -131,7 +131,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -140,7 +140,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -149,7 +149,7 @@ class Inspection {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -172,7 +172,7 @@ class Inspection {
         $query = "SELECT *
                   FROM " . $this->table_name . "
                   ORDER BY updated_at DESC LIMIT " . (int)$limit;
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll($query);
 
         if (empty($inspections)) {
             return [];
@@ -187,7 +187,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -196,7 +196,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -205,7 +205,7 @@ class Inspection {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -229,7 +229,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   WHERE inspector_id IS NOT NULL
                   ORDER BY scheduled_date DESC";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll($query);
 
         if (empty($inspections)) {
             return [];
@@ -244,7 +244,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -253,7 +253,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -262,7 +262,7 @@ class Inspection {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -287,7 +287,7 @@ class Inspection {
                   WHERE status = 'scheduled' AND scheduled_date >= CURDATE()
                   ORDER BY scheduled_date ASC LIMIT " . (int)$limit;
 
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll($query);
 
         if (empty($inspections)) {
             return [];
@@ -301,7 +301,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -310,7 +310,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -348,7 +348,7 @@ class Inspection {
         ];
 
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, $params);
+            $this->database->query($query, $params);
             // If the inspection is marked as completed, trigger an update on the parent business's compliance status.
             if ($this->status === 'completed' && $this->business_id) {
                 $business = new Business($this->database);
@@ -377,7 +377,7 @@ class Inspection {
         ];
 
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Draft saving failed: " . $e->getMessage());
@@ -389,7 +389,7 @@ class Inspection {
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, [$this->id]);
+            $this->database->query($query, [$this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("Inspection deletion failed: " . $e->getMessage());
@@ -409,7 +409,7 @@ class Inspection {
         ];
 
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Inspection->assignInspector failed: " . $e->getMessage());
@@ -420,7 +420,7 @@ class Inspection {
     // Count all inspections
     public function countAll() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query);
+        $row = $this->database->fetch($query);
         return $row['count'] ?? 0;
     }
 
@@ -435,7 +435,7 @@ class Inspection {
         }
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE business_id IN (" . $in_clause . ")";
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, $business_ids);
+        $row = $this->database->fetch($query, $business_ids);
         return $row['count'] ?? 0;
     }
 
@@ -450,7 +450,7 @@ class Inspection {
         }
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
         $query = "SELECT AVG(compliance_score) as average FROM " . $this->table_name . " WHERE compliance_score IS NOT NULL AND business_id IN (" . $in_clause . ")";
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, $business_ids);
+        $row = $this->database->fetch($query, $business_ids);
         return $row['average'] ? round($row['average']) : 0;
     }
 
@@ -459,14 +459,14 @@ class Inspection {
         $query = "SELECT COUNT(*) as count FROM violations WHERE status IN ('open', 'in_progress')";
         // This query targets a different DB, so we need a connection to it.
         // The database manager handles this. We just need to specify the DB.
-        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query);
+        $row = $this->database->fetch($query);
         return $row['count'] ?? 0;
     }
 
     // Get average compliance score
     public function getAverageCompliance() {
         $query = "SELECT AVG(compliance_score) as average FROM " . $this->table_name . " WHERE compliance_score IS NOT NULL";
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query);
+        $row = $this->database->fetch($query);
         return $row['average'] ? round($row['average']) : 0;
     }
 
@@ -477,7 +477,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   WHERE status = ?
                   ORDER BY scheduled_date DESC";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$status]);
+        $inspections = $this->database->fetchAll($query, [$status]);
 
         if (empty($inspections)) {
             return [];
@@ -492,7 +492,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -501,7 +501,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -510,7 +510,7 @@ class Inspection {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -533,7 +533,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   WHERE inspector_id = ?
                   ORDER BY scheduled_date DESC";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$inspector_id]);
+        $inspections = $this->database->fetchAll($query, [$inspector_id]);
 
         if (empty($inspections)) {
             return [];
@@ -547,7 +547,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -556,13 +556,13 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
         }
 
-        $inspector_row = $this->database->fetch(Database::DB_CORE, "SELECT name FROM users WHERE id = ?", [$inspector_id]);
+        $inspector_row = $this->database->fetch("SELECT name FROM users WHERE id = ?", [$inspector_id]);
         $inspector_name = $inspector_row['name'] ?? 'Unassigned';
 
         // Step 4: Combine the data in PHP.
@@ -583,7 +583,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   WHERE inspector_id IS NULL OR inspector_id = '' OR inspector_id = 0
                   ORDER BY scheduled_date ASC";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query);
+        $inspections = $this->database->fetchAll($query);
 
         if (empty($inspections)) {
             return [];
@@ -597,7 +597,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids)) {
             $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -606,7 +606,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -630,7 +630,7 @@ class Inspection {
                   FROM " . $this->table_name . "
                   GROUP BY status";
 
-        $stmt = $this->database->query(Database::DB_SCHEDULING, $query);
+        $stmt = $this->database->query($query);
         $stats = [
             'scheduled' => 0,
             'in_progress' => 0,
@@ -656,7 +656,7 @@ class Inspection {
                   WHERE business_id = ?
                   ORDER BY scheduled_date DESC";
         
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id]);
+        $inspections = $this->database->fetchAll($query, [$business_id]);
 
         if (empty($inspections)) {
             return [];
@@ -669,7 +669,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type['name'];
             }
@@ -697,7 +697,7 @@ class Inspection {
                   WHERE business_id IN (" . $in_clause . ")
                   ORDER BY scheduled_date DESC";
         
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
+        $inspections = $this->database->fetchAll($query, $business_ids);
 
         if (empty($inspections)) {
             return [];
@@ -712,7 +712,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids_from_result)) {
             $bus_in_clause = implode(',', array_fill(0, count($business_ids_from_result), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -721,7 +721,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $type_in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -730,7 +730,7 @@ class Inspection {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $insp_in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($insp_in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($insp_in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -757,7 +757,7 @@ class Inspection {
                   WHERE business_id = ? AND (inspector_id IS NULL OR inspector_id = 0 OR inspector_id = '')
                   ORDER BY scheduled_date ASC
                   LIMIT 1";
-        return $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
+        return $this->database->fetch($query, [$business_id]);
     }
 
     /**
@@ -769,7 +769,7 @@ class Inspection {
         $query = "SELECT id FROM " . $this->table_name . " 
                   WHERE business_id = ? AND (inspector_id IS NULL OR inspector_id = 0 OR inspector_id = '')
                   ORDER BY scheduled_date ASC";
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id]);
+        return $this->database->fetchAll($query, [$business_id]);
     }
 
     /**
@@ -796,7 +796,7 @@ class Inspection {
                   ORDER BY DATE(completed_date) ASC";
 
         $params = array_merge([$days], $business_ids);
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, $params);
+        return $this->database->fetchAll($query, $params);
     }
 
     /**
@@ -817,7 +817,7 @@ class Inspection {
                   WHERE business_id IN (" . $in_clause . ")
                   ORDER BY i.updated_at DESC LIMIT " . (int)$limit;
 
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, $business_ids);
+        $inspections = $this->database->fetchAll($query, $business_ids);
 
         if (empty($inspections)) {
             return [];
@@ -832,7 +832,7 @@ class Inspection {
         $businesses = [];
         if (!empty($business_ids_from_result)) {
             $bus_in_clause = implode(',', array_fill(0, count($business_ids_from_result), '?'));
-            $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($bus_in_clause)", $business_ids_from_result);
             foreach ($businesses_data as $business) {
                 $businesses[$business['id']] = $business;
             }
@@ -841,7 +841,7 @@ class Inspection {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $type_in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($type_in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type['name'];
             }
@@ -875,7 +875,7 @@ class Inspection {
                   GROUP BY DATE(completed_date)
                   ORDER BY DATE(completed_date) ASC";
 
-        return $this->database->fetchAll(Database::DB_SCHEDULING, $query, [':days' => $days]);
+        return $this->database->fetchAll($query, [':days' => $days]);
     }
 }
 ?>

@@ -13,7 +13,6 @@ require_once $rootPath . '/utils/access_control.php';
 // Get current user info for navigation
 if (isset($_SESSION['user_id'])) {
     $database = new Database();
-    $db_core = $database->getConnection(Database::DB_CORE);
     $user = new User($database);
     $user->id = $_SESSION['user_id'];
     $user->readOne();

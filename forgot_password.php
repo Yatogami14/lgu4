@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'config/database.php';
-require_once 'models/Auth.php';
+require_once 'models/User.php';
 
 // Include PHPMailer
 require_once 'vendor/autoload.php';
@@ -19,10 +19,10 @@ if (isset($_SESSION['last_password_reset_request']) && (time() - $_SESSION['last
     $_SESSION['last_password_reset_request'] = time();
 
     $database = new Database();
-    $auth = new Auth($database);
+    $user = new User($database);
 
     $email = $_POST['email'];
-    $token = $auth->generatePasswordResetToken($email);
+    $token = $user->generatePasswordResetToken($email);
 
     if ($token) {
         $reset_link = "http://" . $_SERVER['HTTP_HOST'] . rtrim(dirname($_SERVER['PHP_SELF']), '/\\') . "/reset_password.php?token=" . $token;

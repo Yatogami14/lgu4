@@ -1,17 +1,17 @@
 <?php
 session_start();
 require_once 'config/database.php';
-require_once 'models/Auth.php';
+require_once 'models/User.php';
 
 $database = new Database();
-$auth = new Auth($database);
+$user = new User($database);
 
 $token = $_GET['token'] ?? $_POST['token'] ?? null;
 $is_token_valid = false;
 $user_id = null;
 
 if ($token) {
-    $user_id = $auth->validatePasswordResetToken($token);
+    $user_id = $user->validatePasswordResetToken($token);
     if ($user_id) {
         $is_token_valid = true;
     }
@@ -20,7 +20,7 @@ if ($token) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && $is_token_valid) {
     if (!empty($_POST['new_password']) && $_POST['new_password'] === $_POST['confirm_new_password']) {
         if (strlen($_POST['new_password']) >= 6) {
-            if ($auth->updatePassword($user_id, $_POST['new_password'])) {
+            if ($user->updatePassword($user_id, $_POST['new_password'])) {
                 $_SESSION['success_message'] = 'Your password has been reset successfully. Please log in.';
                 header('Location: main_login.php');
                 exit;

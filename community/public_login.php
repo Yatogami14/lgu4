@@ -2,7 +2,7 @@
 // The session_manager will start the session
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
-require_once '../models/Auth.php';
+require_once '../models/User.php';
 
 // If user is already logged in, redirect to their dashboard
 if (isset($_SESSION['user_id'])) {
@@ -19,22 +19,24 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $database = new Database();
-$auth = new Auth($database);
+$user = new User($database);
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['email']) && isset($_POST['password'])) {
         $email = $_POST['email'];
         $password = $_POST['password'];
 
-        $user_data = $auth->login($email, $password);
-        if ($user_data) {
-            $_SESSION['user_id'] = $user_data['id'];
-            $_SESSION['user_role'] = $user_data['role'];
-            $_SESSION['user_name'] = $user_data['name'];
+        $user->email = $email;
+        $user->password = $password;
+
+        if ($user->login()) {
+            $_SESSION['user_id'] = $user->id;
+            $_SESSION['user_role'] = $user->role;
+            $_SESSION['user_name'] = $user->name;
 
             // Handle "Remember Me"
             if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
-                $token_data = $auth->generateRememberMeToken($user_data['id']);
+                $token_data = $user->generateRememberMeToken($user->id);
                 if ($token_data) {
                     $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
                     setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
@@ -42,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             // Redirect to appropriate landing page based on user role
-            if ($user_data['role'] == 'business_owner') {
+            if ($user->role == 'business_owner') {
                 header('Location: ../business/business_landing.php');
-            } else if ($user_data['role'] == 'community_user') {
+            } else if ($user->role == 'community_user') {
                 header('Location: community_landing.php');
             } else {
                 // Default fallback

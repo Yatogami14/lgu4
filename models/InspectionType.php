@@ -15,14 +15,14 @@ class InspectionType {
     // Read all inspection types
     public function readAll() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY name ASC";
-        return $this->database->fetchAll(Database::DB_CORE, $query);
+        return $this->database->fetchAll($query);
     }
 
     // Read single inspection type
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$this->id]);
+        $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
             $this->name = $row['name'];
@@ -37,19 +37,20 @@ class InspectionType {
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
                 SET name=:name, description=:description";
+        
+        $params = [
+            ':name' => $this->name,
+            ':description' => $this->description
+        ];
 
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-
-        // Bind parameters
-        $stmt->bindParam(":name", $this->name);
-        $stmt->bindParam(":description", $this->description);
-
-        if ($stmt->execute()) {
-            $this->id = $pdo->lastInsertId();
+        try {
+            $stmt = $this->database->query($query, $params);
+            $this->id = $this->database->getConnection()->lastInsertId();
             return true;
+        } catch (PDOException $e) {
+            error_log("InspectionType creation failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Update inspection type
@@ -67,7 +68,7 @@ class InspectionType {
         $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("InspectionType update failed for ID {$this->id}: " . $e->getMessage());
@@ -78,34 +79,29 @@ class InspectionType {
     // Delete inspection type
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query($query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("InspectionType deletion failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     // Get inspection type by name
     public function getByName($name) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE name = ? LIMIT 0,1";
-        $pdo = $this->database->getConnection(Database::DB_CORE);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $name);
-        $stmt->execute();
-
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $row = $this->database->fetch($query, [$name]);
 
         if ($row) {
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->description = $row['description'];
             $this->created_at = $row['created_at'];
-            return true;
+            return $row;
         }
-        return false;
+        return null;
     }
 }
 ?>

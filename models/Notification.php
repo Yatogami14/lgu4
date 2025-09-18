@@ -31,7 +31,7 @@ class Notification {
         ];
 
         try {
-            $pdo = $this->database->getConnection(Database::DB_REPORTS);
+            $pdo = $this->database->getConnection();
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $this->id = $pdo->lastInsertId();
@@ -45,7 +45,7 @@ class Notification {
     // Read single notification
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
-        $row = $this->database->fetch(Database::DB_REPORTS, $query, [$this->id]);
+        $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
             $this->user_id = $row['user_id'] ?? null;
@@ -75,7 +75,7 @@ class Notification {
             $params[] = $limit;
         }
         try {
-            $notifications = $this->database->fetchAll(Database::DB_REPORTS, $query, $params);
+            $notifications = $this->database->fetchAll($query, $params);
         } catch (PDOException $e) {
             error_log("Error reading unread notifications by user: " . $e->getMessage());
             return [];
@@ -98,7 +98,7 @@ class Notification {
             $params[] = $limit;
         }
         try {
-            $notifications = $this->database->fetchAll(Database::DB_REPORTS, $query, $params);
+            $notifications = $this->database->fetchAll($query, $params);
         } catch (PDOException $e) {
             error_log("Error reading notifications by user: " . $e->getMessage());
             return [];
@@ -110,7 +110,7 @@ class Notification {
     public function markAsRead() {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE id = ?";
         try {
-            $this->database->query(Database::DB_REPORTS, $query, [$this->id]);
+            $this->database->query($query, [$this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("Error marking notification as read (ID: {$this->id}): " . $e->getMessage());
@@ -122,7 +122,7 @@ class Notification {
     public function markAllAsRead($user_id) {
         $query = "UPDATE " . $this->table_name . " SET is_read = 1 WHERE user_id = ? AND is_read = 0";
         try {
-            $this->database->query(Database::DB_REPORTS, $query, [$user_id]);
+            $this->database->query($query, [$user_id]);
             return true;
         } catch (PDOException $e) {
             error_log("Error marking all notifications as read for user (ID: {$user_id}): " . $e->getMessage());
@@ -136,7 +136,7 @@ class Notification {
                   WHERE user_id = ? AND is_read = 0";
         $row = [];
         try {
-            $row = $this->database->fetch(Database::DB_REPORTS, $query, [$user_id]);
+            $row = $this->database->fetch($query, [$user_id]);
         } catch (PDOException $e) {
             error_log("Error counting unread notifications for user (ID: {$user_id}): " . $e->getMessage());
             return 0;
@@ -149,7 +149,7 @@ class Notification {
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         try {
-            $this->database->query(Database::DB_REPORTS, $query, [$this->id]);
+            $this->database->query($query, [$this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("Error deleting notification (ID: {$this->id}): " . $e->getMessage());
@@ -162,7 +162,7 @@ class Notification {
         $query = "DELETE FROM " . $this->table_name . "
                   WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)";
         try {
-            $this->database->query(Database::DB_REPORTS, $query, [$days]);
+            $this->database->query($query, [$days]);
             return true;
         } catch (PDOException $e) {
             error_log("Error deleting old notifications (days: {$days}): " . $e->getMessage());

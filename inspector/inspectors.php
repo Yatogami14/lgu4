@@ -17,12 +17,7 @@ if (!isset($_SESSION['user_id'])) {
 requirePermission('inspectors', 'index.php');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-
 $user = new User($database);
-$user->id = $_SESSION['user_id'];
-$user->readOne();
 
 // Get all inspectors (only inspector role accounts)
 $inspectors = $user->readByRole('inspector');

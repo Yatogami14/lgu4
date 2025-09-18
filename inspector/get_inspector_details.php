@@ -19,8 +19,6 @@ if (!isset($_GET['id'])) {
 }
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-
 $inspector_id = $_GET['id'];
 
 // Get inspector details

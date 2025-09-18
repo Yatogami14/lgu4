@@ -16,7 +16,7 @@ try {
     require_once dirname(__DIR__) . '/utils/DatabaseSessionHandler.php';
 
     $database = new Database();
-    $db_connection = $database->getConnection(Database::DB_CORE);
+    $db_connection = $database->getConnection();
     $handler = new DatabaseSessionHandler($db_connection);
     session_set_save_handler($handler, true);
 } catch (Exception $e) {
@@ -31,14 +31,15 @@ if (session_status() === PHP_SESSION_NONE) {
 // Check for "Remember Me" cookie if user is not logged in via session
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me']) && isset($database)) {
     try {
-        require_once dirname(__DIR__) . '/models/Auth.php';
+        if (!class_exists('User')) {
+            require_once dirname(__DIR__) . '/models/User.php';
+        }
 
         list($selector, $validator) = explode(':', $_COOKIE['remember_me'], 2);
 
         if ($selector && $validator) {
-            $auth = new Auth($database);
-
-            $user_data = $auth->validateRememberMeToken($selector, $validator);
+            $userForCookie = new User($database);
+            $user_data = $userForCookie->validateRememberMeToken($selector, $validator);
             if ($user_data) {
                 // Log the user in
                 $_SESSION['user_id'] = $user_data['id'];
@@ -46,7 +47,7 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['remember_me']) && isset($dat
                 $_SESSION['user_name'] = $user_data['name'];
 
                 // Regenerate the token for security (prevents token theft and reuse)
-                $token_data = $auth->generateRememberMeToken($user_data['id']);
+                $token_data = $userForCookie->generateRememberMeToken($user_data['id']);
                 if ($token_data) {
                     $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
                     setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie

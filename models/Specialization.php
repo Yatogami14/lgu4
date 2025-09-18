@@ -22,7 +22,7 @@ class Specialization {
     public function readByUserId($user_id) {
         // Step 1: Get all specializations for the user from the scheduling DB
         $query = "SELECT * FROM " . $this->table_name . " WHERE user_id = ?";
-        $specializations = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$user_id]);
+        $specializations = $this->database->fetchAll($query, [$user_id]);
 
         if (empty($specializations)) {
             return [];
@@ -36,7 +36,7 @@ class Specialization {
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
             $types_query = "SELECT id, name, description FROM inspection_types WHERE id IN ($in_clause)";
-            $types_data = $this->database->fetchAll(Database::DB_CORE, $types_query, $inspection_type_ids);
+            $types_data = $this->database->fetchAll($types_query, $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -73,10 +73,8 @@ class Specialization {
         ];
 
         try {
-            $pdo = $this->database->getConnection(Database::DB_SCHEDULING);
-            $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
-            $this->id = $pdo->lastInsertId();
+            $stmt = $this->database->query($query, $params);
+            $this->id = $this->database->getConnection()->lastInsertId();
             return true;
         } catch (PDOException $e) {
             error_log("Specialization creation failed: " . $e->getMessage());
@@ -92,7 +90,7 @@ class Specialization {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         
         try {
-            $this->database->query(Database::DB_SCHEDULING, $query, [$this->id]);
+            $this->database->query($query, [$this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("Specialization deletion failed: " . $e->getMessage());
@@ -108,7 +106,7 @@ class Specialization {
     public function getInspectorsBySpecialization($inspection_type_id) {
         // Step 1: Get all specializations for the given type from the scheduling DB
         $query = "SELECT * FROM " . $this->table_name . " WHERE inspection_type_id = ?";
-        $specializations = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$inspection_type_id]);
+        $specializations = $this->database->fetchAll($query, [$inspection_type_id]);
 
         if (empty($specializations)) {
             return [];
@@ -122,7 +120,7 @@ class Specialization {
         if (!empty($user_ids)) {
             $in_clause = implode(',', array_fill(0, count($user_ids), '?'));
             $users_query = "SELECT * FROM users WHERE id IN ($in_clause) AND role = 'inspector'";
-            $users_data = $this->database->fetchAll(Database::DB_CORE, $users_query, $user_ids);
+            $users_data = $this->database->fetchAll($users_query, $user_ids);
             foreach ($users_data as $user) {
                 $inspectors[$user['id']] = $user;
             }
@@ -162,7 +160,7 @@ class Specialization {
      */
     public function userHasSpecialization($user_id, $inspection_type_id) {
         $query = "SELECT id FROM " . $this->table_name . " WHERE user_id = ? AND inspection_type_id = ?";
-        $result = $this->database->fetch(Database::DB_SCHEDULING, $query, [$user_id, $inspection_type_id]);
+        $result = $this->database->fetch($query, [$user_id, $inspection_type_id]);
         return !empty($result);
     }
 }

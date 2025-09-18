@@ -1,7 +1,6 @@
 <?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
-require_once '../models/Auth.php';
 require_once '../models/User.php';
 require_once '../utils/access_control.php';
 require_once '../utils/logger.php'; // Include logger
@@ -81,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
 // Handle password reset
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     if (!empty($_POST['new_password']) && $_POST['new_password'] === $_POST['confirm_new_password']) {
-        $auth = new Auth($database);
+        $userForPasswordUpdate = new User($database);
         
-        if ($auth->updatePassword($_POST['user_id'], $_POST['new_password'])) {
+        if ($userForPasswordUpdate->updatePassword($_POST['user_id'], $_POST['new_password'])) {
             $_SESSION['success_message'] = 'Password updated successfully!';
         } else {
             $_SESSION['error_message'] = 'Failed to update password.';

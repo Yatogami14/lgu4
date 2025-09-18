@@ -42,7 +42,7 @@ class Business {
         ];
 
         try {
-            $pdo = $this->database->getConnection(Database::DB_CORE);
+            $pdo = $this->database->getConnection();
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $this->id = $pdo->lastInsertId();
@@ -61,7 +61,7 @@ class Business {
                   LEFT JOIN users ui ON b.inspector_id = ui.id
                   WHERE b.id = ? LIMIT 0,1";
 
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$this->id]);
+        $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
             $this->name = $row['name'] ?? null;
@@ -92,7 +92,7 @@ class Business {
                   LEFT JOIN users u ON b.owner_id = u.id
                   ORDER BY b.created_at DESC";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query);
+        return $this->database->fetchAll($query);
     }
 
     /**
@@ -113,7 +113,7 @@ class Business {
         // PDO does not support binding for LIMIT/OFFSET, so we cast to int for safety.
         $query .= " ORDER BY b.name ASC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, $params);
+        return $this->database->fetchAll($query, $params);
     }
 
     /**
@@ -129,7 +129,7 @@ class Business {
             $params[':search'] = "%" . htmlspecialchars(strip_tags($search)) . "%";
         }
 
-        $row = $this->database->fetch(Database::DB_CORE, $query, $params);
+        $row = $this->database->fetch($query, $params);
         return $row['total_rows'] ?? 0;
     }
 
@@ -162,7 +162,7 @@ class Business {
         $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Business update failed: " . $e->getMessage());
@@ -174,7 +174,7 @@ class Business {
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         try {
-            $this->database->query(Database::DB_CORE, $query, [$this->id]);
+            $this->database->query($query, [$this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("Business deletion failed: " . $e->getMessage());
@@ -196,7 +196,7 @@ class Business {
         ];
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Assign inspector failed: " . $e->getMessage());
@@ -211,14 +211,14 @@ class Business {
      */
     public function countAllForOwner($owner_id) {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE owner_id = ?";
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$owner_id]);
+        $row = $this->database->fetch($query, [$owner_id]);
         return $row['count'] ?? 0;
     }
 
     // Count all businesses
     public function countAll() {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name;
-        $row = $this->database->fetch(Database::DB_CORE, $query);
+        $row = $this->database->fetch($query);
         return $row['count'] ?? 0;
     }
 
@@ -231,7 +231,7 @@ class Business {
                     SUM(CASE WHEN compliance_score >= 80 THEN 1 ELSE 0 END) as low_risk
                   FROM " . $this->table_name;
 
-        $stats = $this->database->fetch(Database::DB_CORE, $query);
+        $stats = $this->database->fetch($query);
 
         // Ensure all keys exist even if SUM returns NULL
         $stats['total'] = $stats['total'] ?? 0;
@@ -250,7 +250,7 @@ class Business {
                   GROUP BY business_type 
                   ORDER BY count DESC";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query);
+        return $this->database->fetchAll($query);
     }
 
     // Search businesses
@@ -265,7 +265,7 @@ class Business {
         $keywords = htmlspecialchars(strip_tags($keywords));
         $keywords = "%{$keywords}%";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [$keywords, $keywords, $keywords]);
+        return $this->database->fetchAll($query, [$keywords, $keywords, $keywords]);
     }
 
     // Get businesses by type
@@ -276,7 +276,7 @@ class Business {
                   WHERE b.business_type = ?
                   ORDER BY b.created_at DESC";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [$business_type]);
+        return $this->database->fetchAll($query, [$business_type]);
     }
 
     // Get compliance statistics for business
@@ -289,7 +289,7 @@ class Business {
                   FROM inspections
                   WHERE business_id = ?";
 
-        $stats = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
+        $stats = $this->database->fetch($query, [$business_id]);
 
         // Format the results
         $stats['avg_compliance'] = !empty($stats['avg_compliance']) ? round($stats['avg_compliance']) : 0;
@@ -309,7 +309,7 @@ class Business {
                   FROM violations
                   WHERE business_id = ? AND status IN ('open', 'in_progress')";
 
-        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query, [$business_id]);
+        $row = $this->database->fetch($query, [$business_id]);
 
         return $row['active_violations_count'] ?? 0;
     }
@@ -323,7 +323,7 @@ class Business {
                   ORDER BY updated_at DESC
                   LIMIT ?";
         
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $query, [$business_id, (int)$limit]);
+        $inspections = $this->database->fetchAll($query, [$business_id, (int)$limit]);
 
         if (empty($inspections)) {
             return [];
@@ -337,7 +337,7 @@ class Business {
         $inspection_types = [];
         if (!empty($inspection_type_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-            $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
             foreach ($types_data as $type) {
                 $inspection_types[$type['id']] = $type;
             }
@@ -346,7 +346,7 @@ class Business {
         $inspectors = [];
         if (!empty($inspector_ids)) {
             $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
-            $inspectors_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
             foreach ($inspectors_data as $inspector) {
                 $inspectors[$inspector['id']] = $inspector;
             }
@@ -369,7 +369,7 @@ class Business {
                   WHERE b.owner_id = ?
                   ORDER BY b.created_at DESC";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [$owner_id]);
+        return $this->database->fetchAll($query, [$owner_id]);
     }
 
     // Calculate next inspection date based on frequency
@@ -471,7 +471,7 @@ class Business {
         ];
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Update compliance status failed: " . $e->getMessage());
@@ -489,7 +489,7 @@ class Business {
                   ORDER BY b.next_inspection_date ASC
                   LIMIT ?";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [(int)$limit]);
+        return $this->database->fetchAll($query, [(int)$limit]);
     }
 
     // Get overdue inspections
@@ -501,7 +501,7 @@ class Business {
                   ORDER BY b.next_inspection_date ASC
                   LIMIT ?";
 
-        return $this->database->fetchAll(Database::DB_CORE, $query, [(int)$limit]);
+        return $this->database->fetchAll($query, [(int)$limit]);
     }
 
     // Get inspector for a business
@@ -511,7 +511,7 @@ class Business {
                   LEFT JOIN users u ON b.inspector_id = u.id
                   WHERE b.id = ? AND b.inspector_id IS NOT NULL";
 
-        $row = $this->database->fetch(Database::DB_CORE, $query, [$business_id]);
+        $row = $this->database->fetch($query, [$business_id]);
         return $row ?: null;
     }
 
@@ -524,7 +524,7 @@ class Business {
         $query = "SELECT MAX(completed_date) as last_inspection_date
                   FROM inspections
                   WHERE business_id = ? AND status = 'completed'";
-        $row = $this->database->fetch(Database::DB_SCHEDULING, $query, [$business_id]);
+        $row = $this->database->fetch($query, [$business_id]);
         return $row['last_inspection_date'] ?? null;
     }
 }

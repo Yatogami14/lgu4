@@ -1,7 +1,6 @@
 <?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
-require_once '../models/Auth.php';
 require_once '../models/User.php';
 require_once '../utils/access_control.php';
 require_once '../utils/logger.php'; // Include logger
@@ -81,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
 // Handle password reset
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     if (!empty($_POST['new_password']) && $_POST['new_password'] === $_POST['confirm_new_password']) {
-        $auth = new Auth($database);
+        $userForPasswordUpdate = new User($database);
         
-        if ($auth->updatePassword($_POST['user_id'], $_POST['new_password'])) {
+        if ($userForPasswordUpdate->updatePassword($_POST['user_id'], $_POST['new_password'])) {
             $_SESSION['success_message'] = 'Password updated successfully!';
         } else {
             $_SESSION['error_message'] = 'Failed to update password.';
@@ -149,29 +148,34 @@ $users = $user->readAll();
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <?php foreach ($users as $userRow): ?>
-                    <tr data-id="<?php echo $userRow['id']; ?>">
+                    <?php foreach ($users as $userRow):
+                        // Add data attributes for easy JS access
+                        $data_attributes = 'data-id="' . htmlspecialchars($userRow['id']) . '" ';
+                        $data_attributes .= 'data-name="' . htmlspecialchars($userRow['name']) . '" ';
+                        $data_attributes .= 'data-email="' . htmlspecialchars($userRow['email']) . '" ';
+                        $data_attributes .= 'data-role="' . htmlspecialchars($userRow['role']) . '" ';
+                        $data_attributes .= 'data-department="' . htmlspecialchars($userRow['department'] ?? '') . '" ';
+                        $data_attributes .= 'data-certification="' . htmlspecialchars($userRow['certification'] ?? '') . '"';
+                    ?>
+                    <tr <?php echo $data_attributes; ?>>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
                                     <?php echo substr($userRow['name'], 0, 1); ?>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900 user-name"><?php echo $userRow['name']; ?></div>
+                                    <div class="text-sm font-medium text-gray-900"><?php echo $userRow['name']; ?></div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 user-email">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo $userRow['email']; ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 user-role">
-                            <?php echo $userRow['role'] ?: 'N/A'; ?>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <?php echo ucwords(str_replace('_', ' ', $userRow['role'])) ?: 'N/A'; ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 user-department">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo $userRow['department'] ?: 'N/A'; ?>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 user-certification" style="display: none;">
-                            <?php echo $userRow['certification'] ?: ''; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button onclick="editUser(<?php echo $userRow['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
@@ -229,8 +233,8 @@ $users = $user->readAll();
                             <option value="admin">Admin</option>
                             <option value="super_admin">Super Admin</option>
                             <option value="inspector">Inspector</option>
-                            <option value="business">Business</option>
-                            <option value="community">Community</option>
+                            <option value="business_owner">Business Owner</option>
+                            <option value="community_user">Community User</option>
                         </select>
                     </div>
                     <div>
@@ -322,18 +326,14 @@ function closeModal(modalId) {
 function editUser(id) {
     // Fetch user data and populate the modal
     const userRow = document.querySelector(`tr[data-id='${id}']`);
-    const name = userRow.querySelector('.user-name').innerText;
-    const email = userRow.querySelector('.user-email').innerText;
-    const role = userRow.querySelector('.user-role').innerText;
-    const department = userRow.querySelector('.user-department').innerText;
-    const certification = userRow.querySelector('.user-certification').innerText;
+    const userData = userRow.dataset;
 
     // Populate form fields
-    document.getElementById('name').value = name;
-    document.getElementById('email').value = email;
-    document.getElementById('role').value = role;
-    document.getElementById('department').value = department;
-    document.getElementById('certification').value = certification;
+    document.getElementById('name').value = userData.name;
+    document.getElementById('email').value = userData.email;
+    document.getElementById('role').value = userData.role;
+    document.getElementById('department').value = userData.department;
+    document.getElementById('certification').value = userData.certification;
     document.getElementById('user_id').value = id;
 
     // Set form to update mode

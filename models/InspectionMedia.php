@@ -1,14 +1,15 @@
 <?php
 class InspectionMedia {
     private $database;
-    private $table_name = "inspection_media";
+    private $table_name = "media";
 
     public $id;
-    public $inspection_id;
-    public $uploaded_by;
+    public $related_entity_id; // Was inspection_id
+    public $related_entity_type = 'inspection';
+    public $uploader_id; // Was uploaded_by
     public $file_path;
-    public $filename;
-    public $file_type;
+    public $file_name; // Was filename
+    public $mime_type; // Was file_type
     public $ai_analysis;
     public $file_size;
     public $created_at;
@@ -20,24 +21,26 @@ class InspectionMedia {
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
                 SET
-                    inspection_id = :inspection_id,
-                    uploaded_by = :uploaded_by,
+                    related_entity_id = :related_entity_id,
+                    related_entity_type = :related_entity_type,
+                    uploader_id = :uploader_id,
                     file_path = :file_path,
-                    filename = :filename,
-                    file_type = :file_type,
+                    file_name = :file_name,
+                    mime_type = :mime_type,
                     file_size = :file_size";
 
         $params = [
-            ":inspection_id" => $this->inspection_id,
-            ":uploaded_by" => $this->uploaded_by,
+            ":related_entity_id" => $this->related_entity_id,
+            ":related_entity_type" => $this->related_entity_type,
+            ":uploader_id" => $this->uploader_id,
             ":file_path" => $this->file_path,
-            ":filename" => $this->filename,
-            ":file_type" => $this->file_type,
+            ":file_name" => $this->file_name,
+            ":mime_type" => $this->mime_type,
             ":file_size" => $this->file_size,
         ];
 
         try {
-            $pdo = $this->database->getConnection(Database::DB_MEDIA);
+            $pdo = $this->database->getConnection();
             $stmt = $pdo->prepare($query);
             $stmt->execute($params);
             $this->id = $pdo->lastInsertId();
@@ -61,7 +64,7 @@ class InspectionMedia {
         ];
 
         try {
-            $this->database->query(Database::DB_MEDIA, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Failed to update AI analysis for media ID {$this->id}: " . $e->getMessage());
@@ -71,10 +74,10 @@ class InspectionMedia {
 
     public function readByInspectionId($inspection_id) {
         $query = "SELECT * FROM " . $this->table_name . " 
-                  WHERE inspection_id = ? 
+                  WHERE related_entity_id = ? AND related_entity_type = 'inspection'
                   ORDER BY created_at ASC";
 
-        return $this->database->fetchAll(Database::DB_MEDIA, $query, [$inspection_id]);
+        return $this->database->fetchAll($query, [$inspection_id]);
     }
 }
 ?>

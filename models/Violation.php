@@ -33,26 +33,24 @@ class Violation {
                     due_date = :due_date,
                     created_by = :created_by";
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
+        $params = [
+            ':inspection_id' => $this->inspection_id,
+            ':business_id' => $this->business_id,
+            ':description' => $this->description,
+            ':severity' => $this->severity,
+            ':status' => $this->status,
+            ':due_date' => !empty($this->due_date) ? $this->due_date : null,
+            ':created_by' => $this->created_by
+        ];
 
-        // Bind
-        $stmt->bindParam(":inspection_id", $this->inspection_id);
-        $stmt->bindParam(":business_id", $this->business_id);
-        $stmt->bindParam(":description", $this->description);
-        $stmt->bindParam(":severity", $this->severity);
-        $stmt->bindParam(":status", $this->status);
-        $due_date = !empty($this->due_date) ? $this->due_date : null;
-        $stmt->bindParam(":due_date", $due_date);
-        $stmt->bindParam(":created_by", $this->created_by);
-
-        if ($stmt->execute()) {
-            $this->id = $pdo->lastInsertId();
+        try {
+            $stmt = $this->database->query($query, $params);
+            $this->id = $this->database->getConnection()->lastInsertId();
             return true;
+        } catch (PDOException $e) {
+            error_log("Violation creation failed: " . $e->getMessage());
+            return false;
         }
-
-        error_log("Violation creation failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 
     public function update() {
@@ -72,7 +70,7 @@ class Violation {
         $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
 
         try {
-            $this->database->query(Database::DB_VIOLATIONS, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Violation update failed for ID {$this->id}: " . $e->getMessage());
@@ -91,16 +89,18 @@ class Violation {
                       status = 'in_progress'
                   WHERE id = :id";
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
+        $params = [
+            ':inspection_id' => $inspection_id,
+            ':id' => $this->id
+        ];
 
-        // Bind
-        $stmt->bindParam(':inspection_id', $inspection_id, PDO::PARAM_INT);
-        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
-
-        if ($stmt->execute()) { return true; }
-        error_log("Violation linking failed for violation ID {$this->id}: " . implode(";", $stmt->errorInfo()));
-        return false;
+        try {
+            $this->database->query($query, $params);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Violation linking failed for violation ID {$this->id}: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -114,8 +114,8 @@ class Violation {
                   WHERE v.inspection_id = 0 AND v.status = 'open'
                   ORDER BY v.created_at ASC
                   LIMIT :limit";
-        
-        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [':limit' => $limit]);
+
+        $violations = $this->database->fetchAll($query, [':limit' => (int)$limit]);
         return $this->hydrateViolationsWithBusinessData($violations);
     }
 
@@ -138,7 +138,7 @@ class Violation {
         }
 
         $query .= " ORDER BY v.created_at DESC";
-        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, $params);
+        $violations = $this->database->fetchAll($query, $params);
         // Step 2: Hydrate with business data from the core database.
         return $this->hydrateViolationsWithBusinessData($violations);
     }
@@ -154,7 +154,7 @@ class Violation {
                   WHERE v.inspection_id = ?
                   ORDER BY v.created_at DESC";
 
-        return $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [$inspection_id]);
+        return $this->database->fetchAll($query, [$inspection_id]);
     }
 
     /**
@@ -171,23 +171,13 @@ class Violation {
         
         $params = [];
         if (!empty($business_ids)) {
-            // Step 1: Get inspection IDs for the given businesses from the scheduling DB
-            $bus_in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-            $inspection_query = "SELECT id FROM inspections WHERE business_id IN ($bus_in_clause)";
-            $inspection_rows = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, $business_ids);
-
-            if (empty($inspection_rows)) {
-                return ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
-            }
-            $inspection_ids = array_column($inspection_rows, 'id');
-            
-            // Step 2: Filter violations by the fetched inspection IDs
-            $insp_in_clause = implode(',', array_fill(0, count($inspection_ids), '?'));
-            $query .= " WHERE v.inspection_id IN ($insp_in_clause)";
-            $params = $inspection_ids;
+            // Filter violations by business IDs
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $query .= " WHERE v.business_id IN ($in_clause)";
+            $params = $business_ids;
         }
 
-        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, $params);
+        $stats = $this->database->fetch($query, $params);
 
         // Ensure all keys exist even if SUM returns NULL
         return array_map(fn($v) => $v ?? 0, $stats);
@@ -204,12 +194,9 @@ class Violation {
                   FROM " . $this->table_name . "
                   GROUP BY severity";
 
-        $pdo = $this->database->getConnection(Database::DB_VIOLATIONS);
-        $stmt = $pdo->prepare($query);
-        $stmt->execute();
-        
+        $results = $this->database->fetchAll($query);
         $stats = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        foreach ($results as $row) {
             $stats[$row['severity']] = (int)$row['count'];
         }
         
@@ -231,7 +218,7 @@ class Violation {
     public function readByInspectorId($inspector_id) {
         // Step 1: Get all inspections for the inspector from the scheduling DB
         $inspection_query = "SELECT id, business_id FROM inspections WHERE inspector_id = ?";
-        $inspections = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, [$inspector_id]);
+        $inspections = $this->database->fetchAll($inspection_query, [$inspector_id]);
 
         if (empty($inspections)) {
             return [];
@@ -242,7 +229,7 @@ class Violation {
         // Step 2: Get all violations for those inspection IDs from the violations DB
         $vio_in_clause = implode(',', array_fill(0, count($inspection_ids), '?'));
         $violation_query = "SELECT * FROM " . $this->table_name . " WHERE inspection_id IN ($vio_in_clause) ORDER BY created_at DESC";
-        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $violation_query, $inspection_ids);
+        $violations = $this->database->fetchAll($violation_query, $inspection_ids);
 
         // Step 3: Hydrate with business data
         return $this->hydrateViolationsWithBusinessData($violations);
@@ -256,7 +243,7 @@ class Violation {
     public function getViolationStatsByInspectorId($inspector_id) {
         // Step 1: Get inspection IDs for the inspector
         $inspection_query = "SELECT id FROM inspections WHERE inspector_id = ?";
-        $inspection_rows = $this->database->fetchAll(Database::DB_SCHEDULING, $inspection_query, [$inspector_id]);
+        $inspection_rows = $this->database->fetchAll($inspection_query, [$inspector_id]);
 
         if (empty($inspection_rows)) {
             return ['total' => 0, 'open' => 0, 'in_progress' => 0, 'resolved' => 0];
@@ -272,7 +259,7 @@ class Violation {
                   FROM " . $this->table_name . "
                   WHERE inspection_id IN ($in_clause)";
         
-        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, $inspection_ids);
+        $stats = $this->database->fetch($query, $inspection_ids);
 
         // Ensure all keys exist even if SUM returns NULL
         return array_map(fn($v) => $v ?? 0, $stats);
@@ -289,7 +276,7 @@ class Violation {
                   WHERE v.created_by = ?
                   ORDER BY v.created_at DESC";
         
-        $violations = $this->database->fetchAll(Database::DB_VIOLATIONS, $query, [$creator_id]);
+        $violations = $this->database->fetchAll($query, [$creator_id]);
         return $this->hydrateViolationsWithBusinessData($violations);
     }
 
@@ -307,7 +294,7 @@ class Violation {
                   FROM " . $this->table_name . "
                   WHERE created_by = ?";
         
-        $stats = $this->database->fetch(Database::DB_VIOLATIONS, $query, [$creator_id]);
+        $stats = $this->database->fetch($query, [$creator_id]);
 
         // Ensure all keys exist even if SUM returns NULL
         return array_map(fn($v) => $v ?? 0, $stats);
@@ -326,7 +313,7 @@ class Violation {
         $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " 
                   WHERE status IN ('open', 'in_progress') AND business_id IN (" . $in_clause . ")";
 
-        $row = $this->database->fetch(Database::DB_VIOLATIONS, $query, $business_ids);
+        $row = $this->database->fetch($query, $business_ids);
         return $row['count'] ?? 0;
     }
 
@@ -347,7 +334,7 @@ class Violation {
 
         $businesses = [];
         $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
-        $businesses_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
+        $businesses_data = $this->database->fetchAll("SELECT id, name FROM businesses WHERE id IN ($in_clause)", $business_ids);
         foreach ($businesses_data as $business) {
             $businesses[$business['id']] = $business;
         }

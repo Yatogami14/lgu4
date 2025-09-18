@@ -31,7 +31,7 @@ class ChecklistTemplate {
             $query = "SELECT *
                       FROM " . $this->table_name . "
                       ORDER BY inspection_type_id, category, id";
-            $templates = $this->database->fetchAll(Database::DB_CHECKLIST, $query);
+            $templates = $this->database->fetchAll($query);
 
             if (empty($templates)) {
                 return [];
@@ -44,7 +44,7 @@ class ChecklistTemplate {
             $inspection_types = [];
             if (!empty($inspection_type_ids)) {
                 $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-                $types_data = $this->database->fetchAll(Database::DB_CORE, "SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+                $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
                 foreach ($types_data as $type) {
                     $inspection_types[$type['id']] = $type['name'];
                 }
@@ -73,7 +73,7 @@ class ChecklistTemplate {
                   WHERE inspection_type_id = ? 
                   ORDER BY category, id";
         
-        $results = $this->database->fetchAll(Database::DB_CHECKLIST, $query, [$inspection_type_id]);
+        $results = $this->database->fetchAll($query, [$inspection_type_id]);
         
         $templates = [];
         foreach ($results as $row) {
@@ -94,7 +94,7 @@ class ChecklistTemplate {
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = ? LIMIT 0,1";
         
-        $row = $this->database->fetch(Database::DB_CHECKLIST, $query, [$this->id]);
+        $row = $this->database->fetch($query, [$this->id]);
 
         if ($row) {
             $this->id = $row['id'];
@@ -119,25 +119,23 @@ class ChecklistTemplate {
                   SET inspection_type_id=:inspection_type_id, category=:category, question=:question, 
                       required=:required, input_type=:input_type, options=:options";
 
-        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
-        $stmt = $pdo->prepare($query);
+        $params = [
+            ':inspection_type_id' => $this->inspection_type_id,
+            ':category' => $this->category,
+            ':question' => $this->question,
+            ':required' => $this->required ? 1 : 0,
+            ':input_type' => $this->input_type,
+            ':options' => !empty($this->options) ? $this->options : null
+        ];
 
-        // Bind
-        $stmt->bindParam(":inspection_type_id", $this->inspection_type_id);
-        $stmt->bindParam(":category", $this->category);
-        $stmt->bindParam(":question", $this->question);
-        $required = $this->required ? 1 : 0;
-        $stmt->bindParam(":required", $required, PDO::PARAM_INT);
-        $stmt->bindParam(":input_type", $this->input_type);
-        $options = !empty($this->options) ? $this->options : null;
-        $stmt->bindParam(":options", $options);
-
-        if ($stmt->execute()) {
-            $this->id = $pdo->lastInsertId();
+        try {
+            $this->database->query($query, $params);
+            $this->id = $this->database->getConnection()->lastInsertId();
             return true;
+        } catch (PDOException $e) {
+            error_log("ChecklistTemplate creation failed: " . $e->getMessage());
+            return false;
         }
-        error_log("ChecklistTemplate creation failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 
     /**
@@ -162,7 +160,7 @@ class ChecklistTemplate {
         $query = "UPDATE " . $this->table_name . " SET " . implode(', ', $fields) . " WHERE id=:id";
 
         try {
-            $this->database->query(Database::DB_CHECKLIST, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("ChecklistTemplate update failed for ID {$this->id}: " . $e->getMessage());
@@ -176,15 +174,13 @@ class ChecklistTemplate {
      */
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
-        $pdo = $this->database->getConnection(Database::DB_CHECKLIST);
-        $stmt = $pdo->prepare($query);
-        $stmt->bindParam(1, $this->id);
-
-        if ($stmt->execute()) {
+        try {
+            $this->database->query($query, [$this->id]);
             return true;
+        } catch (PDOException $e) {
+            error_log("ChecklistTemplate deletion failed: " . $e->getMessage());
+            return false;
         }
-        error_log("ChecklistTemplate deletion failed: " . implode(";", $stmt->errorInfo()));
-        return false;
     }
 }
 ?>

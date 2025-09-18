@@ -18,7 +18,6 @@ if (!isset($_GET['business_id']) || !is_numeric($_GET['business_id'])) {
 }
 
 $database = new Database();
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
 
 $inspection = new Inspection($database);
 $inspections = $inspection->readByBusinessId($_GET['business_id']);

@@ -10,32 +10,6 @@ require_once '../utils/access_control.php';
 requirePermission('assigned_inspections');
 
 $database = new Database();
-$db_core = $database->getConnection(Database::DB_CORE);
-$db_scheduling = $database->getConnection(Database::DB_SCHEDULING);
-$db_reports = $database->getConnection(Database::DB_REPORTS);
-
-// --- Handle "Assign to Me" action ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'assign_to_me') {
-    $inspection_to_assign = new Inspection($database);
-    $inspection_to_assign->id = $_POST['inspection_id'];
-    $inspection_to_assign->inspector_id = $_SESSION['user_id'];
-
-    if ($inspection_to_assign->assignInspector()) {
-        // Create a notification for the inspector
-        $notification = new Notification($database);
-        $business = new Business($database);
-        $business->id = $_POST['business_id'];
-        $business_data = $business->readOne();
-        $business_name = $business_data['name'] ?? 'a business';
-
-        $notification->createAssignmentNotification($_SESSION['user_id'], $business_name, $_POST['inspection_id']);
-        $_SESSION['success_message'] = 'Inspection assigned to you successfully!';
-    } else {
-        $_SESSION['error_message'] = 'Failed to assign inspection. It may have been taken by another inspector.';
-    }
-    header('Location: assigned_inspections.php');
-    exit;
-}
 
 $inspection = new Inspection($database);
 $user = new User($database);

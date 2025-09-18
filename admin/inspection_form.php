@@ -53,15 +53,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'analyze_media') {
     }
 
     $media = new InspectionMedia($database);
-    $media->inspection_id = $inspection_id;
+    $media->related_entity_id = $inspection_id;
     $media->file_path = $dbPath;
-    $media->filename = $fileName;
+    $media->file_name = $fileName;
     $media->file_size = $file['size'];
-    $media->uploaded_by = $_SESSION['user_id'];
-
-    // Map MIME type to ENUM('image', 'video')
+    $media->uploader_id = $_SESSION['user_id'];
     $mime_type = $file['type'];
-    $media->file_type = (strpos($mime_type, 'image') !== false) ? 'image' : ((strpos($mime_type, 'video') !== false) ? 'video' : 'image');
+    $media->mime_type = $mime_type;
     
     if (!$media->create()) {
         unlink($filePath);

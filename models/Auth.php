@@ -16,7 +16,7 @@ class Auth {
     public function login($email, $password) {
         $query = "SELECT id, name, email, password, role FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
         
-        $user_row = $this->database->fetch(Database::DB_CORE, $query, [$email]);
+        $user_row = $this->database->fetch($query, [$email]);
 
         if ($user_row && password_verify($password, $user_row['password'])) {
             return $user_row; // Return user data on success
@@ -31,7 +31,7 @@ class Auth {
      */
     public function generatePasswordResetToken($email) {
         $query = "SELECT id FROM " . $this->table_name . " WHERE email = ? LIMIT 0,1";
-        $user_row = $this->database->fetch(Database::DB_CORE, $query, [$email]);
+        $user_row = $this->database->fetch($query, [$email]);
 
         if ($user_row) {
             $user_id = $user_row['id'];
@@ -55,7 +55,7 @@ class Auth {
             ];
 
             try {
-                $this->database->query(Database::DB_CORE, $update_query, $params);
+                $this->database->query($update_query, $params);
                 return $token;
             } catch (PDOException $e) {
                 error_log("Failed to generate password reset token: " . $e->getMessage());
@@ -71,7 +71,7 @@ class Auth {
      */
     public function validatePasswordResetToken($token) {
         $query = "SELECT id FROM " . $this->table_name . " WHERE reset_token = ? AND reset_token_expires_at > NOW() LIMIT 0,1";
-        $user_row = $this->database->fetch(Database::DB_CORE, $query, [$token]);
+        $user_row = $this->database->fetch($query, [$token]);
 
         if ($user_row) {
             return $user_row['id'];
@@ -93,7 +93,7 @@ class Auth {
         $params = [':password' => $hashed_password, ':id' => $userId];
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return true;
         } catch (PDOException $e) {
             error_log("Failed to update password for user ID {$userId}: " . $e->getMessage());
@@ -122,7 +122,7 @@ class Auth {
         $params = [':selector' => $selector, ':validator_hash' => $validator_hash, ':expires_at' => $expires_at, ':id' => $userId];
 
         try {
-            $this->database->query(Database::DB_CORE, $query, $params);
+            $this->database->query($query, $params);
             return ['selector' => $selector, 'validator' => $validator];
         } catch (PDOException $e) {
             error_log("Failed to generate remember me token for user ID {$userId}: " . $e->getMessage());
@@ -138,7 +138,7 @@ class Auth {
      */
     public function validateRememberMeToken($selector, $validator) {
         $query = "SELECT id, name, role, remember_token_validator_hash FROM " . $this->table_name . " WHERE remember_token_selector = ? AND remember_token_expires_at > NOW() LIMIT 0,1";
-        $token_row = $this->database->fetch(Database::DB_CORE, $query, [$selector]);
+        $token_row = $this->database->fetch($query, [$selector]);
 
         if ($token_row) {
             if (hash_equals($token_row['remember_token_validator_hash'], hash('sha256', $validator))) {
@@ -157,7 +157,7 @@ class Auth {
     public function clearRememberMeToken($userId) {
         $query = "UPDATE " . $this->table_name . " SET remember_token_selector = NULL, remember_token_validator_hash = NULL, remember_token_expires_at = NULL WHERE id = :id";
         try {
-            $this->database->query(Database::DB_CORE, $query, [':id' => $userId]);
+            $this->database->query($query, [':id' => $userId]);
             return true;
         } catch (PDOException $e) {
             error_log("Failed to clear remember me token for user ID {$userId}: " . $e->getMessage());
@@ -167,7 +167,7 @@ class Auth {
 
     private function clearRememberMeTokenBySelector($selector) {
         $query = "UPDATE " . $this->table_name . " SET remember_token_selector = NULL, remember_token_validator_hash = NULL, remember_token_expires_at = NULL WHERE remember_token_selector = :selector";
-        $this->database->query(Database::DB_CORE, $query, [':selector' => $selector]);
+        $this->database->query($query, [':selector' => $selector]);
     }
 }
 ?>
