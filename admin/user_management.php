@@ -163,19 +163,17 @@ $userRoleCounts = $user->getUserCountByRole();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($users as $userRow): ?>
-                    <tr 
+                    <tr
                         data-id="<?php echo htmlspecialchars($userRow['id']); ?>"
                         data-name="<?php echo htmlspecialchars($userRow['name']); ?>"
                         data-email="<?php echo htmlspecialchars($userRow['email']); ?>"
                         data-role="<?php echo htmlspecialchars($userRow['role']); ?>"
-                        data-department="<?php echo htmlspecialchars($userRow['department']); ?>"
-                        data-certification="<?php echo htmlspecialchars($userRow['certification']); ?>"
                     >
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -192,9 +190,6 @@ $userRoleCounts = $user->getUserCountByRole();
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <?php echo ucwords(str_replace('_', ' ', $userRow['role'])) ?: 'N/A'; ?>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <?php echo $userRow['department'] ?: 'N/A'; ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button onclick="editUser(<?php echo $userRow['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
@@ -241,11 +236,6 @@ $userRoleCounts = $user->getUserCountByRole();
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Department</label>
-                        <input type="text" name="department" id="department" placeholder="Enter department"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700">Role</label>
                         <select name="role" id="role" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">Select Role</option>
@@ -255,11 +245,6 @@ $userRoleCounts = $user->getUserCountByRole();
                             <option value="business_owner">Business Owner</option>
                             <option value="community_user">Community User</option>
                         </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Certification</label>
-                        <input type="text" name="certification" id="certification" placeholder="Enter certification"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="closeModal('userModal')" 
@@ -319,9 +304,7 @@ function openUserModal(mode) {
     document.getElementById('name').value = '';
     document.getElementById('email').value = '';
     document.getElementById('password').value = '';
-    document.getElementById('department').value = '';
     document.getElementById('role').value = '';
-    document.getElementById('certification').value = '';
     
     // Show/hide password field based on mode
     document.getElementById('passwordField').style.display = mode === 'create' ? 'block' : 'none';
@@ -351,8 +334,6 @@ function editUser(id) {
     document.getElementById('name').value = userData.name;
     document.getElementById('email').value = userData.email;
     document.getElementById('role').value = userData.role;
-    document.getElementById('department').value = userData.department;
-    document.getElementById('certification').value = userData.certification;
     document.getElementById('user_id').value = userData.id;
 
     // Set form to update mode
