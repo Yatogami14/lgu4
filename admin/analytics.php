@@ -1,5 +1,6 @@
 <?php
 require_once '../utils/session_manager.php';
+require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Business.php';
