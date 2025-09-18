@@ -107,13 +107,14 @@ class Violation {
      * @return array
      */
     public function readCommunityReportsAwaitingAction($limit = 5) {
+        $limit = (int)$limit; // Ensure it's an integer
         $query = "SELECT v.*
                   FROM " . $this->table_name . " v
                   WHERE v.inspection_id = 0 AND v.status = 'open'
                   ORDER BY v.created_at ASC
-                  LIMIT :limit";
+                  LIMIT $limit";
 
-        $violations = $this->database->fetchAll($query, [':limit' => (int)$limit]);
+        $violations = $this->database->fetchAll($query);
         return $this->hydrateViolationsWithBusinessData($violations);
     }
 
