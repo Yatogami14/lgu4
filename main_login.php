@@ -7,25 +7,9 @@ require_once 'utils/session_manager.php';
 require_once 'config/database.php';
 require_once 'models/User.php';
 
-// If user is already logged in (e.g., via session or "remember me" cookie), redirect them.
+// If user is already logged in (e.g., via session or "remember me" cookie), redirect them to admin login.
 if (isset($_SESSION['user_id'])) {
-    switch ($_SESSION['user_role']) {
-        case 'admin':
-        case 'super_admin':
-            header('Location: admin/index.php');
-            break;
-        case 'inspector':
-            header('Location: inspector/index.php');
-            break;
-        case 'business_owner':
-            header('Location: community/user_landing.php'); // Correct landing page
-            break;
-        case 'community_user':
-            header('Location: community/user_landing.php'); // Correct landing page
-            break;
-        default:
-            header('Location: index.html');
-    }
+    header('Location: admin/admin_login.php');
     exit;
 }
 
@@ -53,25 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
         
-        // Redirect based on user role
-        switch ($user->role) {
-            case 'admin':
-            case 'super_admin':
-                header('Location: admin/index.php');
-                break;
-            case 'inspector':
-                header('Location: inspector/index.php');
-                break;
-            case 'business_owner':
-                // The user_landing page is designed to handle both business and community users
-                header('Location: community/user_landing.php');
-                break;
-            case 'community_user':
-                header('Location: community/user_landing.php');
-                break;
-            default:
-                header('Location: index.html');
-        }
+        // Redirect all users to admin login page
+        header('Location: admin/admin_login.php');
         exit;
     } else {
         $error_message = "Invalid email or password.";
@@ -173,6 +140,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="mt-6 text-center">
             <p class="text-gray-600 mb-4">Don't have an account?</p>
             <div class="grid grid-cols-1 gap-3">
+                <a href="admin/admin_register.php" class="block bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200">
+                    <i class="fas fa-shield-alt mr-2"></i>Register as Admin
+                </a>
                 <a href="business/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-building mr-2"></i>Register as Business
                 </a>
