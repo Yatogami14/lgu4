@@ -4,13 +4,29 @@ require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 
-// This block was redirecting any logged-in user away from this page.
-// It's commented out to allow users to log in as an admin even if already logged in with another role.
-// if (isset($_SESSION['user_id'])) {
-//     header('Location: index.php');
-//     exit;
-// }
-
+// If a user is already logged in, handle redirection or logout.
+if (isset($_SESSION['user_id'])) {
+    // If the user is an admin or super_admin, redirect them to the admin dashboard.
+    if (isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin', 'super_admin'])) {
+        header('Location: index.php');
+        exit;
+    } else {
+        // If the user is logged in with a non-admin role, log them out
+        // so they can access the admin login page.
+        $database = new Database();
+        $user = new User($database);
+        $user->clearRememberMeToken($_SESSION['user_id']);
+        
+        if (isset($_COOKIE['remember_me'])) {
+            setcookie('remember_me', '', time() - 3600, '/');
+        }
+        session_unset();
+        session_destroy();
+        
+        header('Location: admin_login.php');
+        exit;
+    }
+}
 $database = new Database();
 $user = new User($database);
 
@@ -22,21 +38,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->password = $password;
 
     if ($user->login()) {
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_role'] = $user->role;
-        $_SESSION['user_name'] = $user->name;
+        // Only allow admin and super_admin roles to log in through this portal
+        if (in_array($user->role, ['admin', 'super_admin'])) {
+            $_SESSION['user_id'] = $user->id;
+            $_SESSION['user_role'] = $user->role;
+            $_SESSION['user_name'] = $user->name;
 
-        // Handle "Remember Me"
-        if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
-            $token_data = $user->generateRememberMeToken($user->id);
-            if ($token_data) {
-                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
-                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+            // Handle "Remember Me"
+            if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+                $token_data = $user->generateRememberMeToken($user->id);
+                if ($token_data) {
+                    $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                    setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+                }
             }
-        }
 
-        header('Location: index.php');
-        exit;
+            header('Location: index.php');
+            exit;
+        } else {
+            // User is valid, but not an admin. Deny access.
+            $error_message = "Access Denied. This portal is for administrators only.";
+            session_unset();
+            session_destroy();
+        }
     } else {
         $error_message = "Invalid email or password.";
     }
