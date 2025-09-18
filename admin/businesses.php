@@ -101,10 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $message = 'Inspector set as default for the business. ';
             if ($inspections_assigned_count > 0) {
-                $plural = $inspections_assigned_count > 1 ? 'inspections' : 'inspection';
-                $message .= "They have also been assigned to {$inspections_assigned_count} upcoming unassigned {$plural}.";
+                $plural = $inspections_assigned_count > 1 ? 's' : '';
+                $message .= "They have also been assigned to {$inspections_assigned_count} unassigned inspection{$plural}.";
             } else {
-                $message .= 'No upcoming unassigned inspections were found to assign.';
+                $message .= 'No unassigned inspections were found for this business.';
             }
             $_SESSION['success_message'] = $message;
         } else {

@@ -762,7 +762,7 @@ class Inspection {
     }
 
     /**
-     * Finds all upcoming inspections for a business that have not been assigned an inspector.
+     * Finds all inspections for a business that have not been assigned an inspector.
      * @param int $business_id
      * @return array
      */
