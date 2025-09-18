@@ -4,11 +4,12 @@ require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
 
-// If user is already logged in, redirect to their dashboard
-if (isset($_SESSION['user_id'])) {
-    header('Location: index.php');
-    exit;
-}
+// This block was redirecting any logged-in user away from this page.
+// It's commented out to allow users to log in as an admin even if already logged in with another role.
+// if (isset($_SESSION['user_id'])) {
+//     header('Location: index.php');
+//     exit;
+// }
 
 $database = new Database();
 $user = new User($database);
