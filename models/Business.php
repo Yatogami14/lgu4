@@ -322,9 +322,9 @@ class Business {
                   FROM inspections
                   WHERE business_id = ?
                   ORDER BY updated_at DESC
-                  LIMIT ?";
+                  LIMIT $limit";
         
-        $inspections = $this->database->fetchAll($query, [$business_id, $limit]);
+        $inspections = $this->database->fetchAll($query, [$business_id]);
 
         if (empty($inspections)) {
             return [];
