@@ -30,15 +30,32 @@ class User {
      * @return array ['success' => bool, 'error' => string]
      */
     public function create() {
-        $query = "INSERT INTO " . $this->table_name . "
-                  SET name=:name, email=:email, password=:password, role=:role, department=:department, certification=:certification";
+        // Build query dynamically based on available columns to handle schema variations
+        $fields = ["name", "email", "password", "role"];
+        $placeholders = [":name", ":email", ":password", ":role"];
+
+        // Only include department and certification if they are not null
+        if ($this->department !== null) {
+            $fields[] = "department";
+            $placeholders[] = ":department";
+        }
+        if ($this->certification !== null) {
+            $fields[] = "certification";
+            $placeholders[] = ":certification";
+        }
+
+        $query = "INSERT INTO " . $this->table_name . " (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->role = htmlspecialchars(strip_tags($this->role));
-        $this->department = !empty($this->department) ? htmlspecialchars(strip_tags($this->department)) : null;
-        $this->certification = !empty($this->certification) ? htmlspecialchars(strip_tags($this->certification)) : null;
+        if ($this->department !== null) {
+            $this->department = htmlspecialchars(strip_tags($this->department));
+        }
+        if ($this->certification !== null) {
+            $this->certification = htmlspecialchars(strip_tags($this->certification));
+        }
 
         // Hash the password before saving
         $this->password = password_hash($this->password, PASSWORD_BCRYPT);
@@ -47,10 +64,15 @@ class User {
             ":name" => $this->name,
             ":email" => $this->email,
             ":password" => $this->password,
-            ":role" => $this->role,
-            ":department" => $this->department,
-            ":certification" => $this->certification
+            ":role" => $this->role
         ];
+
+        if ($this->department !== null) {
+            $params[":department"] = $this->department;
+        }
+        if ($this->certification !== null) {
+            $params[":certification"] = $this->certification;
+        }
 
         try {
             $pdo = $this->database->getConnection();
