@@ -95,7 +95,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'create_violation') {
     $violation->description = $_POST['description'];
     $violation->severity = $_POST['severity'];
     $violation->due_date = $_POST['due_date'];
-    $violation->created_by = $_SESSION['user_id'];
+    $violation->user_id = $_SESSION['user_id'];
     $violation->status = 'open'; // Default status
 
     if ($violation->create()) {

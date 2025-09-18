@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $violationModel->description = $_POST['description'];
     $violationModel->severity = 'low'; // Community reports are initially low severity
     $violationModel->status = 'open';
-    $violationModel->created_by = $_SESSION['user_id'];
+    $violationModel->user_id = $_SESSION['user_id'];
     $violationModel->inspection_id = 0; // No inspection associated with community report initially
     $violationModel->due_date = null;
 
