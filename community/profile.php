@@ -104,19 +104,6 @@ $unread_count = $notification->countUnread($user->id);
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Department</label>
-                                <input type="text" name="department" value="<?php echo htmlspecialchars($user->department); ?>" 
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Certification</label>
-                                <input type="text" name="certification" value="<?php echo htmlspecialchars($user->certification); ?>" 
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                            </div>
-                        </div>
-                        
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Role</label>
                             <input type="text" value="<?php echo ucfirst($user->role); ?>" 

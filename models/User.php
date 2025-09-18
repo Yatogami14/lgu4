@@ -34,21 +34,12 @@ class User {
         $fields = ["name", "email", "password", "role"];
         $placeholders = [":name", ":email", ":password", ":role"];
 
-        // Only include department and certification if they are not null
-        if ($this->department !== null) {
-            $fields[] = "department";
-            $placeholders[] = ":department";
-        }
-
         $query = "INSERT INTO " . $this->table_name . " (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->role = htmlspecialchars(strip_tags($this->role));
-        if ($this->department !== null) {
-            $this->department = htmlspecialchars(strip_tags($this->department));
-        }
 
         // Hash the password before saving
         $this->password = password_hash($this->password, PASSWORD_BCRYPT);
@@ -59,10 +50,6 @@ class User {
             ":password" => $this->password,
             ":role" => $this->role
         ];
-
-        if ($this->department !== null) {
-            $params[":department"] = $this->department;
-        }
 
         try {
             $pdo = $this->database->getConnection();
@@ -90,7 +77,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, department, avatar, created_at, updated_at
+        $query = "SELECT id, name, email, role, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -101,7 +88,7 @@ class User {
             $this->name = $row['name'];
             $this->email = $row['email'];
             $this->role = $row['role'];
-            $this->department = $row['department'];
+            $this->department = null; // Column does not exist in DB
             $this->avatar = $row['avatar'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
@@ -119,7 +106,7 @@ class User {
      * @return array
      */
     public function readAll($role = null, $limit = 1000, $offset = 0) {
-        $query = "SELECT id, name, email, role, department, avatar, created_at
+        $query = "SELECT id, name, email, role, avatar, created_at
                   FROM " . $this->table_name;
         $params = [];
         if ($role) {
@@ -143,7 +130,6 @@ class User {
         if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = htmlspecialchars(strip_tags($this->name)); }
         if ($this->email !== null) { $fields[] = "email=:email"; $params[':email'] = htmlspecialchars(strip_tags($this->email)); }
         if ($this->role !== null) { $fields[] = "role=:role"; $params[':role'] = htmlspecialchars(strip_tags($this->role)); }
-        if ($this->department !== null) { $fields[] = "department=:department"; $params[':department'] = htmlspecialchars(strip_tags($this->department)); }
         if ($this->avatar !== null) { $fields[] = "avatar=:avatar"; $params[':avatar'] = htmlspecialchars(strip_tags($this->avatar)); }
         
         // Only update password if a new one is provided
@@ -229,7 +215,7 @@ class User {
      * @return array
      */
     public function readByRole($role) {
-        $query = "SELECT id, name, email, role, department
+        $query = "SELECT id, name, email, role
                   FROM " . $this->table_name . "
                   WHERE role = ?
                   ORDER BY name ASC";
@@ -251,7 +237,7 @@ class User {
      * @return array
      */
     public function search($keywords) {
-        $query = "SELECT id, name, email, role, department
+        $query = "SELECT id, name, email, role
                   FROM " . $this->table_name . "
                   WHERE name LIKE ? OR email LIKE ?
                   ORDER BY name ASC";
