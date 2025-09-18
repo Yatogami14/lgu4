@@ -153,9 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="mt-6 text-center">
             <p class="text-gray-600 mb-4">Don't have an account?</p>
             <div class="grid grid-cols-1 gap-3">
-                <a href="admin/admin_register.php" class="block bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200">
-                    <i class="fas fa-shield-alt mr-2"></i>Register as Admin
-                </a>
                 <a href="admin/admin_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-building mr-2"></i>Register as Business
                 </a>
