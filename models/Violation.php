@@ -272,10 +272,10 @@ class Violation {
      * @return array
      */
     public function readByCreatorId($creator_id) {
-        $query = "SELECT v.*
-                  FROM " . $this->table_name . " v
-                  WHERE v.created_by = ?
-                  ORDER BY v.created_at DESC";
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE created_by = ?
+                  ORDER BY created_at DESC";
         $violations = $this->database->fetchAll($query, [$creator_id]);
         return $this->hydrateViolationsWithBusinessData($violations);
     }
