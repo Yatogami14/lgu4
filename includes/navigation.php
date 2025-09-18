@@ -110,7 +110,7 @@ if (isset($_SESSION['user_id'])) {
             </button>
 
             <a href="<?php echo $base_path; ?>/index.html" class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 md:flex-none" title="Go to Homepage">
-                <img src="<?php echo $base_path; ?>/logo/logo.png?v=2" alt="Logo" class="h-8 w-auto">
+                <img src="<?php echo $base_path; ?>/logo/logo.jpeg?v=4" alt="Logo" class="h-8 w-auto">
                 <div class="min-w-0 flex-1 md:flex-none">
                     <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate">LGU Health & Safety</h1>
                     <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Inspection Platform</p>

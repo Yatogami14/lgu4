@@ -12,6 +12,10 @@ if (isset($_SESSION['user_id'])) {
 $database = new Database();
 $user = new User($database);
 
+// Determine base path for assets
+$base_path = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/\\');
+if ($base_path === '/' || $base_path === '\\') $base_path = '';
+
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->name = $_POST['name'];
@@ -67,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="font-sans">
     <div class="register-card p-8 w-full max-w-md mx-4">
         <div class="text-center mb-8">
-            <a href="../index.html" class="flex items-center justify-center mb-4">
-                <img src="../logo/logo.png?v=2" alt="Logo" class="h-12 w-auto">
+            <a href="<?php echo $base_path; ?>/index.html" class="flex items-center justify-center mb-4" title="Go to Homepage">
+                <img src="<?php echo $base_path; ?>/logo/logo.jpeg?v=4" alt="Logo" class="h-12 w-auto">
             </a>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">Community Registration</h1>
             <p class="text-gray-600">Digital Inspection Platform</p>

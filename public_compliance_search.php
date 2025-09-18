@@ -6,6 +6,10 @@ require_once 'models/Business.php';
 $database = new Database();
 $businessModel = new Business($database);
 
+// Determine base path for assets
+$base_path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+if ($base_path === '/' || $base_path === '\\') $base_path = '';
+
 // Handle search
 $search = $_GET['search'] ?? '';
 
@@ -48,12 +52,12 @@ function getComplianceBgColor($score) {
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="index.html" class="flex items-center space-x-3">
-                    <img src="logo/logo.png?v=2" alt="Logo" class="h-8 w-auto">
+                <a href="<?php echo $base_path; ?>/index.html" class="flex items-center space-x-3" title="Go to Homepage">
+                    <img src="<?php echo $base_path; ?>/logo/logo.jpeg?v=4" alt="Logo" class="h-8 w-auto">
                     <span class="text-xl font-bold text-gray-900">QC Protektado</span>
                 </a>
                 <div class="flex items-center space-x-2">
-                    <a href="index.php" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-4 py-2 rounded-md">
+                    <a href="<?php echo $base_path; ?>/index.html" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-4 py-2 rounded-md">
                         <i class="fas fa-arrow-left mr-2"></i>Back to Home
                     </a>
                 </div>
