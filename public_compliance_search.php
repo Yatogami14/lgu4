@@ -48,8 +48,8 @@ function getComplianceBgColor($score) {
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="index.html" class="flex items-center space-x-3">
-                    <img src="logo/logo.png" alt="Logo" class="h-8 w-auto">
+                <a href="/index.html" class="flex items-center space-x-3">
+                    <img src="/logo/logo.png?v=2" alt="Logo" class="h-8 w-auto">
                     <span class="text-xl font-bold text-gray-900">QC Protektado</span>
                 </a>
                 <div class="flex items-center space-x-2">
