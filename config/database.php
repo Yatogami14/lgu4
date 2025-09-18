@@ -10,8 +10,8 @@ class Database {
             self::DB_UNIFIED => [
                 'host' => getenv('DB_HOST') ?: 'localhost',
                 'dbname' => getenv('DB_NAME') ?: 'hsi_lgu_unified',
-                'username' => getenv('DB_USER') ?: 'root',
-                'password' => getenv('DB_PASS') ?: ''
+                'username' => getenv('DB_USER') ?: 'hsi_lgu_unified',
+                'password' => getenv('DB_PASS') ?: 'Admin123'
             ]
         ];
     }
