@@ -77,7 +77,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, created_at, updated_at
+        $query = "SELECT id, name, email, role, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -88,8 +88,9 @@ class User {
             $this->name = $row['name'];
             $this->email = $row['email'];
             $this->role = $row['role'];
-            $this->department = null; // Column does not exist in DB
-            $this->avatar = null; // Column does not exist in DB
+            $this->department = $row['department'] ?? null;
+            $this->certification = $row['certification'] ?? null;
+            $this->avatar = $row['avatar'] ?? null;
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             $this->password = null; // Password hash is not exposed
