@@ -41,8 +41,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 md:pt-24">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">All Assigned Inspections</h1>
-            <p class="text-gray-600">Overview of all inspections currently assigned to inspectors.</p>
+            <h1 class="text-2xl font-bold text-gray-900">My Assigned Inspections</h1>
+            <p class="text-gray-600">These are the inspections currently assigned to you.</p>
         </div>
 
         <?php if (!empty($assigned_inspections)): ?>
@@ -52,7 +52,6 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Inspector</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspection Type</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -65,9 +64,6 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900"><?php echo $row['business_name']; ?></div>
                                 <div class="text-sm text-gray-500"><?php echo $row['business_address']; ?></div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900"><?php echo htmlspecialchars($row['inspector_name'] ?? 'N/A'); ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900"><?php echo $row['inspection_type']; ?></div>
@@ -110,8 +106,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
         <?php else: ?>
         <div class="bg-white shadow sm:rounded-lg p-6 text-center">
             <i class="fas fa-info-circle text-4xl text-gray-400 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900">No Assigned Inspections</h3>
-            <p class="mt-1 text-sm text-gray-500">There are currently no inspections assigned to any inspector.</p>
+            <h3 class="text-lg font-medium text-gray-900">No Inspections Assigned</h3>
+            <p class="mt-1 text-sm text-gray-500">You do not have any inspections assigned to you at the moment.</p>
         </div>
         <?php endif; ?>
     </main>
