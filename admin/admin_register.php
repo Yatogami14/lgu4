@@ -225,6 +225,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 confirmPassword.focus();
             }
         });
+
+        // Show/hide department field based on role
+        const roleSelect = document.getElementById('role');
+        const departmentInput = document.getElementById('department');
+        const departmentDiv = departmentInput.parentElement.parentElement; // The parent div of the input
+
+        function toggleDepartmentField() {
+            const selectedRole = roleSelect.value;
+            if (selectedRole === 'business_owner' || selectedRole === 'community_user') {
+                departmentDiv.style.display = 'none';
+                departmentInput.required = false;
+            } else {
+                departmentDiv.style.display = 'block';
+                departmentInput.required = true;
+            }
+        }
+        roleSelect.addEventListener('change', toggleDepartmentField);
+        document.addEventListener('DOMContentLoaded', toggleDepartmentField); // Run on page load
     </script>
 </body>
 </html>

@@ -1,0 +1,41 @@
+System Flow and Explanation for Digital Health & Safety Inspection Platform
+
+1. User Roles and Authentication:
+- Users access the system via a central login page (main_login.php).
+- Upon login, users are redirected based on their role:
+  - Admin and Super Admin: Redirected to admin dashboard.
+  - Inspector: Redirected to inspector dashboard.
+  - Business Owner and Community User: Redirected to community user landing page.
+- Role-based access control ensures users can only access permitted areas.
+
+2. Dashboards and Functionalities:
+- Admin Dashboard:
+  - Displays overall system statistics: total businesses, inspections, inspectors, and active violations.
+  - Shows upcoming inspections, recent activities, and community reports awaiting action.
+  - Provides visual charts for inspection statuses and compliance trends.
+- Business Owner Dashboard:
+  - Shows businesses owned by the user, total inspections, open violations, and average compliance score.
+  - Allows business owners to request new inspections.
+  - Displays recent inspections and compliance trends.
+- Inspector Dashboard:
+  - Lists inspections assigned to the inspector with status breakdown (completed, in progress, scheduled).
+  - Shows upcoming inspections with links to start inspection forms.
+- Community Dashboard:
+  - Provides public access to business compliance data.
+  - Allows searching businesses by name, address, or type.
+  - Displays statistics such as total businesses, average compliance, and high-risk businesses.
+
+3. Inspection Lifecycle:
+- Inspections can be scheduled by admins or requested by business owners.
+- Inspectors conduct inspections using AI-assisted tools.
+- Inspection reports are generated and violations tracked.
+- Compliance scores are calculated and trends monitored.
+- Community members can view public compliance scores to promote transparency.
+
+4. Additional Features:
+- Centralized login with "Remember Me" functionality.
+- Role-based navigation and access control.
+- Notification and reporting systems integrated into dashboards.
+- AI-powered analysis for inspection notes and media.
+
+This system flow provides a comprehensive overview of the platform’s architecture, user roles, and key processes, ensuring a clear understanding of how the system operates end-to-end.
