@@ -40,12 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         default:
             $user->certification = 'User';
     }
-
-    if ($user->create()) {
-        $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
-        $success_message = "$role_name account created successfully! You can now login.";
+    
+    // Check if email already exists before trying to create
+    if ($user->emailExists()) {
+        $error_message = "An account with this email already exists. Please use a different email.";
     } else {
-        $error_message = "Failed to create account. Email might already exist.";
+        if ($user->create()) {
+            $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
+            $success_message = "$role_name account created successfully! You can now login.";
+        } else {
+            $error_message = "Failed to create account. Please try again.";
+        }
     }
 }
 ?>

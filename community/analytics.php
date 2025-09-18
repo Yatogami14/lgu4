@@ -97,10 +97,8 @@ $averageCompliance = $inspection->getAverageCompliance();
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php 
-                    // The readRecent() method is causing a PDO error because it likely tries to bind the LIMIT parameter, which is not supported.
-                    // As a workaround, we fetch all and slice the first 5. This assumes readAll() returns data in a recent-first order.
-                    $all_inspections = $inspection->readAll();
-                    $recent_inspections = array_slice($all_inspections, 0, 5);
+                    // Fetch the 5 most recent inspections.
+                    $recent_inspections = $inspection->readRecent(5);
                     foreach ($recent_inspections as $recent): ?>
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
