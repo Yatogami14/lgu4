@@ -77,7 +77,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, department, certification, avatar, created_at, updated_at
+        $query = "SELECT id, name, email, role, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -98,7 +98,7 @@ class User {
      * @return array
      */
     public function readAll($role = null, $limit = 1000, $offset = 0) {
-        $query = "SELECT id, name, email, role, department, certification, created_at
+        $query = "SELECT id, name, email, role, created_at
                   FROM " . $this->table_name;
         $params = [];
         if ($role) {
@@ -206,7 +206,7 @@ class User {
      * @return array
      */
     public function readByRole($role) {
-        $query = "SELECT id, name, email, role, department, certification
+        $query = "SELECT id, name, email, role
                   FROM " . $this->table_name . "
                   WHERE role = ?
                   ORDER BY name ASC";
@@ -228,7 +228,7 @@ class User {
      * @return array
      */
     public function search($keywords) {
-        $query = "SELECT id, name, email, role, department, certification
+        $query = "SELECT id, name, email, role
                   FROM " . $this->table_name . "
                   WHERE name LIKE ? OR email LIKE ?
                   ORDER BY name ASC";
