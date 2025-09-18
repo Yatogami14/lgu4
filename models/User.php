@@ -77,7 +77,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, avatar, created_at, updated_at
+        $query = "SELECT id, name, email, role, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -89,7 +89,7 @@ class User {
             $this->email = $row['email'];
             $this->role = $row['role'];
             $this->department = null; // Column does not exist in DB
-            $this->avatar = $row['avatar'];
+            $this->avatar = null; // Column does not exist in DB
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             $this->password = null; // Password hash is not exposed
@@ -106,7 +106,7 @@ class User {
      * @return array
      */
     public function readAll($role = null, $limit = 1000, $offset = 0) {
-        $query = "SELECT id, name, email, role, avatar, created_at
+        $query = "SELECT id, name, email, role, created_at
                   FROM " . $this->table_name;
         $params = [];
         if ($role) {
@@ -130,7 +130,6 @@ class User {
         if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = htmlspecialchars(strip_tags($this->name)); }
         if ($this->email !== null) { $fields[] = "email=:email"; $params[':email'] = htmlspecialchars(strip_tags($this->email)); }
         if ($this->role !== null) { $fields[] = "role=:role"; $params[':role'] = htmlspecialchars(strip_tags($this->role)); }
-        if ($this->avatar !== null) { $fields[] = "avatar=:avatar"; $params[':avatar'] = htmlspecialchars(strip_tags($this->avatar)); }
         
         // Only update password if a new one is provided
         if (!empty($this->password)) {
