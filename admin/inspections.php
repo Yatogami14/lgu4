@@ -49,7 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $inspection->inspector_id = $_POST['inspector_id'];
 
         if ($inspection->assignInspector()) {
-            echo json_encode(['success' => true, 'message' => 'Inspector re-assigned successfully.']);
+            // Create a notification for the newly assigned inspector
+            require_once '../models/Notification.php';
+            $notification = new Notification($database);
+            
+            // We need the business name for the notification. Fetch the inspection data.
+            $inspection_data = $inspection->readOne(); // readOne hydrates with business_name
+            $businessName = $inspection_data['business_name'] ?? 'a business';
+
+            $notification->createAssignmentNotification(
+                $inspection->inspector_id, 
+                $businessName, 
+                $inspection->id
+            );
+            echo json_encode(['success' => true, 'message' => 'Inspector re-assigned successfully and notified.']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to re-assign inspector.']);
         }
@@ -160,8 +173,8 @@ $inspectors = $user->readByRole('inspector');
                     <input type="hidden" name="action" value="reassign_inspector">
                     <input type="hidden" name="inspection_id" id="reassign_inspection_id">
                     <div>
-                        <label for="reassign_inspector_id" class="block text-sm font-medium text-gray-700">New Inspector</label>
-                        <select name="inspector_id" id="reassign_inspector_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <label for="reassign_inspector_select" class="block text-sm font-medium text-gray-700">New Inspector</label>
+                        <select name="inspector_id" id="reassign_inspector_select" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                             <option value="">Loading inspectors...</option>
                         </select>
                     </div>
@@ -256,7 +269,7 @@ $inspectors = $user->readByRole('inspector');
             document.getElementById('reassign_inspection_id').value = inspectionId;
             document.getElementById('reassignBusinessName').textContent = businessName;
 
-            const inspectorSelect = document.getElementById('reassign_inspector_id');
+            const inspectorSelect = document.getElementById('reassign_inspector_select');
             inspectorSelect.innerHTML = '<option value="">Loading inspectors...</option>';
             
             // Fetch available inspectors
@@ -299,7 +312,7 @@ $inspectors = $user->readByRole('inspector');
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Inspector re-assigned successfully!');
+                    alert(data.message || 'Inspector re-assigned successfully!');
                     location.reload(); // Reload the page to see the change
                 } else {
                     throw new Error(data.message || 'Failed to re-assign inspector.');
