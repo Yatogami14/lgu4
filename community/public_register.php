@@ -25,10 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($user->emailExists()) {
         $error_message = "An account with this email already exists. Please use a different email or try logging in.";
     } else {
-        if ($user->create()) {
+        $result = $user->create();
+        if ($result['success']) {
             $success_message = "Community account created successfully! You can now login.";
         } else {
-            $error_message = "Failed to create account. Please try again.";
+            $error_message = "Failed to create account: " . $result['error'];
         }
     }
 }

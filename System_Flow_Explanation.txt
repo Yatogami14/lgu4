@@ -38,4 +38,32 @@ System Flow and Explanation for Digital Health & Safety Inspection Platform
 - Notification and reporting systems integrated into dashboards.
 - AI-powered analysis for inspection notes and media.
 
+5. Detailed Role Capabilities:
+- Admin:
+  - Manage users (create, edit, delete accounts for admins, inspectors, businesses, and community users).
+  - Oversee and assign inspections to inspectors.
+  - Manage checklists, inspection types, and templates.
+  - View system-wide analytics, reports, and compliance trends.
+  - Handle violations, notifications, and business approvals.
+  - Access all dashboards, profiles, and administrative tools.
+- Inspector:
+  - View and manage assigned inspections with status updates.
+  - Conduct inspections using digital forms and upload media/evidence.
+  - Generate detailed inspection reports and notes.
+  - Manage personal schedule and availability.
+  - View analytics on inspection performance and trends.
+  - Handle and resolve violations related to assigned inspections.
+- Business Owner:
+  - Request new inspections for their registered businesses.
+  - View detailed results of their inspections and compliance scores.
+  - Manage business profile, settings, and user accounts.
+  - Respond to violations and track resolution progress.
+  - Access analytics and trends for their businesses' compliance.
+- Community User:
+  - Register and login to access public-facing features.
+  - Search and view public business compliance data and ratings.
+  - View public inspection schedules, reports, and violation details.
+  - Access community analytics, statistics, and high-risk business lists.
+  - Report public issues or potential violations for review.
+
 This system flow provides a comprehensive overview of the platform’s architecture, user roles, and key processes, ensuring a clear understanding of how the system operates end-to-end.

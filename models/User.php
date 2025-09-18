@@ -27,7 +27,7 @@ class User {
     /**
      * Create a new user.
      * Hashes the password before saving.
-     * @return bool
+     * @return array ['success' => bool, 'error' => string]
      */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
@@ -57,17 +57,18 @@ class User {
             $stmt = $pdo->prepare($query);
             if ($stmt->execute($params)) {
                 $this->id = $pdo->lastInsertId();
-                return true;
+                return ['success' => true, 'error' => ''];
             }
-            return false;
+            return ['success' => false, 'error' => 'Unknown database error during user creation.'];
         } catch (PDOException $e) {
             // Check for duplicate email (error code 1062)
             if ($e->errorInfo[1] == 1062) {
                 error_log("User creation failed: Duplicate email address - " . $this->email);
+                return ['success' => false, 'error' => 'An account with this email already exists.'];
             } else {
                 error_log("User creation failed: " . $e->getMessage());
+                return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
             }
-            return false;
         }
     }
 
