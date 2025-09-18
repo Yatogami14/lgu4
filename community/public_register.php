@@ -67,8 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="font-sans">
     <div class="register-card p-8 w-full max-w-md mx-4">
         <div class="text-center mb-8">
-            <a href="/index.html" class="flex items-center justify-center mb-4">
-                <img src="/logo/logo.png?v=2" alt="Logo" class="h-12 w-auto">
+            <a href="../index.html" class="flex items-center justify-center mb-4">
+                <img src="../logo/logo.png?v=2" alt="Logo" class="h-12 w-auto">
             </a>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">Community Registration</h1>
             <p class="text-gray-600">Digital Inspection Platform</p>
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="mt-6 text-center">
             <p class="text-gray-600">Already have an account? 
-                <a href="../main_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
+                <a href="public_login.php" class="text-blue-600 hover:text-blue-800 font-medium">Sign In</a>
             </p>
         </div>
 

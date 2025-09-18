@@ -91,8 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="font-sans">
     <div class="login-card p-8 w-full max-w-md mx-4">
         <div class="text-center mb-8">
-            <a href="/index.html" class="flex items-center justify-center mb-4">
-                <img src="/logo/logo.png?v=2" alt="Logo" class="h-12 w-auto">
+            <a href="index.html" class="flex items-center justify-center mb-4">
+                <img src="logo/logo.png?v=2" alt="Logo" class="h-12 w-auto">
             </a>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">Digital Inspection Platform</h1>
             <p class="text-gray-600">Central Login Portal</p>
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="mt-6 text-center">
             <p class="text-gray-600 mb-4">Don't have an account?</p>
             <div class="grid grid-cols-1 gap-3">
-                <a href="admin/admin_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
+                <a href="business/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-building mr-2"></i>Register as Business
                 </a>
                 <a href="community/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
