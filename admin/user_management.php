@@ -125,7 +125,7 @@ $userRoleCounts = $user->getUserCountByRole();
     <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 pt-24">
         <!-- Success/Error Messages -->
         <?php if (isset($_SESSION['success_message'])): ?>
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">

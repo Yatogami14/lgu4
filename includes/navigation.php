@@ -151,7 +151,7 @@ if (isset($_SESSION['user_id'])) {
 
 <!-- Sidebar Navigation -->
 <?php if (isset($_SESSION['user_id'])): ?>
-<div id="sidebar" class="fixed top-20 left-0 h-full w-64 bg-white shadow-lg border-r transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-40">
+<div id="sidebar" class="fixed top-16 left-0 h-full w-64 bg-white shadow-lg border-r transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-40">
     <div class="flex flex-col h-full">
         <nav class="flex-1 px-4 py-6 space-y-2">
             <?php foreach ($nav_items as $permission => $item): ?>
