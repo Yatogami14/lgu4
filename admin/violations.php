@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $violationModel->description = $_POST['description'];
         $violationModel->severity = $_POST['severity'];
         $violationModel->due_date = $_POST['due_date'];
-        $violationModel->user_id = $_SESSION['user_id'];
+        $violationModel->created_by = $_SESSION['user_id'];
         $violationModel->status = 'open';
 
         if ($violationModel->create()) {

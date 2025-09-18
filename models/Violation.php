@@ -13,7 +13,7 @@ class Violation {
     public $status;
     public $due_date;
     public $resolved_date;
-    public $user_id;
+    public $created_by;
     public $hash;
     public $created_at;
     public $updated_at;
@@ -31,7 +31,7 @@ class Violation {
                     severity = :severity,
                     status = :status,
                     due_date = :due_date,
-                    user_id = :user_id";
+                    created_by = :created_by";
 
         $params = [
             ':inspection_id' => $this->inspection_id,
@@ -40,7 +40,7 @@ class Violation {
             ':severity' => $this->severity,
             ':status' => $this->status,
             ':due_date' => !empty($this->due_date) ? $this->due_date : null,
-            ':user_id' => !empty($this->user_id) ? $this->user_id : null
+            ':created_by' => !empty($this->created_by) ? $this->created_by : null
         ];
 
         try {
@@ -274,7 +274,7 @@ class Violation {
     public function readByCreatorId($creator_id) {
         $query = "SELECT *
                   FROM " . $this->table_name . "
-                  WHERE user_id = ?
+                  WHERE created_by = ?
                   ORDER BY created_at DESC";
         $violations = $this->database->fetchAll($query, [$creator_id]);
         return $this->hydrateViolationsWithBusinessData($violations);
@@ -291,7 +291,7 @@ class Violation {
                          SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
                          SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
                   FROM " . $this->table_name . "
-                  WHERE user_id = ?";
+                  WHERE created_by = ?";
         $stats = $this->database->fetch($query, [$creator_id]);
         return array_map(fn($v) => $v ?? 0, $stats);
     }
