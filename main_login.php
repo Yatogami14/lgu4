@@ -163,9 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <a href="community/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
                     <i class="fas fa-users mr-2"></i>Register as Community
                 </a>
-                <a href="admin/admin_register.php" class="block bg-red-100 text-red-700 py-2 px-4 rounded-lg font-medium hover:bg-red-200 transition duration-200">
-                    <i class="fas fa-user-shield mr-2"></i>Register as Admin
-                </a>
             </div>
         </div>
 
