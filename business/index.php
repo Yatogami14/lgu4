@@ -167,13 +167,34 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <?php if (empty($user_businesses)): ?>
                             <p class="text-gray-500">No businesses are associated with your account.</p>
                         <?php else: ?>
-                            <ul class="divide-y divide-gray-200">
+                            <ul class="space-y-4">
                                 <?php foreach ($user_businesses as $bus): ?>
-                                    <li class="py-3">
-                                        <a href="business_view.php?id=<?php echo $bus['id']; ?>" class="block hover:bg-gray-50 p-2 rounded-md transition-colors">
-                                            <p class="font-medium text-gray-900"><?php echo htmlspecialchars($bus['name']); ?></p>
-                                            <p class="text-sm text-gray-500 truncate"><?php echo htmlspecialchars($bus['address']); ?></p>
-                                        </a>
+                                    <li class="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                        <div class="flex justify-between items-center">
+                                            <a href="business_view.php?id=<?php echo $bus['id']; ?>" class="flex-grow">
+                                                <p class="font-medium text-gray-900"><?php echo htmlspecialchars($bus['name']); ?></p>
+                                                <p class="text-sm text-gray-500 truncate"><?php echo htmlspecialchars($bus['address']); ?></p>
+                                            </a>
+                                            <div class="ml-4 flex-shrink-0">
+                                                <?php if ($bus['status'] === 'verified'): ?>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Verified</span>
+                                                <?php elseif ($bus['status'] === 'pending'): ?>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending Approval</span>
+                                                <?php elseif ($bus['status'] === 'rejected'): ?>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Rejected</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <?php if ($bus['status'] === 'rejected' && !empty($bus['rejection_reason'])): ?>
+                                            <div class="mt-3 p-3 bg-red-50 border-l-4 border-red-400 text-red-800 text-sm rounded-r-lg">
+                                                <p><strong class="font-bold">Rejection Reason:</strong> <?php echo htmlspecialchars($bus['rejection_reason']); ?></p>
+                                            </div>
+                                            <div class="mt-3 text-right">
+                                                <a href="business_owner_register.php?edit_id=<?php echo $bus['id']; ?>" class="bg-yellow-500 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-yellow-600 transition-colors">
+                                                    <i class="fas fa-edit mr-1"></i> Edit & Resubmit
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>

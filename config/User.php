@@ -9,6 +9,7 @@ class User {
     public $email;
     public $password;
     public $role;
+    public $status = 'active'; // Default to active
     public $created_at;
     public $updated_at;
 
@@ -23,7 +24,7 @@ class User {
      */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
-                  SET name=:name, email=:email, password=:password, role=:role";
+                  SET name=:name, email=:email, password=:password, role=:role, status=:status";
 
         // Sanitize input
         $this->name = htmlspecialchars(strip_tags($this->name));
@@ -37,7 +38,8 @@ class User {
             ":name" => $this->name,
             ":email" => $this->email,
             ":password" => $this->password,
-            ":role" => $this->role
+            ":role" => $this->role,
+            ":status" => $this->status
         ];
 
         try {
@@ -65,7 +67,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, created_at, updated_at
+        $query = "SELECT id, name, email, role, status, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -76,6 +78,7 @@ class User {
             $this->name = $row['name'];
             $this->email = $row['email'];
             $this->role = $row['role'];
+            $this->status = $row['status'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             $this->password = null; // Password hash is not exposed
@@ -91,7 +94,7 @@ class User {
      * @return array
      */
     public function readAll($limit = 10, $offset = 0) {
-        $query = "SELECT id, name, email, role, created_at
+        $query = "SELECT id, name, email, role, status, created_at
                   FROM " . $this->table_name . "
                   ORDER BY created_at DESC
                   LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
@@ -111,6 +114,7 @@ class User {
         if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = htmlspecialchars(strip_tags($this->name)); }
         if ($this->email !== null) { $fields[] = "email=:email"; $params[':email'] = htmlspecialchars(strip_tags($this->email)); }
         if ($this->role !== null) { $fields[] = "role=:role"; $params[':role'] = htmlspecialchars(strip_tags($this->role)); }
+        if ($this->status !== null) { $fields[] = "status=:status"; $params[':status'] = htmlspecialchars(strip_tags($this->status)); }
         
         // Only update password if a new one is provided
         if (!empty($this->password)) {
@@ -153,13 +157,13 @@ class User {
      * @return bool
      */
     public function login() {
-        $query = "SELECT id, name, email, password, role
+        $query = "SELECT id, name, email, password, role, status
                   FROM " . $this->table_name . "
                   WHERE email = :email LIMIT 0,1";
 
         $row = $this->database->fetch($query, [':email' => $this->email]);
 
-        if ($row && password_verify($this->password, $row['password'])) {
+        if ($row && password_verify($this->password, $row['password']) && $row['status'] === 'active') {
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->role = $row['role'];
@@ -174,7 +178,7 @@ class User {
      * @return array|null
      */
     public function findByEmail() {
-        $query = "SELECT id, name, email, role
+        $query = "SELECT id, name, email, role, status
                   FROM " . $this->table_name . "
                   WHERE email = ? LIMIT 0,1";
 
@@ -184,6 +188,7 @@ class User {
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->role = $row['role'];
+            $this->status = $row['status'];
             return $row;
         }
         return null;
@@ -195,7 +200,7 @@ class User {
      * @return array
      */
     public function readByRole($role) {
-        $query = "SELECT id, name, email, role
+        $query = "SELECT id, name, email, role, status
                   FROM " . $this->table_name . "
                   WHERE role = ?
                   ORDER BY name ASC";
@@ -217,7 +222,7 @@ class User {
      * @return array
      */
     public function search($keywords) {
-        $query = "SELECT id, name, email, role
+        $query = "SELECT id, name, email, role, status
                   FROM " . $this->table_name . "
                   WHERE name LIKE ? OR email LIKE ?
                   ORDER BY name ASC";

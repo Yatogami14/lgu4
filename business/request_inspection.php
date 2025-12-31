@@ -55,12 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $inspection_type_name = $typeData['name'] ?? 'Unknown Type';
 
         // Create notification for business owner
-        $notification->user_id = $_SESSION['user_id'];
-        $notification->message = "Inspection request for {$inspection_type_name} on {$preferred_date} has been submitted.";
-        $notification->type = 'info';
-        $notification->related_entity_type = 'inspection';
-        $notification->related_entity_id = $inspection->id;
-        $notification->create();
+        $message = "Your inspection request for {$inspection_type_name} on {$preferred_date} has been submitted.";
+        $link = '/lgu4/business/inspections.php';
+        $notification->create($_SESSION['user_id'], $message, 'info', 'inspection', $inspection->id, $link);
 
         $_SESSION['success'] = 'Inspection request submitted successfully.';
     } else {

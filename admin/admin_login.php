@@ -23,23 +23,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user->email = $email;
     $user->password = $password;
 
-    if ($user->login()) {
-        // Allow all user roles to log in through this portal
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_role'] = $user->role;
-        $_SESSION['user_name'] = $user->name;
+    if ($user->login()) { // login() returns true if password is correct, populates user object
+        if ($user->status === 'active') {
+            // Only allow admin-level roles to log in through this specific portal
+            if (in_array($user->role, ['admin', 'super_admin', 'inspector'])) {
+                $_SESSION['user_id'] = $user->id;
+                $_SESSION['user_role'] = $user->role;
+                $_SESSION['user_name'] = $user->name;
 
-        // Handle "Remember Me"
-        if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
-            $token_data = $user->generateRememberMeToken($user->id);
-            if ($token_data) {
-                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
-                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+                // Handle "Remember Me"
+                if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
+                    $token_data = $user->generateRememberMeToken($user->id);
+                    if ($token_data) {
+                        $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                        setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+                    }
+                }
+
+                header('Location: index.php');
+                exit;
+            } else {
+                $error_message = "Access denied. This portal is for administrative staff only.";
             }
+        } elseif ($user->status === 'pending_approval') {
+            $error_message = "Your account is pending approval and cannot be used to log in.";
+        } elseif ($user->status === 'rejected') {
+            $error_message = "Your account has been rejected. Please contact support.";
+        } else {
+            $error_message = "Your account is currently inactive.";
         }
-
-        header('Location: index.php');
-        exit;
     } else {
         $error_message = "Invalid email or password.";
     }

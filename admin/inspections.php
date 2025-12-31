@@ -4,6 +4,7 @@ require_once '../config/database.php';
 require_once '../models/User.php';
 require_once '../models/Inspection.php';
 require_once '../models/Business.php';
+require_once '../models/Notification.php';
 require_once '../utils/access_control.php';
 
 // Check if user is logged in and has permission to access this page
@@ -51,12 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($inspection->assignInspector()) {
             // Create a notification for the newly assigned inspector
             require_once '../models/Notification.php';
-            $notification = new Notification($database);
-            
-            // We need the business name for the notification. Fetch the inspection data.
-            $inspection_data = $inspection->readOne(); // readOne hydrates with business_name
-            $businessName = $inspection_data['business_name'] ?? 'a business';
-
+            $notification = new Notification($database);            
+            $businessName = $_POST['business_name'] ?? 'a business';
             $notification->createAssignmentNotification(
                 $inspection->inspector_id, 
                 $businessName, 
@@ -68,10 +65,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         exit;
     }
+
+    // Handle deletion
+    if (isset($_POST['action']) && $_POST['action'] === 'delete_inspection') {
+        // Only admins can delete
+        if (!in_array($_SESSION['user_role'], ['admin', 'super_admin'])) {
+            $_SESSION['error_message'] = 'Permission Denied.';
+        } else {
+            $inspection->id = $_POST['inspection_id'];
+            if ($inspection->delete()) {
+                $_SESSION['success_message'] = 'Inspection deleted successfully.';
+            } else {
+                $_SESSION['error_message'] = 'Failed to delete inspection. It might be referenced by other records (e.g., violations).';
+            }
+        }
+        header('Location: inspections.php');
+        exit;
+    }
 }
 
-// Get all inspections
-$inspections = $inspection->readAll();
+// Get inspections based on filter
+$filter_priority = $_GET['priority'] ?? null;
+$filter_status = $_GET['status'] ?? null;
+
+if ($filter_priority) {
+    $inspections = $inspection->readByPriority($filter_priority);
+} elseif ($filter_status) {
+    // The status from the chart label might have spaces (e.g., "In Progress"), so we convert it back to the database format.
+    $inspections = $inspection->readByStatus(strtolower(str_replace(' ', '_', $filter_status)));
+}else {
+    $inspections = $inspection->readAll();
+}
+
 $businesses = $business->readAll();
 $inspectors = $user->readByRole('inspector');
 ?>
@@ -93,7 +118,7 @@ $inspectors = $user->readByRole('inspector');
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Inspections Management</h2>
             <button onclick="document.getElementById('createModal').classList.remove('hidden')" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                 <i class="fas fa-plus mr-2"></i>New Inspection
             </button>
         </div>
@@ -146,14 +171,17 @@ $inspectors = $user->readByRole('inspector');
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="inspection_form.php?id=<?php echo $row['id']; ?>" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <a href="inspection_form.php?id=<?php echo $row['id']; ?>" class="text-yellow-700 hover:text-yellow-800 mr-3">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
                             <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-green-600 hover:text-green-900">
                                 <i class="fas fa-eye"></i> View
                             </a>
-                            <button onclick="openReassignModal(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['business_name'])); ?>')" class="text-purple-600 hover:text-purple-900 ml-3">
+                            <button onclick="openReassignModal(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['business_name'])); ?>')" class="text-blue-600 hover:text-blue-900 ml-3">
                                 <i class="fas fa-random"></i> Re-assign
+                            </button>
+                            <button onclick="deleteInspection(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['business_name'])); ?>')" class="text-red-600 hover:text-red-900 ml-3">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         </td>
                     </tr>
@@ -172,6 +200,7 @@ $inspectors = $user->readByRole('inspector');
                 <form id="reassignForm" class="mt-4 space-y-4">
                     <input type="hidden" name="action" value="reassign_inspector">
                     <input type="hidden" name="inspection_id" id="reassign_inspection_id">
+                    <input type="hidden" name="business_name" id="reassign_business_name_input">
                     <div>
                         <label for="reassign_inspector_select" class="block text-sm font-medium text-gray-700">New Inspector</label>
                         <select name="inspector_id" id="reassign_inspector_select" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
@@ -180,7 +209,7 @@ $inspectors = $user->readByRole('inspector');
                     </div>
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" onclick="closeModal('reassignModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">Re-assign</button>
+                        <button type="submit" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">Re-assign</button>
                     </div>
                 </form>
             </div>
@@ -249,8 +278,8 @@ $inspectors = $user->readByRole('inspector');
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" name="create_inspection" 
-                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <button type="submit" name="create_inspection"
+                                class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Create
                         </button>
                     </div>
@@ -268,6 +297,7 @@ $inspectors = $user->readByRole('inspector');
             const modal = document.getElementById('reassignModal');
             document.getElementById('reassign_inspection_id').value = inspectionId;
             document.getElementById('reassignBusinessName').textContent = businessName;
+            document.getElementById('reassign_business_name_input').value = businessName;
 
             const inspectorSelect = document.getElementById('reassign_inspector_select');
             inspectorSelect.innerHTML = '<option value="">Loading inspectors...</option>';
@@ -294,6 +324,29 @@ $inspectors = $user->readByRole('inspector');
                 });
 
             modal.classList.remove('hidden');
+        }
+
+        function deleteInspection(inspectionId, businessName) {
+            if (confirm(`Are you sure you want to delete the inspection for "${businessName}" (ID: ${inspectionId})? This action cannot be undone.`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'inspections.php';
+
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'delete_inspection';
+                form.appendChild(actionInput);
+
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'inspection_id';
+                idInput.value = inspectionId;
+                form.appendChild(idInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         document.getElementById('reassignForm').addEventListener('submit', function(e) {

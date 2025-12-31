@@ -112,7 +112,7 @@ class Violation {
         $limit = (int)$limit; // Ensure it's an integer
         $query = "SELECT v.*
                   FROM " . $this->table_name . " v
-                  WHERE v.inspection_id = 0 AND v.status = 'open'
+                  WHERE (v.inspection_id = 0 OR v.inspection_id IS NULL) AND v.status = 'open'
                   ORDER BY v.created_at ASC
                   LIMIT $limit";
 
@@ -120,6 +120,22 @@ class Violation {
         return $this->hydrateViolationsWithBusinessData($violations);
     }
 
+    /**
+     * Read violations by severity.
+     * @param string $severity
+     * @return array
+     */
+    public function readBySeverity($severity) {
+        // Step 1: Fetch violations by severity from the violations database.
+        $query = "SELECT v.*
+                  FROM " . $this->table_name . " v
+                  WHERE v.severity = ?
+                  ORDER BY v.created_at DESC";
+        $violations = $this->database->fetchAll($query, [$severity]);
+
+        // Step 2: Hydrate with business data from the core database.
+        return $this->hydrateViolationsWithBusinessData($violations);
+    }
     /**
      * Read all violations, optionally filtered by an array of business IDs.
      * @param array $business_ids
@@ -188,14 +204,21 @@ class Violation {
      * Get violation statistics by severity.
      * @return array
      */
-    public function getViolationStatsBySeverity() {
+    public function getViolationStatsBySeverity($startDate = null, $endDate = null) {
         $query = "SELECT
                     severity,
                     COUNT(id) as count
-                  FROM " . $this->table_name . "
-                  GROUP BY severity";
+                  FROM " . $this->table_name;
 
-        $results = $this->database->fetchAll($query);
+        $params = [];
+        if ($startDate && $endDate) {
+            $query .= " WHERE created_at BETWEEN ? AND ?";
+            $params = [$startDate, $endDate];
+        }
+
+        $query .= " GROUP BY severity";
+
+        $results = $this->database->fetchAll($query, $params);
         $stats = [];
         foreach ($results as $row) {
             $stats[$row['severity']] = (int)$row['count'];

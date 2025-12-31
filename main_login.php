@@ -6,171 +6,277 @@ ini_set('display_errors', 1);
 require_once 'utils/session_manager.php';
 require_once 'config/database.php';
 require_once 'models/User.php';
+require_once 'includes/functions.php';
+require_once 'RateLimiter.php';
 
-// If user is already logged in (e.g., via session or "remember me" cookie), redirect them to admin login.
-if (isset($_SESSION['user_id'])) {
-    header('Location: admin/admin_login.php');
-    exit;
+// Instantiate the database
+$database = new Database();
+$conn = $database->getConnection();
+
+$user = new User($database);
+
+// Check for "Remember Me" cookie before any other logic
+if (isset($_COOKIE['remember_me']) && !isset($_SESSION['user_id'])) {
+    list($selector, $validator) = explode(':', $_COOKIE['remember_me'], 2);
+
+    if ($selector && $validator) {
+        $user_data = $user->validateRememberMeToken($selector, $validator);
+
+        if ($user_data && $user_data['status'] === 'active') {
+            // Log the user in
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = $user_data['id'];
+            $_SESSION['user_role'] = $user_data['role'];
+            $_SESSION['user_name'] = $user_data['name'];
+            $_SESSION['login_time'] = time();
+
+            // Generate a new token for security (prevents token theft and reuse)
+            $new_token_data = $user->generateRememberMeToken($user_data['id']);
+            if ($new_token_data) {
+                $cookie_value = $new_token_data['selector'] . ':' . $new_token_data['validator'];
+                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // Reset cookie for another 30 days
+            }
+
+            // Redirect to the appropriate dashboard
+            $role = $user_data['role'];
+            $redirect_path = 'main_login.php'; // Default fallback
+            switch ($role) {
+                case 'super_admin': $redirect_path = 'admin/index.php'; break;
+                case 'admin': $redirect_path = 'admin/index.php'; break;
+                case 'inspector': $redirect_path = 'inspector/index.php'; break;
+                case 'business_owner': $redirect_path = 'business/index.php'; break;
+                case 'community_user': $redirect_path = 'community/index.php'; break;
+            }
+            header("Location: $redirect_path");
+            exit();
+        }
+    }
 }
 
-$database = new Database();
-$user = new User($database);
+// Security headers
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+
+// CSRF token generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$errors = [];
+$show_resend_option = false;
+$unverified_email = '';
+$auto_sent_verification = false;
+$login_identifier = '';
+$success_message = '';
+
+// Check for a success message from registration or other redirects
+if (isset($_SESSION['success_message'])) {
+    $success_message = $_SESSION['success_message'];
+    unset($_SESSION['success_message']); // Clear the message so it doesn't show again
+}
 
 // Determine base path for assets
 $base_path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
 if ($base_path === '/' || $base_path === '\\') $base_path = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+    // CSRF token validation
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $errors['general'] = "Security validation failed. Please try again.";
+        // Regenerate token after failed validation
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    } else {
+        // Sanitize input data
+        $login_identifier = isset($_POST['login_identifier']) ? sanitize_input($_POST['login_identifier']) : '';
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
+        $remember = isset($_POST['remember_me']) ? true : false;
 
-    $user->email = $email;
-    $user->password = $password;
+        // Robust Rate Limiting
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $rateLimiter = new RateLimiter($conn);
 
-    if ($user->login()) {
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_role'] = $user->role;
-        $_SESSION['user_name'] = $user->name;
+        if (!$rateLimiter->isAllowed('login_failure', $ip_address)) {
+            $errors['general'] = "Too many failed login attempts from this location. Please try again in 15 minutes.";
+        } else {
+            // Validation
+            if (empty($login_identifier)) {
+                $errors['login_identifier'] = "Email or username is required";
+            }
 
-        // Handle "Remember Me"
-        if (isset($_POST['remember_me']) && $_POST['remember_me'] == '1') {
-            $token_data = $user->generateRememberMeToken($user->id);
-            if ($token_data) {
-                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
-                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+            if (empty($password)) {
+                $errors['password'] = "Password is required";
             }
         }
-        
-        // Redirect to the appropriate dashboard based on role
-        $role = $user->role;
-        $redirect_path = 'admin/index.php'; // Default for admin/super_admin
-        switch ($role) {
-            case 'inspector':
-                $redirect_path = 'inspector/index.php';
-                break;
-            case 'business_owner':
-                $redirect_path = 'business/index.php';
-                break;
-            case 'community_user':
-                $redirect_path = 'community/index.php';
-                break;
+
+        // If no errors, proceed with login
+        if (empty($errors)) {
+            try {
+                $user->email = $login_identifier; // Use email property to hold the identifier (email or username)
+                $user->password = $password;
+
+                if ($user->login()) {
+
+                    // Check user status from the populated user object
+                    if ($user->status === 'active') {
+                        // Regenerate session ID to prevent session fixation
+                        session_regenerate_id(true);
+
+                        // Set session variables
+                        $_SESSION['user_id'] = $user->id;
+                        $_SESSION['user_role'] = $user->role;
+                        $_SESSION['user_name'] = $user->name;
+                        $_SESSION['login_time'] = time();
+
+                        // Regenerate CSRF token
+                        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
+                        // Handle "Remember Me"
+                        if ($remember) {
+                            $token_data = $user->generateRememberMeToken($user->id);
+                            if ($token_data) {
+                                $cookie_value = $token_data['selector'] . ':' . $token_data['validator'];
+                                setcookie('remember_me', $cookie_value, time() + (86400 * 30), "/"); // 30-day cookie
+                            }
+                        }
+
+                        // Redirect to the appropriate dashboard based on role
+                        $role = $user->role;
+                        $redirect_path = 'main_login.php'; // Default to login page if role not found
+                        switch ($role) {
+                            case 'super_admin': $redirect_path = 'admin/index.php'; break;
+                            case 'admin': $redirect_path = 'admin/index.php'; break;
+                            case 'inspector': $redirect_path = 'inspector/index.php'; break;
+                            case 'business_owner': $redirect_path = 'business/index.php'; break;
+                            case 'community_user': $redirect_path = 'community/index.php'; break;
+                        }
+                        header("Location: $redirect_path");
+                        exit();
+                    } elseif ($user->status === 'pending_approval') {
+                        if ($user->role === 'business_owner') {
+                            $errors['general'] = "Your account is pending review. The Superadmin needs to verify your uploaded files before approval.";
+                        } else {
+                            $errors['general'] = "Your account is pending review by an administrator. You will be notified upon approval.";
+                        }
+                    } elseif ($user->status === 'rejected') {
+                        $errors['general'] = "Your registration application has been rejected. Please contact support for more information.";
+                    } else {
+                        $errors['general'] = "Your account is currently inactive. Please contact support.";
+                    }
+                } else {
+                    // Login failed (user not found or wrong password)
+                    $errors['general'] = "Invalid email/username or password";
+                    $rateLimiter->recordAttempt('login_failure', $ip_address);
+                }
+            } catch (PDOException $e) {
+                error_log("Login error: " . $e->getMessage());
+                $errors['general'] = "Login failed. Please try again.";
+            }
         }
-        header("Location: $redirect_path");
-        exit;
-    } else {
-        $error_message = "Invalid email or password.";
+
+        // Regenerate CSRF token after form submission
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main Login - Digital Health & Safety Inspection Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-        .logo {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-    </style>
+    <title>Login - Health & Safety Inspection System</title>
+    <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/login.css">
 </head>
-<body class="font-sans">
-    <div class="login-card p-8 w-full max-w-md mx-4">
-        <div class="text-center mb-8">
-            <a href="<?php echo $base_path; ?>/index.html" class="flex items-center justify-center mb-4" title="Go to Homepage">
-                <img src="<?php echo $base_path; ?>/logo/logo.jpeg?v=4" alt="Logo" class="h-12 w-auto">
-            </a>
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Digital Inspection Platform</h1>
-            <p class="text-gray-600">Central Login Portal</p>
+<body>
+
+    <div class="bg-decoration bg-decoration-1"></div>
+    <div class="bg-decoration bg-decoration-2"></div>
+    <div class="bg-decoration bg-decoration-3"></div>
+    <div class="bg-decoration bg-decoration-4"></div>
+
+    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Watermark" class="watermark-logo">
+
+    <a href="<?php echo $base_path; ?>/index.html" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Home Page
+    </a>
+
+    <div class="main-content-wrapper">
+        <div class="logo-left">
+            <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Logo">
+            <h1>HEALTH & SAFETY</h1>
+            <p class="tagline">Inspection Management System</p>
         </div>
 
-        <?php if (isset($error_message)): ?>
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
-                <i class="fas fa-exclamation-circle mr-2"></i>
-                <?php echo $error_message; ?>
-            </div>
+        <div class="login-container">
+            <div class="login-logo">
+            <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection">
+        </div>
+
+        <div class="login-header">
+            <h2>Welcome Back!</h2>
+            <p>Enter your credentials to access your account.</p>
+        </div>
+
+        <?php if (!empty($errors['general'])): ?>
+            <div class="error-message"><?php echo $errors['general']; ?></div>
         <?php endif; ?>
 
-        <form method="POST" class="space-y-6">
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-envelope text-gray-400"></i>
-                    </div>
-                    <input type="email" name="email" id="email" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter your email">
+        <?php if (!empty($success_message)) : ?>
+            <div class="success-message"><?php echo $success_message; ?></div>
+        <?php endif; ?>
+
+        <form id="loginForm" method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+
+            <div class="form-group">
+                <label for="login_identifier">Email or Username</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="login_identifier" name="login_identifier" placeholder="e.g., john.doe@example.com" value="<?php echo htmlspecialchars($login_identifier); ?>" required>
                 </div>
+                <?php if (!empty($errors['login_identifier'])) : ?>
+                    <div class="error-message" style="margin-top: 10px;"><?php echo $errors['login_identifier']; ?></div>
+                <?php endif; ?>
             </div>
 
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-lock text-gray-400"></i>
-                    </div>
-                    <input type="password" name="password" id="password" required 
-                           class="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                           placeholder="Enter your password">
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <button type="button" class="password-toggle" id="passwordToggle"><i class="fas fa-eye"></i></button>
                 </div>
+                <?php if (!empty($errors['password'])) : ?>
+                    <div class="error-message" style="margin-top: 10px;"><?php echo $errors['password']; ?></div>
+                <?php endif; ?>
             </div>
 
-            <div class="flex items-center justify-between text-sm mb-4">
-                <div class="flex items-center">
-                    <input id="remember_me" name="remember_me" type="checkbox" value="1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label for="remember_me" class="ml-2 block text-sm text-gray-900">
-                        Remember me
-                    </label>
+            <div class="form-options">
+                <div class="remember">
+                    <input type="checkbox" id="remember_me" name="remember_me">
+                    <label for="remember_me">Remember Me</label>
                 </div>
-                <div>
-                    <a href="forgot_password.php" class="font-medium text-blue-600 hover:text-blue-800">
-                        Forgot your password?
-                    </a>
-                </div>
+                <a href="forgot_password.php" class="forgot-password">Forgot Password?</a>
             </div>
 
-            <button type="submit" 
-                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition duration-200 transform hover:scale-105">
-                <i class="fas fa-sign-in-alt mr-2"></i>Sign In
-            </button>
+            <button type="submit" class="btn-primary" id="loginButton">Login</button>
         </form>
 
-        <div class="mt-6 text-center">
-            <p class="text-gray-600 mb-4">Don't have an account?</p>
-            <div class="grid grid-cols-1 gap-3">
-                <a href="business/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
-                    <i class="fas fa-building mr-2"></i>Register as Business
-                </a>
-                <a href="community/public_register.php" class="block bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition duration-200">
-                    <i class="fas fa-users mr-2"></i>Register as Community
-                </a>
-            </div>
-        </div>
+        <p class="register-link">
+            Don't have an account? <a href="register_options.php">Sign Up</a>
+        </p>
 
-        <div class="mt-8 pt-6 border-t border-gray-200">
-            <div class="text-center">
-                <p class="text-sm text-gray-600 mt-4">© 2024 LGU Health & Safety Platform. All rights reserved.</p>
-            </div>
+        <p class="footer">
+            &copy; <?php echo date('Y'); ?> Health & Safety Inspection. All Rights Reserved.
+        </p>
         </div>
     </div>
+
 </body>
 </html>

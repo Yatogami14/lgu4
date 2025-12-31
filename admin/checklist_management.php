@@ -89,7 +89,7 @@ $allInspectionTypes = $inspectionType->readAll();
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Checklist Template Management</h2>
-            <button onclick="openTemplateModal('create')" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            <button onclick="openTemplateModal('create')" class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                 <i class="fas fa-plus mr-2"></i>Add Template
             </button>
         </div>
@@ -194,7 +194,7 @@ $allInspectionTypes = $inspectionType->readAll();
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="closeModal('templateModal')" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Cancel</button>
-                        <button type="submit" id="submitButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add Template</button>
+                        <button type="submit" id="submitButton" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">Add Template</button>
                     </div>
                 </form>
             </div>

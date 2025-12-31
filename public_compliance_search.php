@@ -47,7 +47,7 @@ function getComplianceBgColor($score) {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 flex flex-col min-h-screen">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,7 +57,7 @@ function getComplianceBgColor($score) {
                     <span class="text-xl font-bold text-gray-900">QC Protektado</span>
                 </a>
                 <div class="flex items-center space-x-2">
-                    <a href="<?php echo $base_path; ?>/index.html" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-4 py-2 rounded-md">
+                    <a href="<?php echo $base_path; ?>/index.html" class="text-sm font-medium text-gray-600 hover:text-yellow-600 px-4 py-2 rounded-md">
                         <i class="fas fa-arrow-left mr-2"></i>Back to Home
                     </a>
                 </div>
@@ -66,7 +66,7 @@ function getComplianceBgColor($score) {
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="text-center mb-12">
             <h1 class="text-4xl font-extrabold text-gray-900">Business Compliance Search</h1>
             <p class="mt-2 text-lg text-gray-600">Search for local businesses to view their latest compliance status.</p>
@@ -77,10 +77,10 @@ function getComplianceBgColor($score) {
             <form method="GET" action="public_compliance_search.php">
                 <div class="flex flex-col md:flex-row gap-4">
                     <div class="relative flex-grow">
-                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name, address, or business type..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name, address, or business type..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    <button type="submit" class="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
                         Search
                     </button>
                 </div>
@@ -97,12 +97,13 @@ function getComplianceBgColor($score) {
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Type</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                             <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Compliance Score</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if (empty($businesses)): ?>
                             <tr>
-                                <td colspan="4" class="text-center py-10 text-gray-500">
+                                <td colspan="5" class="text-center py-10 text-gray-500">
                                     <?php if (!empty($search)): ?>
                                         No businesses found for "<?php echo htmlspecialchars($search); ?>".
                                     <?php else: ?>
@@ -120,6 +121,11 @@ function getComplianceBgColor($score) {
                                     <span class="px-3 py-1 text-sm font-bold rounded-full <?php echo getComplianceBgColor($business['compliance_score']); ?> <?php echo getComplianceColor($business['compliance_score']); ?>">
                                         <?php echo ($business['compliance_score'] !== null) ? ($business['compliance_score'] . '%') : 'N/A'; ?>
                                     </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="public_business_profile.php?id=<?php echo $business['id']; ?>" class="text-yellow-700 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 px-3 py-1 rounded-md transition">
+                                        View Details
+                                    </a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -141,7 +147,7 @@ function getComplianceBgColor($score) {
                     </a>
                     
                     <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium <?php echo ($i == $page) ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
+                    <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium <?php echo ($i == $page) ? 'z-10 bg-yellow-50 border-yellow-500 text-yellow-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
                         <?php echo $i; ?>
                     </a>
                     <?php endfor; ?>
@@ -158,7 +164,7 @@ function getComplianceBgColor($score) {
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white mt-12">
+    <footer class="bg-gray-800 text-white">
         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center">
             <p class="text-sm">&copy; <?php echo date('Y'); ?> HSI-QC Protektado. All rights reserved.</p>
         </div>

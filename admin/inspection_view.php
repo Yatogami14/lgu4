@@ -140,12 +140,15 @@ function getSeverityTextColor($severity) {
                 <p class="text-gray-600">AI-Powered Analysis for <span class="font-medium"><?php echo htmlspecialchars($inspection_data['business_name']); ?></span></p>
             </div>
             <div class="flex items-center space-x-2">
-                <a href="inspections.php" class="bg-white border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 text-sm">
+                <a href="inspections.php" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 text-sm">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Inspections
                 </a>
                 <?php if (in_array($_SESSION['user_role'], ['admin', 'super_admin', 'inspector'])): ?>
-                <a href="inspection_form.php?id=<?php echo $inspection_id; ?>" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                <a href="inspection_form.php?id=<?php echo $inspection_id; ?>" class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500 text-sm">
                     <i class="fas fa-edit mr-2"></i>Edit Report
+                </a>
+                <a href="generate_pdf.php?id=<?php echo $inspection_id; ?>" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm" target="_blank">
+                    <i class="fas fa-file-pdf mr-2"></i>Export PDF
                 </a>
                 <?php endif; ?>
             </div>
@@ -371,7 +374,7 @@ function getSeverityTextColor($severity) {
                     </div>
                     <div class="flex justify-end space-x-3 pt-4">
                         <button type="button" onclick="closeModal('editViolationModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Update Violation</button>
+                        <button type="submit" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">Update Violation</button>
                     </div>
                 </form>
             </div>

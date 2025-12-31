@@ -441,18 +441,28 @@ class Inspection {
     }
 
     // Count active violations
-    public function countActiveViolations() {
+    public function countActiveViolations($startDate = null, $endDate = null) {
         $query = "SELECT COUNT(*) as count FROM violations WHERE status IN ('open', 'in_progress')";
+        $params = [];
+        if ($startDate && $endDate) {
+            $query .= " AND created_at BETWEEN ? AND ?";
+            $params = [$startDate, $endDate];
+        }
         // This query targets a different DB, so we need a connection to it.
         // The database manager handles this. We just need to specify the DB.
-        $row = $this->database->fetch($query);
+        $row = $this->database->fetch($query, $params);
         return $row['count'] ?? 0;
     }
 
     // Get average compliance score
-    public function getAverageCompliance() {
+    public function getAverageCompliance($startDate = null, $endDate = null) {
         $query = "SELECT AVG(compliance_score) as average FROM " . $this->table_name . " WHERE compliance_score IS NOT NULL";
-        $row = $this->database->fetch($query);
+        $params = [];
+        if ($startDate && $endDate) {
+            $query .= " AND completed_date BETWEEN ? AND ?";
+            $params = [$startDate, $endDate];
+        }
+        $row = $this->database->fetch($query, $params);
         return $row['average'] ? round($row['average']) : 0;
     }
 
@@ -609,14 +619,21 @@ class Inspection {
     }
 
     // Get inspection counts by status
-    public function getInspectionStatsByStatus() {
+    public function getInspectionStatsByStatus($startDate = null, $endDate = null) {
         $query = "SELECT
                     status,
                     COUNT(id) as count
-                  FROM " . $this->table_name . "
-                  GROUP BY status";
+                  FROM " . $this->table_name;
+        
+        $params = [];
+        if ($startDate && $endDate) {
+            $query .= " WHERE created_at BETWEEN ? AND ?";
+            $params = [$startDate, $endDate];
+        }
 
-        $stmt = $this->database->query($query);
+        $query .= " GROUP BY status";
+
+        $stmt = $this->database->query($query, $params);
         $stats = [
             'scheduled' => 0,
             'in_progress' => 0,
@@ -632,6 +649,92 @@ class Inspection {
             }
         }
         return $stats;
+    }
+
+    /**
+     * Get inspection counts by priority.
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @return array
+     */
+    public function getInspectionStatsByPriority($startDate = null, $endDate = null) {
+        $query = "SELECT
+                    priority,
+                    COUNT(id) as count
+                  FROM " . $this->table_name;
+        
+        $params = [];
+        if ($startDate && $endDate) {
+            $query .= " WHERE created_at BETWEEN ? AND ?";
+            $params = [$startDate, $endDate];
+        }
+
+        $query .= " GROUP BY priority";
+
+        $stmt = $this->database->query($query, $params);
+        $stats = ['low' => 0, 'medium' => 0, 'high' => 0];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if (array_key_exists($row['priority'], $stats)) {
+                $stats[$row['priority']] = (int)$row['count'];
+            }
+        }
+        
+        return $stats;
+    }
+
+    /**
+     * Read inspections by priority.
+     * @param string $priority
+     * @return array
+     */
+    public function readByPriority($priority) {
+        // Step 1: Fetch inspections by priority from the scheduling database.
+        $query = "SELECT *
+                  FROM " . $this->table_name . "
+                  WHERE priority = ?
+                  ORDER BY scheduled_date DESC";
+        $inspections = $this->database->fetchAll($query, [$priority]);
+
+        if (empty($inspections)) {
+            return [];
+        }
+
+        // Step 2: Collect all unique foreign keys.
+        $business_ids = array_unique(array_column($inspections, 'business_id'));
+        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+
+        // Step 3: Fetch related data from the core database.
+        $businesses = [];
+        if (!empty($business_ids)) {
+            $in_clause = implode(',', array_fill(0, count($business_ids), '?'));
+            $businesses_data = $this->database->fetchAll("SELECT id, name, address FROM businesses WHERE id IN ($in_clause)", $business_ids);
+            foreach ($businesses_data as $business) {
+                $businesses[$business['id']] = $business;
+            }
+        }
+
+        $inspection_types = [];
+        if (!empty($inspection_type_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
+            $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
+            foreach ($types_data as $type) {
+                $inspection_types[$type['id']] = $type;
+            }
+        }
+
+        $inspectors = [];
+        if (!empty($inspector_ids)) {
+            $in_clause = implode(',', array_fill(0, count($inspector_ids), '?'));
+            $inspectors_data = $this->database->fetchAll("SELECT id, name FROM users WHERE id IN ($in_clause)", $inspector_ids);
+            foreach ($inspectors_data as $inspector) {
+                $inspectors[$inspector['id']] = $inspector;
+            }
+        }
+
+        // Step 4: Combine the data in PHP.
+        return $this->hydrateInspections($inspections, $businesses, $inspection_types, $inspectors);
     }
 
     // Get inspections by business ID
@@ -914,6 +1017,91 @@ class Inspection {
             error_log("Inspection reschedule failed: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Count inspections completed this week and return as percentage.
+     * @return int
+     */
+    public function countCompletedThisWeek() {
+        // Get start and end of current week (Monday to Sunday)
+        $startOfWeek = date('Y-m-d', strtotime('monday this week'));
+        $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
+
+        // Count total inspections scheduled this week
+        $totalQuery = "SELECT COUNT(*) as count FROM " . $this->table_name . "
+                      WHERE scheduled_date BETWEEN ? AND ?";
+        $totalRow = $this->database->fetch($totalQuery, [$startOfWeek, $endOfWeek]);
+        $totalScheduled = $totalRow['count'] ?? 0;
+
+        // Count completed inspections this week
+        $completedQuery = "SELECT COUNT(*) as count FROM " . $this->table_name . "
+                          WHERE status = 'completed' AND completed_date BETWEEN ? AND ?";
+        $completedRow = $this->database->fetch($completedQuery, [$startOfWeek, $endOfWeek]);
+        $totalCompleted = $completedRow['count'] ?? 0;
+
+        // Calculate percentage
+        if ($totalScheduled > 0) {
+            return round(($totalCompleted / $totalScheduled) * 100);
+        }
+        return 0;
+    }
+
+    /**
+     * Get weekly completion data for the current week.
+     * @return array
+     */
+    public function getWeeklyCompletionData() {
+        // Get start of current week (Monday)
+        $startOfWeek = date('Y-m-d', strtotime('monday this week'));
+
+        $data = [];
+
+        // Loop through each day of the week
+        for ($i = 0; $i < 7; $i++) {
+            $date = date('Y-m-d', strtotime($startOfWeek . " +{$i} days"));
+            $dayName = date('D', strtotime($date));
+
+            // Count total inspections scheduled for this day
+            $totalQuery = "SELECT COUNT(*) as count FROM " . $this->table_name . "
+                          WHERE DATE(scheduled_date) = ?";
+            $totalRow = $this->database->fetch($totalQuery, [$date]);
+            $totalScheduled = $totalRow['count'] ?? 0;
+
+            // Count completed inspections for this day
+            $completedQuery = "SELECT COUNT(*) as count FROM " . $this->table_name . "
+                              WHERE status = 'completed' AND DATE(completed_date) = ?";
+            $completedRow = $this->database->fetch($completedQuery, [$date]);
+            $totalCompleted = $completedRow['count'] ?? 0;
+
+            // Calculate completion percentage
+            $percentage = 0;
+            if ($totalScheduled > 0) {
+                $percentage = round(($totalCompleted / $totalScheduled) * 100);
+            }
+
+            $data[$dayName] = $percentage;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Helper function to combine inspection data with related entity names.
+     * @param array $inspections
+     * @param array $businesses
+     * @param array $inspection_types
+     * @param array $inspectors
+     * @return array
+     */
+    private function hydrateInspections(array $inspections, array $businesses, array $inspection_types, array $inspectors): array {
+        foreach ($inspections as &$inspection) {
+            $inspection['business_name'] = $businesses[$inspection['business_id']]['name'] ?? 'N/A';
+            $inspection['business_address'] = $businesses[$inspection['business_id']]['address'] ?? 'N/A';
+            $inspection['inspection_type'] = $inspection_types[$inspection['inspection_type_id']]['name'] ?? 'N/A';
+            $inspection['inspector_name'] = $inspectors[$inspection['inspector_id']]['name'] ?? 'Unassigned';
+        }
+        return $inspections;
     }
 }
 ?>

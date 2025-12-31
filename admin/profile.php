@@ -67,8 +67,8 @@ $unread_count = $notification->countUnread($user->id);
     <header class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-                    <i class="fas fa-shield-alt text-blue-600 text-xl sm:text-2xl"></i>
+                <div class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1" title="Go to Homepage">
+                    <i class="fas fa-shield-alt text-yellow-600 text-xl sm:text-2xl"></i>
                     <div class="min-w-0 flex-1">
                         <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate">LGU Health & Safety</h1>
                         <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Inspection Platform</p>
@@ -79,7 +79,7 @@ $unread_count = $notification->countUnread($user->id);
                     <a href="index.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
                         <i class="fas fa-home"></i>
                     </a>
-                    <a href="logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
+                    <a href="../logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
                 </div>
@@ -118,10 +118,10 @@ $unread_count = $notification->countUnread($user->id);
                                 <input type="file" name="avatar" accept="image/*"
                                        class="mt-1 block w-full text-sm text-gray-500
                                               file:mr-4 file:py-2 file:px-4
-                                              file:rounded-full file:border-0
+                                              file:rounded-md file:border-0
                                               file:text-sm file:font-semibold
-                                              file:bg-blue-50 file:text-blue-700
-                                              hover:file:bg-blue-100">
+                                              file:bg-yellow-50 file:text-yellow-700
+                                              hover:file:bg-yellow-100">
                             </div>
                         </div>
 
@@ -161,7 +161,7 @@ $unread_count = $notification->countUnread($user->id);
                         
                         <div class="flex justify-end">
                             <button type="submit" name="update_profile" 
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                                 Update Profile
                             </button>
                         </div>
@@ -193,7 +193,7 @@ $unread_count = $notification->countUnread($user->id);
                             <?php foreach ($notifications as $note): ?>
                                 <div class="border-l-4 <?php echo $note['type'] == 'alert' ? 'border-red-500' : 
                                                          ($note['type'] == 'warning' ? 'border-yellow-500' : 
-                                                         ($note['type'] == 'success' ? 'border-green-500' : 'border-blue-500')); ?> pl-4 py-2">
+                                                         ($note['type'] == 'success' ? 'border-green-500' : 'border-gray-500')); ?> pl-4 py-2">
                                     <p class="text-sm <?php echo $note['is_read'] == 0 ? 'font-medium text-gray-900' : 'text-gray-600'; ?>">
                                         <?php echo $note['message']; ?>
                                     </p>
@@ -206,7 +206,7 @@ $unread_count = $notification->countUnread($user->id);
                     </div>
                     
                     <div class="mt-4">
-                        <a href="#" class="text-blue-600 text-sm hover:text-blue-800">
+                        <a href="#" class="text-yellow-600 text-sm hover:text-yellow-800">
                             View all notifications →
                         </a>
                     </div>

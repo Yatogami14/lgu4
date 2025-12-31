@@ -145,8 +145,8 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Business Management</h2>
-                <button onclick="document.getElementById('createModal').classList.remove('hidden'); clearForm();" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                <button onclick="document.getElementById('createModal').classList.remove('hidden'); clearForm();"
+                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                 <i class="fas fa-plus mr-2"></i>Add Business
             </button>
         </div>
@@ -172,7 +172,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <p class="text-sm text-gray-600">Total Businesses</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['total'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-building text-3xl text-blue-500"></i>
+                    <i class="fas fa-building text-3xl text-yellow-500"></i>
                 </div>
             </div>
 
@@ -182,7 +182,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <p class="text-sm text-gray-600">High Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['high_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+                    <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
                 </div>
             </div>
 
@@ -192,7 +192,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <p class="text-sm text-gray-600">Medium Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['medium_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-exclamation text-3xl text-yellow-500"></i>
+                    <i class="fas fa-exclamation text-3xl text-yellow-600"></i>
                 </div>
             </div>
 
@@ -202,7 +202,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         <p class="text-sm text-gray-600">Low Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['low_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
                 </div>
             </div>
         </div>
@@ -243,7 +243,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-2 text-gray-900">
                                 <div class="w-16 bg-gray-200 rounded-full h-2">
                                     <div class="bg-green-600 h-2 rounded-full" style="width: <?php echo $stats['avg_compliance']; ?>%"></div>
                                 </div>
@@ -257,7 +257,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="business_view.php?id=<?php echo $business_row['id']; ?>" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <a href="business_view.php?id=<?php echo $business_row['id']; ?>" class="text-yellow-600 hover:text-yellow-800 mr-3">
                                 <i class="fas fa-eye"></i> View
                             </a>
                             <button onclick="assignInspector(<?php echo $business_row['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
@@ -328,7 +328,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" name="create" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <button type="submit" name="create" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Add Business
                         </button>
                     </div>
@@ -386,7 +386,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" name="update" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        <button type="submit" name="update" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Update Business
                         </button>
                     </div>
@@ -414,7 +414,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" name="assign_inspector" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        <button type="submit" name="assign_inspector" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Assign Inspector
                         </button>
                     </div>

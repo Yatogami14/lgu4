@@ -9,6 +9,7 @@ class User {
     public $email;
     public $password;
     public $role;
+    public $status = 'active'; // Default status
     public $department;
     public $certification;
     public $avatar;
@@ -30,26 +31,29 @@ class User {
      * @return array ['success' => bool, 'error' => string]
      */
     public function create() {
-        // Build query dynamically based on available columns to handle schema variations
-        $fields = ["name", "email", "password", "role"];
-        $placeholders = [":name", ":email", ":password", ":role"];
-
-        $query = "INSERT INTO " . $this->table_name . " (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
-
-        // Sanitize input
-        $this->name = htmlspecialchars(strip_tags($this->name));
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $this->role = htmlspecialchars(strip_tags($this->role));
-
-        // Hash the password before saving
-        $this->password = password_hash($this->password, PASSWORD_BCRYPT);
+        $fields = ["name", "email", "password", "role", "status"];
+        $placeholders = [":name", ":email", ":password", ":role", ":status"];
 
         $params = [
-            ":name" => $this->name,
-            ":email" => $this->email,
-            ":password" => $this->password,
-            ":role" => $this->role
+            ":name" => htmlspecialchars(strip_tags($this->name)),
+            ":email" => htmlspecialchars(strip_tags($this->email)),
+            ":password" => password_hash($this->password, PASSWORD_BCRYPT),
+            ":role" => htmlspecialchars(strip_tags($this->role)),
+            ":status" => htmlspecialchars(strip_tags($this->status))
         ];
+
+        if ($this->department !== null) {
+            $fields[] = "department";
+            $placeholders[] = ":department";
+            $params[':department'] = htmlspecialchars(strip_tags($this->department));
+        }
+        if ($this->certification !== null) {
+            $fields[] = "certification";
+            $placeholders[] = ":certification";
+            $params[':certification'] = htmlspecialchars(strip_tags($this->certification));
+        }
+
+        $query = "INSERT INTO " . $this->table_name . " (" . implode(", ", $fields) . ") VALUES (" . implode(", ", $placeholders) . ")";
 
         try {
             $pdo = $this->database->getConnection();
@@ -77,7 +81,7 @@ class User {
      * @return array|null
      */
     public function readOne() {
-        $query = "SELECT id, name, email, role, department, certification, avatar, created_at, updated_at
+        $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE id = ? LIMIT 0,1";
 
@@ -88,6 +92,7 @@ class User {
             $this->name = $row['name'] ?? null;
             $this->email = $row['email'] ?? null;
             $this->role = $row['role'] ?? null;
+            $this->status = $row['status'] ?? null;
             $this->department = $row['department'] ?? null;
             $this->certification = $row['certification'] ?? null;
             $this->avatar = $row['avatar'] ?? null;
@@ -128,8 +133,39 @@ class User {
 
         if ($this->name !== null) { $fields[] = "name=:name"; $params[':name'] = htmlspecialchars(strip_tags($this->name)); }
         if ($this->email !== null) { $fields[] = "email=:email"; $params[':email'] = htmlspecialchars(strip_tags($this->email)); }
-        if ($this->role !== null) { $fields[] = "role=:role"; $params[':role'] = htmlspecialchars(strip_tags($this->role)); }
+
+        // Prevent changing the role of a super_admin
+        if ($this->role !== null) {
+            $current_user_query = "SELECT role FROM " . $this->table_name . " WHERE id = ? LIMIT 1";
+            $user_to_update = $this->database->fetch($current_user_query, [$this->id]);
+
+            // Only perform security checks if the role is actually being changed
+            if ($user_to_update && $user_to_update['role'] !== $this->role) {
+                $is_self_update = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $this->id);
+                $is_acting_user_super_admin = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'super_admin');
+
+                // Prevent a user from changing their own role unless they are a super_admin.
+                if ($is_self_update && !$is_acting_user_super_admin) {
+                    error_log("Security: User ID {$_SESSION['user_id']} (role: {$_SESSION['user_role']}) blocked from changing their own role.");
+                    return false;
+                }
+
+                // Also, keep the existing check to prevent anyone from demoting a super_admin.
+                if ($user_to_update['role'] === 'super_admin' && $this->role !== 'super_admin') {
+                    $acting_user_id = $_SESSION['user_id'] ?? 'N/A';
+                    error_log("Security: User ID {$acting_user_id} blocked from demoting super_admin ID {$this->id}.");
+                    return false;
+                }
+            }
+            $fields[] = "role=:role";
+            $params[':role'] = htmlspecialchars(strip_tags($this->role));
+        }
         
+        // Add other updatable fields from profile page
+        if ($this->department !== null) { $fields[] = "department=:department"; $params[':department'] = htmlspecialchars(strip_tags($this->department)); }
+        if ($this->certification !== null) { $fields[] = "certification=:certification"; $params[':certification'] = htmlspecialchars(strip_tags($this->certification)); }
+        if ($this->avatar !== null) { $fields[] = "avatar=:avatar"; $params[':avatar'] = htmlspecialchars(strip_tags($this->avatar)); }
+
         // Only update password if a new one is provided
         if (!empty($this->password)) {
             $fields[] = "password=:password";
@@ -156,6 +192,13 @@ class User {
      * @return bool
      */
     public function delete() {
+        // Prevent deletion of super_admin accounts
+        $check_query = "SELECT role FROM " . $this->table_name . " WHERE id = ? LIMIT 1";
+        $row = $this->database->fetch($check_query, [$this->id]);
+        if ($row && $row['role'] === 'super_admin') {
+            return false;
+        }
+
         $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
         try {
             $this->database->query($query, [$this->id]);
@@ -167,20 +210,43 @@ class User {
     }
 
     /**
+     * Updates a user's status.
+     * @param int $userId
+     * @param string $status
+     * @return bool
+     */
+    public function updateStatus($userId, $status) {
+        $query = "UPDATE " . $this->table_name . " SET status = :status WHERE id = :id";
+        try {
+            $this->database->query($query, [':status' => $status, ':id' => $userId]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Failed to update user status for ID {$userId}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Authenticate a user for login.
      * @return bool
      */
     public function login() {
-        $query = "SELECT id, name, email, password, role
-                  FROM " . $this->table_name . "
-                  WHERE email = :email LIMIT 0,1";
+        // The property could be an email or a username.
+        // The calling code should set $this->email with the identifier.
+        $login_identifier = $this->email;
 
-        $row = $this->database->fetch($query, [':email' => $this->email]);
+        $query = "SELECT id, name, email, password, role, status
+                  FROM " . $this->table_name . "
+                  WHERE email = :identifier OR name = :identifier LIMIT 0,1";
+
+        $row = $this->database->fetch($query, [':identifier' => $login_identifier]);
 
         if ($row && password_verify($this->password, $row['password'])) {
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->role = $row['role'];
+            $this->status = $row['status'];
+            $this->email = $row['email']; // Ensure the object has the correct email
             $this->password = null; // Clear password from memory
             return true;
         }
@@ -192,7 +258,7 @@ class User {
      * @return array|null
      */
     public function findByEmail() {
-        $query = "SELECT id, name, email, role
+        $query = "SELECT id, name, email, role, status
                   FROM " . $this->table_name . "
                   WHERE email = ? LIMIT 0,1";
 
@@ -202,6 +268,7 @@ class User {
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->role = $row['role'];
+            $this->status = $row['status'];
             return $row;
         }
         return null;
@@ -409,7 +476,7 @@ class User {
      * @return array|false User data on success, false on failure.
      */
     public function validateRememberMeToken($selector, $validator) {
-        $query = "SELECT id, name, role, remember_token_validator_hash FROM " . $this->table_name . " WHERE remember_token_selector = ? AND remember_token_expires_at > NOW() LIMIT 0,1";
+        $query = "SELECT id, name, role, status, remember_token_validator_hash FROM " . $this->table_name . " WHERE remember_token_selector = ? AND remember_token_expires_at > NOW() LIMIT 0,1";
         $token_row = $this->database->fetch($query, [$selector]);
 
         if ($token_row) {
@@ -440,6 +507,30 @@ class User {
     private function clearRememberMeTokenBySelector($selector) {
         $query = "UPDATE " . $this->table_name . " SET remember_token_selector = NULL, remember_token_validator_hash = NULL, remember_token_expires_at = NULL WHERE remember_token_selector = :selector";
         $this->database->query($query, [':selector' => $selector]);
+    }
+
+    /**
+     * Gets the last login/activity time for the current user from the sessions table.
+     * @return string|null The last activity timestamp (Y-m-d H:i:s) or null if not found.
+     */
+    public function getLastLoginTime() {
+        if (empty($this->id)) {
+            return null;
+        }
+
+        try {
+            $query = "SELECT MAX(last_activity) as last_login FROM sessions WHERE user_id = :user_id";
+            $row = $this->database->fetch($query, [':user_id' => $this->id]);
+
+            if ($row && $row['last_login']) {
+                // last_activity is a UNIX timestamp
+                return date('Y-m-d H:i:s', $row['last_login']);
+            }
+            return null;
+        } catch (PDOException $e) {
+            error_log("Could not get last login time for user {$this->id}: " . $e->getMessage());
+            return null;
+        }
     }
 }
 ?>

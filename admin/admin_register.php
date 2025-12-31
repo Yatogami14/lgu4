@@ -18,42 +18,36 @@ if ($base_path === '/' || $base_path === '\\') $base_path = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user->name = $_POST['name'];
-    $user->email = $_POST['email'];
-    $user->password = $_POST['password'];
-    $user->role = $_POST['role'];
-    $user->department = $_POST['department'];
-    
-    // Set certification based on role
-    switch ($_POST['role']) {
-        case 'super_admin':
-            $user->certification = 'Super Administrator';
-            break;
-        case 'admin':
-            $user->certification = 'Administrator';
-            break;
-        case 'inspector':
-            $user->certification = 'Certified Inspector';
-            break;
-        case 'business_owner':
-            $user->certification = 'Business Owner';
-            break;
-        case 'community_user':
-            $user->certification = 'Community User';
-            break;
-        default:
-            $user->certification = 'User';
-    }
-
-    // Check if email already exists before trying to create
-    if ($user->emailExists()) {
-        $error_message = "An account with this email already exists. Please use a different email.";
+    if ($_POST['password'] !== $_POST['confirm_password']) {
+        $error_message = "Passwords do not match.";
     } else {
-        if ($user->create()) {
+        $user->name = $_POST['name'];
+        $user->email = $_POST['email'];
+        $user->password = $_POST['password'];
+        $user->role = $_POST['role'];
+        $user->department = $_POST['department'] ?? null;
+        
+        // Set certification based on role
+        switch ($_POST['role']) {
+            case 'super_admin':
+                $user->certification = 'Super Administrator';
+                break;
+            case 'admin':
+                $user->certification = 'Administrator';
+                break;
+            case 'inspector':
+                $user->certification = 'Certified Inspector';
+                break;
+            default:
+                $user->certification = 'Administrator'; // Default to Admin
+        }
+
+        $creation_result = $user->create();
+        if ($creation_result['success']) {
             $role_name = ucfirst(str_replace('_', ' ', $_POST['role']));
             $success_message = "$role_name account created successfully! You can now login.";
         } else {
-            $error_message = "Failed to create account. Please try again.";
+            $error_message = $creation_result['error'] ?? "Failed to create account. Please try again.";
         }
     }
 }
@@ -66,29 +60,55 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Register - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/auth.css">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff !important;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .register-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: #ffffff !important;
+            backdrop-filter: none !important;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
         }
         .logo {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #1a202c;
         }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+            background: linear-gradient(135deg, #fef08a 0%, #facc15 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+        }
+        /* Update blob colors for white theme */
+        .bg-decoration-1 { background: radial-gradient(circle, #FFF59D 0%, transparent 70%); }
+        .bg-decoration-2 { background: radial-gradient(circle, #e5e7eb 0%, transparent 70%); }
+        .bg-decoration-3 { background: radial-gradient(circle, #FFF176 0%, transparent 70%); }
+        .bg-decoration-4 { background: radial-gradient(circle, rgba(255, 249, 196, 0.4) 0%, transparent 70%); }
     </style>
 </head>
 <body class="font-sans">
+    <div class="bg-decoration bg-decoration-1"></div>
+    <div class="bg-decoration bg-decoration-2"></div>
+    <div class="bg-decoration bg-decoration-3"></div>
+    <div class="bg-decoration bg-decoration-4"></div>
+
     <div class="register-card p-8 w-full max-w-md mx-4">
         <div class="text-center mb-8">
             <a href="<?php echo $base_path; ?>/index.html" class="flex items-center justify-center mb-4" title="Go to Homepage">
@@ -120,8 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <option value="super_admin">Super Admin</option>
                     <option value="admin">Admin</option>
                     <option value="inspector">Inspector</option>
-                    <option value="business_owner">Business Owner</option>
-                    <option value="community_user">Community User</option>
                 </select>
             </div>
             <div>
@@ -198,9 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </ul>
             </div>
 
-            <button type="submit" 
-                    class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition duration-200 transform hover:scale-105">
-                <i class="fas fa-user-plus mr-2"></i>Create Super Admin Account
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-user-plus mr-2"></i>Create Admin Account
             </button>
         </form>
 
@@ -212,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <div class="mt-8 pt-6 border-t border-gray-200">
             <div class="text-center">
-                <p class="text-sm text-gray-600">© 2024 LGU Health & Safety Platform. All rights reserved.</p>
+                <p class="text-sm text-gray-600">© <?php echo date('Y'); ?> LGU Health & Safety Platform. All rights reserved.</p>
             </div>
         </div>
     </div>
@@ -236,14 +253,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         const departmentDiv = departmentInput.parentElement.parentElement; // The parent div of the input
 
         function toggleDepartmentField() {
-            const selectedRole = roleSelect.value;
-            if (selectedRole === 'business_owner' || selectedRole === 'community_user') {
-                departmentDiv.style.display = 'none';
-                departmentInput.required = false;
-            } else {
-                departmentDiv.style.display = 'block';
-                departmentInput.required = true;
-            }
+            // Department is always required for admin/inspector roles.
+            departmentDiv.style.display = 'block';
+            departmentInput.required = true;
         }
         roleSelect.addEventListener('change', toggleDepartmentField);
         document.addEventListener('DOMContentLoaded', toggleDepartmentField); // Run on page load

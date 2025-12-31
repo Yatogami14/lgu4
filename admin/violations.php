@@ -96,8 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all violations from database
 $violationModel = new Violation($database);
-$violations = $violationModel->readAll();
 $violationStats = $violationModel->getViolationStats();
+
+// Handle filters
+$filter_severity = $_GET['severity'] ?? null;
+
+if ($filter_severity) {
+    $violations = $violationModel->readBySeverity($filter_severity);
+} else {
+    $violations = $violationModel->readAll();
+}
 
 // Get businesses for create modal
 $businessModel = new Business($database);

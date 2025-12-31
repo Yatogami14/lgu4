@@ -1,6 +1,6 @@
 <?php
 class Database {
-    const DB_UNIFIED = 'hsi_lgu_unified';
+    const DB_UNIFIED = 'lgu';
 
     private $connection = null;
     private $config = [];
@@ -8,10 +8,10 @@ class Database {
     public function __construct() {
         $this->config = [
             self::DB_UNIFIED => [
-                'host' => getenv('DB_HOST') ?: 'localhost',
-                'dbname' => getenv('DB_NAME') ?: 'hsi_lgu_unified',
-                'username' => getenv('DB_USER') ?: 'hsi_lgu_unified',
-                'password' => getenv('DB_PASS') ?: 'Admin123'
+                'host' =>  'localhost:3307', //getenv('DB_HOST') ?:
+                'dbname' => 'hsi_lgu_unified', //getenv('DB_NAME') ?:
+                'username' => 'root', //getenv('DB_USER') ?:
+                'password' => '', //getenv('DB_PASS') ?:
             ]
         ];
     }
@@ -42,7 +42,32 @@ class Database {
         
         try {
             $stmt = $pdo->prepare($query);
-            $stmt->execute($params);
+
+            if (!empty($params)) {
+                // Check if it's an associative array (named parameters) or indexed (positional parameters)
+                if (array_keys($params) !== range(0, count($params) - 1)) {
+                    // Named parameters (e.g., [':id' => 1])
+                    foreach ($params as $key => $value) {
+                        $type = PDO::PARAM_STR;
+                        if (is_int($value)) $type = PDO::PARAM_INT;
+                        elseif (is_bool($value)) $type = PDO::PARAM_BOOL;
+                        elseif (is_null($value)) $type = PDO::PARAM_NULL;
+                        $stmt->bindValue($key, $value, $type);
+                    }
+                } else {
+                    // Positional parameters (e.g., [1, 'test'])
+                    foreach ($params as $key => $value) {
+                        $type = PDO::PARAM_STR;
+                        if (is_int($value)) $type = PDO::PARAM_INT;
+                        elseif (is_bool($value)) $type = PDO::PARAM_BOOL;
+                        elseif (is_null($value)) $type = PDO::PARAM_NULL;
+                        // PDO placeholders are 1-indexed
+                        $stmt->bindValue($key + 1, $value, $type);
+                    }
+                }
+            }
+
+            $stmt->execute();
             return $stmt;
         } catch (PDOException $e) {
             error_log("Database query error: " . $e->getMessage());

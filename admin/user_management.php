@@ -141,8 +141,8 @@ $userRoleCounts = $user->getUserCountByRole();
 
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">User Management</h2>
-            <button onclick="openUserModal('create')" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            <button onclick="openUserModal('create')"
+                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                 <i class="fas fa-plus mr-2"></i>Add User
             </button>
         </div>
@@ -157,7 +157,7 @@ $userRoleCounts = $user->getUserCountByRole();
 
         <!-- Users Table -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200 text-gray-900">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
@@ -177,7 +177,7 @@ $userRoleCounts = $user->getUserCountByRole();
                     >
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3">
+                                <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-gray-900 text-sm font-bold mr-3">
                                     <?php echo substr($userRow['name'], 0, 1); ?>
                                 </div>
                                 <div>
@@ -195,7 +195,7 @@ $userRoleCounts = $user->getUserCountByRole();
                             <button onclick="editUser(<?php echo $userRow['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button onclick="openResetPasswordModal(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <button onclick="openResetPasswordModal(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" class="text-yellow-600 hover:text-yellow-800 mr-3">
                                 <i class="fas fa-key"></i> Reset Password
                             </button>
                             <button onclick="deleteUser(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" 
@@ -251,7 +251,7 @@ $userRoleCounts = $user->getUserCountByRole();
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" id="submitButton" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <button type="submit" id="submitButton" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Add User
                         </button>
                     </div>
@@ -285,7 +285,7 @@ $userRoleCounts = $user->getUserCountByRole();
                                 class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                             Cancel
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        <button type="submit" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                             Reset Password
                         </button>
                     </div>

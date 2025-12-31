@@ -124,8 +124,8 @@ $all_inspectors = $inspectorUser->readByRole('inspector');
 $inspectionTypeModel = new InspectionType($database);
 $all_inspection_types = $inspectionTypeModel->readAll();
 
-// Get all scheduled inspections to display them
-$scheduled_inspections = $inspection->readByStatus('scheduled');
+// Get all inspections to display them
+$all_inspections = $inspection->readAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -144,8 +144,8 @@ $scheduled_inspections = $inspection->readByStatus('scheduled');
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold">Schedule Inspections</h2>
-            <button onclick="document.getElementById('scheduleModal').classList.remove('hidden')" 
-                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            <button onclick="document.getElementById('scheduleModal').classList.remove('hidden')"
+                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
                 <i class="fas fa-plus mr-2"></i>New Inspection
             </button>
         </div>
@@ -215,8 +215,8 @@ $scheduled_inspections = $inspection->readByStatus('scheduled');
                                     class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
                                 Cancel
                             </button>
-                            <button type="submit" name="schedule_inspection" 
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            <button type="submit" name="schedule_inspection"
+                                    class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
                                 Schedule
                             </button>
                         </div>
@@ -252,7 +252,7 @@ $scheduled_inspections = $inspection->readByStatus('scheduled');
                         </div>
                         <div class="flex justify-end space-x-3 pt-4">
                             <button type="button" onclick="closeModal('rescheduleModal')" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Cancel</button>
-                            <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Reschedule</button>
+                            <button type="submit" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">Reschedule</button>
                         </div>
                     </form>
                 </div>
@@ -261,26 +261,26 @@ $scheduled_inspections = $inspection->readByStatus('scheduled');
 
         <!-- Scheduled Inspections Table -->
         <div class="mt-8">
-            <h3 class="text-xl font-bold mb-4">Currently Scheduled Inspections</h3>
+            <h3 class="text-xl font-bold mb-4">All Inspections</h3>
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled For</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspector</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status & Priority</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <?php if (empty($scheduled_inspections)): ?>
+                        <?php if (empty($all_inspections)): ?>
                             <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No inspections are currently scheduled.</td>
+                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No inspections found.</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($scheduled_inspections as $row): ?>
+                            <?php foreach ($all_inspections as $row): ?>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($row['business_name']); ?></div>
@@ -291,15 +291,23 @@ $scheduled_inspections = $inspection->readByStatus('scheduled');
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?php echo htmlspecialchars($row['inspector_name'] ?? 'Unassigned'); ?>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full 
-                                        <?php echo $row['priority'] == 'high' ? 'bg-red-100 text-red-800' : 
-                                               ($row['priority'] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
-                                        <?php echo htmlspecialchars(ucfirst($row['priority'])); ?>
-                                    </span>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                            <?php echo $row['status'] == 'scheduled' ? 'bg-blue-100 text-blue-800' : 
+                                                   ($row['status'] == 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
+                                                   ($row['status'] == 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')); ?>">
+                                            <?php echo str_replace('_', ' ', $row['status']); ?>
+                                        </span>
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                            <?php echo $row['priority'] == 'high' ? 'bg-red-100 text-red-800' : 
+                                                   ($row['priority'] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'); ?>">
+                                            <?php echo htmlspecialchars(ucfirst($row['priority'])); ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-blue-600 hover:text-blue-900 mr-3" title="View Details">
+                                    <a href="inspection_view.php?id=<?php echo $row['id']; ?>" class="text-yellow-600 hover:text-yellow-800 mr-3" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <button onclick="openRescheduleModal(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars(addslashes($row['business_name'])); ?>', '<?php echo $row['scheduled_date']; ?>', '<?php echo $row['inspector_id'] ?? ''; ?>')" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Reschedule">

@@ -16,6 +16,9 @@ CREATE TABLE `users` (
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('super_admin','admin','inspector','business_owner','community_user') NOT NULL,
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `verification_code` varchar(255) DEFAULT NULL,
+  `code_expiry` datetime DEFAULT NULL,
   `department` varchar(255) DEFAULT NULL,
   `certification` varchar(255) DEFAULT NULL,
   `avatar` varchar(255) DEFAULT NULL,
@@ -70,6 +73,10 @@ CREATE TABLE `businesses` (
   `next_inspection_date` date DEFAULT NULL,
   `is_compliant` tinyint(1) DEFAULT 0,
   `compliance_score` int(3) DEFAULT NULL,
+  `representative_name` varchar(255) DEFAULT NULL,
+  `representative_position` varchar(255) DEFAULT NULL,
+  `representative_contact` varchar(50) DEFAULT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -77,6 +84,27 @@ CREATE TABLE `businesses` (
   KEY `inspector_id` (`inspector_id`),
   CONSTRAINT `fk_business_owner` FOREIGN KEY (`owner_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_business_inspector` FOREIGN KEY (`inspector_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `business_documents`
+-- (For business registration compliance documents)
+--
+
+CREATE TABLE `business_documents` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `business_id` int(11) NOT NULL,
+  `document_type` enum('building_permit','business_permit','waste_disposal_certificate','owner_id','tax_registration') NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `mime_type` varchar(100) NOT NULL,
+  `file_size` int(11) NOT NULL,
+  `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `business_id` (`business_id`),
+  CONSTRAINT `fk_business_document` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -98,8 +126,8 @@ CREATE TABLE `inspections` (
   `compliance_score` int(3) DEFAULT NULL,
   `total_violations` int(11) DEFAULT 0,
   `notes` text DEFAULT NULL,
-  `notes_ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`notes_ai_analysis`)),
-  `draft_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`draft_data`)),
+  `notes_ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `draft_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -125,7 +153,7 @@ CREATE TABLE `checklist_templates` (
   `question` text NOT NULL,
   `required` tinyint(1) DEFAULT 1,
   `input_type` enum('checkbox','text','select','number') NOT NULL DEFAULT 'checkbox',
-  `options` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`options`)),
+  `options` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_inspection_type` (`inspection_type_id`),
@@ -145,7 +173,7 @@ CREATE TABLE `inspection_responses` (
   `inspection_id` int(11) NOT NULL,
   `checklist_template_id` int(11) NOT NULL,
   `response` text DEFAULT NULL,
-  `ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`ai_analysis`)),
+  `ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -165,18 +193,23 @@ CREATE TABLE `inspection_responses` (
 
 CREATE TABLE `violations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `inspection_id` int(11) NOT NULL,
+  `inspection_id` int(11) DEFAULT NULL,
   `business_id` int(11) NOT NULL,
   `description` text NOT NULL,
   `status` enum('open','in_progress','closed','resolved') NOT NULL DEFAULT 'open',
   `severity` enum('low','medium','high') NOT NULL DEFAULT 'medium',
+  `due_date` date DEFAULT NULL,
+  `resolved_date` datetime DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `inspection_id` (`inspection_id`),
   KEY `business_id` (`business_id`),
-  CONSTRAINT `fk_violation_inspection` FOREIGN KEY (`inspection_id`) REFERENCES `inspections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_violation_business` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `fk_violation_inspection` FOREIGN KEY (`inspection_id`) REFERENCES `inspections` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_violation_business` FOREIGN KEY (`business_id`) REFERENCES `businesses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_violation_creator` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -195,7 +228,7 @@ CREATE TABLE `media` (
   `file_name` varchar(255) NOT NULL,
   `mime_type` varchar(100) NOT NULL,
   `file_size` int(11) NOT NULL,
-  `ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`ai_analysis`)),
+  `ai_analysis` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `related_entity` (`related_entity_type`,`related_entity_id`),
@@ -243,4 +276,55 @@ CREATE TABLE `inspector_specializations` (
   KEY `inspection_type_id` (`inspection_type_id`),
   CONSTRAINT `fk_spec_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_spec_inspection_type` FOREIGN KEY (`inspection_type_id`) REFERENCES `inspection_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `action_attempts`
+-- This table is used by RateLimiter.php to prevent brute-force attacks.
+--
+
+CREATE TABLE `action_attempts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `action_name` varchar(255) NOT NULL,
+  `scope` varchar(255) NOT NULL COMMENT 'The identifier being limited (e.g., IP address, email)',
+  `ip_address` varchar(45) NOT NULL,
+  `attempt_time` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `action_scope_time_idx` (`action_name`,`scope`,`attempt_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `verification_codes`
+-- (Used by register.php and includes/functions.php)
+--
+
+CREATE TABLE `verification_codes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `code` varchar(255) NOT NULL,
+  `expiry` datetime NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `fk_verification_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sessions`
+-- (Referenced in models/User.php for active inspectors)
+--
+
+CREATE TABLE `sessions` (
+  `id` varchar(128) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `last_activity` int(11) NOT NULL,
+  `data` text NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `fk_session_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
