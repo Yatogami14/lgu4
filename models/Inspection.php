@@ -108,9 +108,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch related data from the core database in separate, efficient queries.
         $businesses = [];
@@ -164,9 +164,9 @@ class Inspection {
         }
 
         // Step 2: Collect all the foreign keys needed from the core database.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch the related data from the core database in separate, efficient queries.
         $businesses = [];
@@ -221,9 +221,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_column($inspections, 'inspector_id'));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_column($inspections, 'inspector_id')));
 
         // Step 3: Fetch related data from the core database in separate, efficient queries.
         $businesses = [];
@@ -279,8 +279,8 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -480,9 +480,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -523,21 +523,33 @@ class Inspection {
         return $inspections;
     }
     // Get inspections by inspector
-    public function readByInspector($inspector_id) {
+    public function readByInspector($inspector_id, $limit = 0, $offset = 0, $status = null) {
         // Step 1: Fetch inspections for the inspector from the scheduling database.
         $query = "SELECT *
                   FROM " . $this->table_name . "
-                  WHERE inspector_id = ?
-                  ORDER BY scheduled_date DESC";
-        $inspections = $this->database->fetchAll($query, [$inspector_id]);
+                  WHERE inspector_id = ?";
+        $params = [$inspector_id];
+
+        if ($status) {
+            $query .= " AND status = ?";
+            $params[] = $status;
+        }
+
+        $query .= " ORDER BY scheduled_date DESC";
+        
+        if ($limit > 0) {
+            $query .= " LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
+        }
+
+        $inspections = $this->database->fetchAll($query, $params);
 
         if (empty($inspections)) {
             return [];
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -572,6 +584,20 @@ class Inspection {
         return $inspections;
     }
 
+    // Count inspections by inspector
+    public function countByInspector($inspector_id, $status = null) {
+        $query = "SELECT COUNT(*) as count FROM " . $this->table_name . " WHERE inspector_id = ?";
+        $params = [$inspector_id];
+
+        if ($status) {
+            $query .= " AND status = ?";
+            $params[] = $status;
+        }
+
+        $row = $this->database->fetch($query, $params);
+        return $row['count'] ?? 0;
+    }
+
     // Get available inspections (not assigned to any inspector)
     public function getAvailableInspections() {
         // Step 1: Fetch available inspections from the scheduling database.
@@ -586,8 +612,8 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -701,9 +727,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -752,7 +778,7 @@ class Inspection {
         }
 
         // Step 2: Collect all unique inspection_type_ids.
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
 
         // Step 3: Fetch the inspection type names from the core database.
         $inspection_types = [];
@@ -793,9 +819,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids_from_result = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids_from_result = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];
@@ -913,9 +939,9 @@ class Inspection {
         }
 
         // Step 2: Collect all unique foreign keys.
-        $business_ids_from_result = array_unique(array_column($inspections, 'business_id'));
-        $inspection_type_ids = array_unique(array_column($inspections, 'inspection_type_id'));
-        $inspector_ids = array_unique(array_filter(array_column($inspections, 'inspector_id')));
+        $business_ids_from_result = array_values(array_unique(array_column($inspections, 'business_id')));
+        $inspection_type_ids = array_values(array_unique(array_column($inspections, 'inspection_type_id')));
+        $inspector_ids = array_values(array_unique(array_filter(array_column($inspections, 'inspector_id'))));
 
         // Step 3: Fetch related data from the core database.
         $businesses = [];

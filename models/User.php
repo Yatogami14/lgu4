@@ -110,7 +110,7 @@ class User {
      * @return array
      */
     public function readAll($role = null, $limit = 1000, $offset = 0) {
-        $query = "SELECT id, name, email, role, created_at
+        $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name;
         $params = [];
         if ($role) {
@@ -302,7 +302,7 @@ class User {
      * @return array
      */
     public function search($keywords) {
-        $query = "SELECT id, name, email, role
+        $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
                   WHERE name LIKE ? OR email LIKE ?
                   ORDER BY name ASC";

@@ -4,7 +4,7 @@ class GeminiAnalyzer {
     private $apiKey;
     private $textModel = 'gemini-1.5-flash'; // Stable model for text generation
     private $visionModel = 'gemini-1.5-flash'; // Stable model for vision/multimodal tasks
-    private $baseUrl = 'https://generativelanguage.googleapis.com/v1/models/';
+    private $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
  
     public function __construct($apiKey) {
         $this->apiKey = $apiKey;
@@ -132,6 +132,10 @@ Image for analysis is provided.";
 
     private function makeApiCall($url, $data) {
         $ch = curl_init($url);
+        if ($ch === false) {
+            return ['error' => ['message' => "Failed to initialize cURL", 'code' => 'INIT_FAILED']];
+        }
+
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

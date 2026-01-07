@@ -55,104 +55,117 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password - Health & Safety Inspection System</title>
     <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/auth.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            background: #ffffff !important;
-        }
-        .login-container {
-            background: #ffffff !important;
-            backdrop-filter: none !important;
-        }
-        .login-header h2 {
-            color: #1a202c;
-            font-weight: 700;
-        }
-        .btn-primary {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1f2937; /* Dark gray text for better readability on yellow */
-            background: linear-gradient(135deg, #fef08a 0%, #facc15 100%); /* Brighter yellow gradient */
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
-        }
-        /* Update blob colors for white theme */
-        .bg-decoration-1 {
-            background: radial-gradient(circle, #FFF59D 0%, transparent 70%);
-        }
-        .bg-decoration-2 {
-            background: radial-gradient(circle, #e5e7eb 0%, transparent 70%);
-        }
-        .bg-decoration-3 {
-            background: radial-gradient(circle, #FFF176 0%, transparent 70%);
-        }
-        .bg-decoration-4 {
-            background: radial-gradient(circle, rgba(255, 249, 196, 0.4) 0%, transparent 70%);
-        }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 font-sans text-gray-900 h-full">
 
-    <div class="bg-decoration bg-decoration-1"></div>
-    <div class="bg-decoration bg-decoration-2"></div>
-    <div class="bg-decoration bg-decoration-3"></div>
-    <div class="bg-decoration bg-decoration-4"></div>
-
-    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Watermark" class="watermark-logo">
-
-    <a href="<?php echo $base_path; ?>/main_login.php" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        Back to Login
-    </a>
-
-    <div class="main-content-wrapper">
-        <div class="logo-left">
-            <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Logo">
-            <h1>PASSWORD RESET</h1>
-            <p class="tagline">Regain Access to Your Account</p>
+    <div class="min-h-screen flex">
+        
+        <!-- Left Side - Branding (Hidden on mobile) -->
+        <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-yellow-400 to-yellow-600 relative overflow-hidden items-center justify-center">
+            <!-- Decorative Background Elements -->
+            <div class="absolute top-0 left-0 w-full h-full bg-yellow-500 opacity-10 pattern-grid-lg"></div>
+            <div class="absolute -top-24 -left-24 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+            
+            <div class="relative z-10 text-center px-12">
+                <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/20">
+                    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Logo" class="h-32 w-32 mx-auto rounded-full shadow-lg mb-6 border-4 border-white/50">
+                    <h1 class="text-4xl font-black text-white mb-2 tracking-tight drop-shadow-sm">Password Recovery</h1>
+                    <p class="text-yellow-50 text-lg font-medium max-w-md mx-auto leading-relaxed">
+                        Regain access to your account securely.
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <div class="login-container">
-            <div class="login-header">
-                <h2>Forgot Your Password?</h2>
-                <p>No problem. Enter your email below and we'll send you a link to reset it.</p>
-            </div>
+        <!-- Right Side - Form -->
+        <div class="w-full lg:w-1/2 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
+            
+            <!-- Back Button -->
+            <a href="<?php echo $base_path; ?>/main_login.php" class="absolute top-6 left-6 inline-flex items-center text-sm font-medium text-gray-500 hover:text-yellow-600 transition-colors group">
+                <i class="fas fa-arrow-left mr-2 transform group-hover:-translate-x-1 transition-transform"></i>
+                Back to Login
+            </a>
 
-            <?php if (isset($success_message)): ?>
-                <div class="success-message">
-                    <?php echo $success_message; ?>
+            <div class="mx-auto w-full max-w-sm lg:w-96">
+                <div class="text-center lg:text-left">
+                    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Logo" class="h-16 w-16 mx-auto lg:hidden mb-6 rounded-full shadow-md">
+                    <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Forgot Password?</h2>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Enter your email address and we'll send you a link to reset your password.
+                    </p>
                 </div>
-            <?php endif; ?>
 
-            <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-envelope text-gray-400"></i>
-                        <input type="email" name="email" id="email" required placeholder="Enter your email">
+                <div class="mt-8">
+                    <?php if (isset($success_message)): ?>
+                        <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0"><i class="fas fa-check-circle text-green-500"></i></div>
+                                <div class="ml-3"><p class="text-sm text-green-700 font-medium"><?php echo $success_message; ?></p></div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="space-y-6">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                </div>
+                                <input type="email" name="email" id="email" required 
+                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
+                                    placeholder="Enter your email">
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-yellow-500/30">
+                                Send Reset Link
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-600">
+                            Remember your password? 
+                            <a href="main_login.php" class="font-medium text-yellow-600 hover:text-yellow-500 transition-colors">
+                                Sign In
+                            </a>
+                        </p>
                     </div>
+                    
+                    <p class="mt-8 text-center text-xs text-gray-500">
+                        &copy; <?php echo date('Y'); ?> HSI-QC Protektado. All Rights Reserved.
+                    </p>
                 </div>
-
-                <button type="submit" class="btn-primary">
-                    Send Reset Link
-                </button>
-            </form>
-
-            <p class="login-link">
-                Remember your password? <a href="main_login.php">Sign In</a>
-            </p>
+            </div>
         </div>
     </div>
 </body>

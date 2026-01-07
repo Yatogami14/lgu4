@@ -13,19 +13,10 @@
     <style>
         html { scroll-behavior: smooth; }
         #home.hero-section {
-            background-image: linear-gradient(135deg, rgba(255, 249, 196, 0.95) 0%, rgba(255, 241, 118, 0.95) 100%), url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop');
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(254, 240, 138, 0.8) 100%), url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed; /* Fallback for no-JS */
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(200,180,0,0.15);
-        }
-        .brand-bg {
-            background: linear-gradient(135deg, #FFF59D 0%, #FFEE58 100%);
-            background-size: cover;
-            background-position: center;
         }
         /* Styles for scroll animations */
         .fade-in-element {
@@ -67,6 +58,14 @@
             animation: pulse-gentle 2.5s infinite ease-in-out;
         }
 
+        /* Gradient Text Utility */
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #ca8a04, #854d0e);
+        }
+
         /* Styles for shrinking header */
         #header .header-content, #header .logo-img {
             transition: height 0.3s ease-in-out;
@@ -98,15 +97,15 @@
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
     </script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-yellow-200 selection:text-yellow-900">
 
     <!-- Header -->
-    <header id="header" class="sticky top-0 z-50 transition-all duration-300">
+    <header id="header" class="sticky top-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="header-content flex justify-between items-center">
                 <a href="index.html" class="flex items-center space-x-3" title="Go to Homepage">
-                    <img src="logo/logo.jpeg?v=4" alt="Logo" class="logo-img h-9 w-auto">
-                    <span class="text-xl font-bold text-gray-900">Health and Safety Inspections</span>
+                    <img src="logo/logo.jpeg?v=4" alt="Logo" class="logo-img h-9 w-auto rounded-full shadow-sm">
+                    <span class="text-xl font-bold text-gray-900 tracking-tight">HSI-QC <span class="text-yellow-600">Protektado</span></span>
                 </a>
                 <!-- Desktop Menu -->
                 <nav id="desktop-nav" class="hidden md:flex space-x-8">
@@ -115,10 +114,10 @@
                     <a href="#about" class="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors duration-200">About Us</a>
                 </nav>
                 <div class="hidden md:flex items-center space-x-2">
-                    <a href="main_login.php" class="text-sm font-semibold text-gray-800 hover:text-black px-4 py-2 rounded-md transition-colors">
+                    <a href="main_login.php" class="text-sm font-semibold text-gray-600 hover:text-yellow-600 px-4 py-2 rounded-full transition-colors">
                         Login
                     </a>
-                    <a href="register_options.php" class="text-sm font-semibold bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500 transition-colors shadow-sm hover:shadow-md">
+                    <a href="register_options.php" class="text-sm font-semibold bg-yellow-500 text-white px-5 py-2.5 rounded-full hover:bg-yellow-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                         Sign Up
                     </a>
                 </div>
@@ -146,19 +145,20 @@
     <!-- Main Content -->
     <main>
         <!-- Hero Section -->
-        <section id="home" class="hero-section py-24 sm:py-32">
+        <section id="home" class="hero-section py-32 sm:py-40 relative overflow-hidden">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10" id="hero-content">
-                <h1 class="text-4xl sm:text-5xl md:text-6xl font-black text-gray-900 leading-tight animate-on-load animate-headline">
-                    Ensuring Safer Communities
+                <span class="inline-block py-1 px-3 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold mb-6 animate-on-load animate-headline">Official Inspection Platform</span>
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 leading-tight animate-on-load animate-headline mb-6">
+                    Ensuring <span class="text-gradient">Safer Communities</span>
                 </h1>
-                <p class="mt-6 max-w-3xl mx-auto text-lg sm:text-xl text-gray-700 animate-on-load animate-subheadline">
-                    A modern digital platform for health and safety inspections, powered by AI for smarter, faster, and more transparent compliance.
+                <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-600 animate-on-load animate-subheadline leading-relaxed">
+                    A modern digital platform for health and safety inspections, powered by AI for smarter, faster, and more transparent compliance across Quezon City.
                 </p>
-                <div class="mt-8 flex justify-center space-x-4 animate-on-load animate-buttons">
-                    <a href="main_login.php" class="bg-yellow-400 text-gray-900 px-8 py-3 rounded-md text-lg font-semibold hover:bg-yellow-500 transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl animate-pulse-gentle">
+                <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4 animate-on-load animate-buttons">
+                    <a href="main_login.php" class="bg-yellow-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-yellow-600 transition-all transform hover:scale-105 shadow-lg hover:shadow-yellow-500/30 animate-pulse-gentle">
                         Get Started
                     </a>
-                    <a href="#services" class="bg-white text-yellow-600 px-8 py-3 rounded-md text-lg font-semibold border border-gray-300 hover:bg-gray-50 transition-transform transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-yellow-400 hover:text-yellow-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
                         Learn More
                     </a>
                 </div>
@@ -166,87 +166,98 @@
         </section>
 
         <!-- Services Section -->
-        <section id="services" class="py-16 sm:py-24 brand-bg text-gray-800">
+        <section id="services" class="py-24 bg-white relative">
+            <!-- Decorative background blob -->
+            <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 opacity-30">
+                <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-yellow-200 blur-3xl"></div>
+                <div class="absolute top-1/2 -left-24 w-72 h-72 rounded-full bg-blue-100 blur-3xl"></div>
+            </div>
+
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16 max-w-3xl mx-auto">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">Our Core Features</h2>
-                    <p class="mt-4 text-lg text-gray-700">Everything you need for modern safety inspections.</p>
+                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">Features</h2>
+                    <h2 class="text-4xl font-extrabold tracking-tight text-gray-900 mb-4">Our Core Capabilities</h2>
+                    <p class="text-xl text-gray-500">Everything you need for modern, efficient safety inspections.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-gray-800">
                     <!-- Feature 1 -->
-                    <div class="flex flex-col text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg transition-all duration-300 feature-card fade-in-element">
-                        <div class="flex items-center justify-center h-20 w-20 rounded-full bg-yellow-400 text-gray-900 mx-auto mb-5 shadow-md">
-                            <i class="fas fa-bolt text-3xl"></i>
+                    <div class="group flex flex-col p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 fade-in-element">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-yellow-100 text-yellow-600 mb-6 group-hover:bg-yellow-500 group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-bolt text-2xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-3">AI-Powered Analysis</h3>
-                        <p class="text-gray-600 flex-grow">
+                        <h3 class="text-xl font-bold mb-3 text-gray-900">AI-Powered Analysis</h3>
+                        <p class="text-gray-500 leading-relaxed flex-grow">
                             Leverage Gemini AI to analyze inspection notes and media for potential hazards, ensuring a deeper level of scrutiny.
                         </p>
                     </div>
                     <!-- Feature 2 -->
-                    <div class="flex flex-col text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg transition-all duration-300 feature-card fade-in-element">
-                        <div class="flex items-center justify-center h-20 w-20 rounded-full bg-yellow-400 text-gray-900 mx-auto mb-5 shadow-md">
-                            <i class="fas fa-file-alt text-3xl"></i>
+                    <div class="group flex flex-col p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 fade-in-element">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-blue-100 text-blue-600 mb-6 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-file-alt text-2xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-3">Centralized Reporting</h3>
-                        <p class="text-gray-600 flex-grow">
+                        <h3 class="text-xl font-bold mb-3 text-gray-900">Centralized Reporting</h3>
+                        <p class="text-gray-500 leading-relaxed flex-grow">
                             Access all inspection reports, violations, and compliance data from a unified dashboard, tailored to your role.
                         </p>
                     </div>
                     <!-- Feature 3 -->
-                    <div class="flex flex-col text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg transition-all duration-300 feature-card fade-in-element">
-                        <div class="flex items-center justify-center h-20 w-20 rounded-full bg-yellow-400 text-gray-900 mx-auto mb-5 shadow-md">
-                            <i class="fas fa-users text-3xl"></i>
+                    <div class="group flex flex-col p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 fade-in-element">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-green-100 text-green-600 mb-6 group-hover:bg-green-500 group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-users text-2xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-3">Community Transparency</h3>
-                        <p class="text-gray-600 flex-grow">
+                        <h3 class="text-xl font-bold mb-3 text-gray-900">Community Transparency</h3>
+                        <p class="text-gray-500 leading-relaxed flex-grow">
                             Empowering community members and business owners with access to public safety records and compliance scores.
                         </p>
                     </div>
                     <!-- Feature 4 -->
-                    <div class="flex flex-col text-center p-8 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg transition-all duration-300 feature-card fade-in-element">
-                        <div class="flex items-center justify-center h-20 w-20 rounded-full bg-yellow-400 text-gray-900 mx-auto mb-5 shadow-md">
-                            <i class="fas fa-search-location text-3xl"></i>
+                    <div class="group flex flex-col p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 fade-in-element">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-purple-100 text-purple-600 mb-6 group-hover:bg-purple-500 group-hover:text-white transition-colors duration-300">
+                            <i class="fas fa-search-location text-2xl"></i>
                         </div>
-                        <h3 class="text-xl font-bold mb-2">Public Compliance Search</h3>
-                        <p class="text-gray-600 flex-grow">
+                        <h3 class="text-xl font-bold mb-3 text-gray-900">Public Compliance Search</h3>
+                        <p class="text-gray-500 leading-relaxed flex-grow">
                             Easily search for any registered business to view their latest public compliance score and promote transparency.
                         </p>
-                        <a href="public_compliance_search.php" class="text-yellow-600 hover:underline mt-4 inline-block font-semibold">Search Now &rarr;</a>
+                        <a href="public_compliance_search.php" class="text-yellow-600 hover:text-yellow-700 mt-4 inline-flex items-center font-semibold group-hover:translate-x-1 transition-transform">Search Now <i class="fas fa-arrow-right ml-2"></i></a>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- How It Works Section -->
-        <section class="py-16 sm:py-24 bg-gray-50">
+        <section class="py-24 bg-gray-50 border-t border-gray-200">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 fade-in-element">
                 <div class="text-center mb-16 max-w-3xl mx-auto">
-                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">A Simple, Effective Process</h2>
-                    <p class="mt-4 text-lg text-gray-600">Streamlining inspections from start to finish.</p>
+                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">Workflow</h2>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">A Simple, Effective Process</h2>
+                    <p class="mt-4 text-lg text-gray-500">Streamlining inspections from start to finish.</p>
                 </div>
-                <div class="flex flex-col md:flex-row justify-center items-center space-y-8 md:space-y-0 md:space-x-8">
-                    <div class="flex items-center text-center md:text-left">
-                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-white border-2 border-yellow-500 text-yellow-600 flex items-center justify-center font-bold text-xl shadow-md">1</div>
-                        <div class="ml-4">
-                            <h4 class="text-lg font-bold">Schedule or Request</h4>
-                            <p class="text-gray-600">Admins schedule inspections, or businesses request them.</p>
+                
+                <div class="relative">
+                    <!-- Connecting line for desktop -->
+                    <div class="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0"></div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+                        <!-- Step 1 -->
+                        <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
+                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">1</div>
+                            <h4 class="text-xl font-bold mb-3 text-gray-900">Schedule</h4>
+                            <p class="text-gray-500">Admins schedule inspections, or businesses request them directly through the portal.</p>
                         </div>
-                    </div>
-                    <div class="text-2xl text-gray-300 hidden md:block">&rarr;</div>
-                    <div class="flex items-center text-center md:text-left">
-                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-white border-2 border-yellow-500 text-yellow-600 flex items-center justify-center font-bold text-xl shadow-md">2</div>
-                        <div class="ml-4">
-                            <h4 class="text-lg font-bold">Conduct & Analyze</h4>
-                            <p class="text-gray-600">Inspectors perform evaluations with AI-assisted tools.</p>
+                        
+                        <!-- Step 2 -->
+                        <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
+                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">2</div>
+                            <h4 class="text-xl font-bold mb-3 text-gray-900">Inspect</h4>
+                            <p class="text-gray-500">Inspectors perform evaluations on-site using AI-assisted tools to identify hazards.</p>
                         </div>
-                    </div>
-                    <div class="text-2xl text-gray-300 hidden md:block">&rarr;</div>
-                    <div class="flex items-center text-center md:text-left">
-                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-white border-2 border-yellow-500 text-yellow-600 flex items-center justify-center font-bold text-xl shadow-md">3</div>
-                        <div class="ml-4">
-                            <h4 class="text-lg font-bold">Report & Resolve</h4>
-                            <p class="text-gray-600">View reports, track violations, and ensure compliance.</p>
+                        
+                        <!-- Step 3 -->
+                        <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
+                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">3</div>
+                            <h4 class="text-xl font-bold mb-3 text-gray-900">Resolve</h4>
+                            <p class="text-gray-500">View detailed reports, track violations, and ensure compliance for a safer community.</p>
                         </div>
                     </div>
                 </div>
@@ -254,40 +265,40 @@
         </section>
 
         <!-- About Us Section -->
-        <section id="about" class="py-16 sm:py-24 bg-white">
+        <section id="about" class="py-24 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fade-in-element">
                 <div class="lg:text-center">
-                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase">About Us</h2>
+                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">About Us</h2>
                     <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
                         A Commitment to Public Safety
                     </p>
-                    <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto leading-relaxed">
                         HSI-QC Protektado is a pioneering platform dedicated to enhancing health and safety standards across the community through technology and transparency.
                     </p>
                 </div>
 
                 <div class="mt-10">
-                    <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-                        <div class="relative">
+                    <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-12 md:gap-y-12">
+                        <div class="relative bg-gray-50 p-8 rounded-2xl border border-gray-100">
                             <dt>
-                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-yellow-500 text-white">
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-yellow-500 text-white shadow-lg">
                                     <i class="fas fa-bullseye"></i>
                                 </div>
-                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Our Mission</p>
+                                <p class="ml-16 text-xl leading-6 font-bold text-gray-900">Our Mission</p>
                             </dt>
-                            <dd class="mt-2 ml-16 text-base text-gray-500">
+                            <dd class="mt-4 ml-16 text-base text-gray-500 leading-relaxed">
                                 To provide a robust, AI-driven inspection framework that empowers businesses, inspectors, and the public to collaboratively build a safer environment for everyone.
                             </dd>
                         </div>
 
-                        <div class="relative">
+                        <div class="relative bg-gray-50 p-8 rounded-2xl border border-gray-100">
                             <dt>
-                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-yellow-500 text-white">
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-yellow-500 text-white shadow-lg">
                                     <i class="fas fa-eye"></i>
                                 </div>
-                                <p class="ml-16 text-lg leading-6 font-bold text-gray-900">Our Vision</p>
+                                <p class="ml-16 text-xl leading-6 font-bold text-gray-900">Our Vision</p>
                             </dt>
-                            <dd class="mt-2 ml-16 text-base text-gray-500">
+                            <dd class="mt-4 ml-16 text-base text-gray-500 leading-relaxed">
                                 To be the leading digital solution for public safety compliance, fostering a culture of proactive safety and accountability through accessible and intelligent data.
                             </dd>
                         </div>
@@ -297,15 +308,15 @@
         </section>
 
         <!-- Call to Action -->
-        <section class="brand-bg">
+        <section class="bg-gradient-to-r from-yellow-500 to-yellow-600 relative overflow-hidden">
             <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
                 <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                     <span class="block text-gray-900">Ready to enhance community safety?</span>
-                    <span class="block text-yellow-800">Join the platform today.</span>
+                    <span class="block text-white">Join the platform today.</span>
                 </h2>
                 <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0">
                     <div class="inline-flex rounded-md shadow-lg">
-                        <a href="main_login.php" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-yellow-800 bg-white hover:bg-yellow-50">
+                        <a href="main_login.php" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-yellow-600 bg-white hover:bg-gray-50 transition-all transform hover:scale-105 shadow-xl">
                             Login or Register
                         </a>
                     </div>
@@ -314,6 +325,11 @@
         </section>
 
     </main>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top-button" class="fixed bottom-8 right-8 bg-gray-900 text-white p-4 rounded-full shadow-xl hover:bg-yellow-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 z-50 transition-all duration-300" title="Back to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white">
@@ -363,14 +379,18 @@
                 mobileMenu.classList.toggle('hidden');
             });
 
+            backToTopButton.addEventListener('click', function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+
             // Change header on scroll
             const header = document.getElementById('header');
 
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 10) {
-                    header.classList.add('header-scrolled', 'shadow-lg', 'bg-white/80', 'backdrop-blur-md');
+                    header.classList.add('header-scrolled', 'shadow-md');
                 } else {
-                    header.classList.remove('header-scrolled', 'shadow-lg', 'bg-white/80', 'backdrop-blur-md');
+                    header.classList.remove('header-scrolled', 'shadow-md');
                 }
 
                 // Show/hide back-to-top button - This part was not working without the line above
