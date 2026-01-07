@@ -3,6 +3,8 @@
 --
 USE `hsi_lgu_unified`;
 
+SET FOREIGN_KEY_CHECKS=0;
+
 -- --------------------------------------------------------
 
 --
@@ -10,12 +12,14 @@ USE `hsi_lgu_unified`;
 -- (Inferred from Business.php, Inspection.php, navigation.php)
 --
 
+DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('super_admin','admin','inspector','business_owner','community_user') NOT NULL,
+  `status` enum('active','pending','deactivated') DEFAULT 'pending',
   `is_verified` tinyint(1) NOT NULL DEFAULT 0,
   `verification_code` varchar(255) DEFAULT NULL,
   `code_expiry` datetime DEFAULT NULL,
@@ -40,15 +44,31 @@ CREATE TABLE `users` (
 -- (Inferred from Inspection.php, ChecklistTemplate.php)
 --
 
+DROP TABLE IF EXISTS `inspection_types`;
 CREATE TABLE `inspection_types` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
+  `department` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Dumping data for table `inspection_types`
+--
+
+INSERT INTO `inspection_types` (`id`, `name`, `description`, `department`) VALUES
+(1, 'Sanitary Inspection', 'Verifies compliance with sanitation and health codes.', 'City Health Office'),
+(2, 'Fire Safety Inspection', 'Ensures compliance with the Fire Code of the Philippines.', 'Bureau of Fire Protection (BFP)'),
+(3, 'Building Inspection', 'Checks structural integrity and adherence to the National Building Code.', 'Office of the Building Official (OBO)'),
+(4, 'Electrical Inspection', 'Verifies safety of electrical wirings and installations.', 'Office of the Building Official (OBO)'),
+(5, 'Zoning Clearance', 'Ensures the business location conforms to the comprehensive land use plan.', 'City Planning and Development Office'),
+(6, 'Environmental Compliance', 'Checks adherence to environmental laws and waste management.', 'City Environment and Natural Resources Office (CENRO)');
 
 -- --------------------------------------------------------
 
@@ -76,7 +96,7 @@ CREATE TABLE `businesses` (
   `representative_name` varchar(255) DEFAULT NULL,
   `representative_position` varchar(255) DEFAULT NULL,
   `representative_contact` varchar(50) DEFAULT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','verified','rejected','needs_revision') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -96,11 +116,13 @@ CREATE TABLE `businesses` (
 CREATE TABLE `business_documents` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `business_id` int(11) NOT NULL,
-  `document_type` enum('building_permit','business_permit','waste_disposal_certificate','owner_id','tax_registration') NOT NULL,
+  `document_type` enum('building_permit','business_permit','waste_disposal_certificate','owner_id','tax_registration','mayors_permit') NOT NULL,
   `file_path` varchar(255) NOT NULL,
   `file_name` varchar(255) NOT NULL,
   `mime_type` varchar(100) NOT NULL,
   `file_size` int(11) NOT NULL,
+  `status` enum('pending','verified','rejected') DEFAULT 'pending',
+  `feedback` text DEFAULT NULL,
   `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `business_id` (`business_id`),
@@ -146,6 +168,7 @@ CREATE TABLE `inspections` (
 -- (From lgu_checklist_assessment.sql)
 --
 
+DROP TABLE IF EXISTS `checklist_templates`;
 CREATE TABLE `checklist_templates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `inspection_type_id` int(11) NOT NULL,
@@ -161,6 +184,68 @@ CREATE TABLE `checklist_templates` (
   CONSTRAINT `fk_checklist_inspection_type` FOREIGN KEY (`inspection_type_id`) REFERENCES `inspection_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `checklist_templates`
+--
+
+INSERT INTO `checklist_templates` (`inspection_type_id`, `category`, `question`, `required`, `input_type`, `options`) VALUES
+-- Sanitary Inspection (ID 1)
+(1, 'General Sanitation', 'Are the premises clean and free of pests (rodents, insects)?', 1, 'checkbox', NULL),
+(1, 'General Sanitation', 'Is there a proper and covered waste disposal system?', 1, 'checkbox', NULL),
+(1, 'Water Supply', 'Is the source of water supply potable and safe?', 1, 'select', '["Local Water District", "Private Deep Well", "Commercial Source", "Other"]'),
+(1, 'Water Supply', 'Are water storage containers clean and covered?', 1, 'checkbox', NULL),
+(1, 'Personnel', 'Do all food handlers have updated health certificates?', 1, 'checkbox', NULL),
+(1, 'Personnel', 'Are employees observing proper hygiene (clean uniform, hairnet)?', 1, 'checkbox', NULL),
+(1, 'Toilet Facilities', 'Are toilet facilities clean, functional, and with adequate supplies (soap, water, tissue)?', 1, 'checkbox', NULL),
+(1, 'Food Handling', 'Is there proper segregation of raw and cooked food?', 1, 'checkbox', NULL),
+(1, 'Food Storage', 'Are dry goods stored at least 15cm off the floor?', 1, 'checkbox', NULL),
+(1, 'Food Storage', 'Are refrigerators and freezers maintaining correct temperatures?', 1, 'checkbox', NULL),
+
+-- Fire Safety Inspection (ID 2)
+(2, 'Fire Extinguishers', 'Are fire extinguishers visible, accessible, and properly mounted?', 1, 'checkbox', NULL),
+(2, 'Fire Extinguishers', 'Is the pressure gauge in the operational range (green area)?', 1, 'checkbox', NULL),
+(2, 'Fire Extinguishers', 'Date of last inspection/recharge tag?', 1, 'text', NULL),
+(2, 'Exits', 'Are emergency exits clearly marked and unobstructed?', 1, 'checkbox', NULL),
+(2, 'Exits', 'Are exit doors unlocked and easy to open from the inside?', 1, 'checkbox', NULL),
+(2, 'Alarm & Detection', 'Are smoke detectors and fire alarms installed and functional?', 1, 'checkbox', NULL),
+(2, 'Evacuation Plan', 'Is an evacuation plan posted in conspicuous areas?', 1, 'checkbox', NULL),
+(2, 'Electrical', 'Are electrical outlets and panels free from octopus connections?', 1, 'checkbox', NULL),
+(2, 'Kitchen Safety', 'Is the kitchen hood suppression system functional?', 0, 'checkbox', NULL),
+(2, 'Electrical', 'Are emergency lights functional in case of power failure?', 1, 'checkbox', NULL),
+
+-- Building Inspection (ID 3)
+(3, 'Structural Integrity', 'Are there visible cracks on load-bearing walls, columns, or beams?', 1, 'checkbox', NULL),
+(3, 'Structural Integrity', 'Is the building occupancy permit prominently displayed?', 1, 'checkbox', NULL),
+(3, 'Accessibility', 'Is there a functional ramp for Persons with Disabilities (PWDs) with proper handrails?', 0, 'checkbox', NULL),
+(3, 'Safety Features', 'Are stairways and hallways free from obstruction?', 1, 'checkbox', NULL),
+(3, 'Safety Features', 'Are handrails and guardrails installed and in good condition?', 1, 'checkbox', NULL),
+(3, 'Sanitation', 'Are plumbing fixtures in good working condition?', 1, 'checkbox', NULL),
+(3, 'Ventilation', 'Is the ventilation system adequate for the occupancy load?', 1, 'checkbox', NULL),
+
+-- Electrical Inspection (ID 4)
+(4, 'Wiring & Panels', 'Are there any exposed, frayed, or damaged electrical wires?', 1, 'checkbox', NULL),
+(4, 'Wiring & Panels', 'Is the main electrical panel easily accessible and properly labeled?', 1, 'checkbox', NULL),
+(4, 'Grounding', 'Is the electrical system properly grounded?', 1, 'checkbox', NULL),
+(4, 'Circuit Breakers', 'Are circuit breakers properly rated for their respective loads?', 1, 'checkbox', NULL),
+(4, 'Load Assessment', 'Total connected load (in kVA)', 1, 'number', NULL),
+(4, 'Outlets & Switches', 'Are all outlets and switches properly covered?', 1, 'checkbox', NULL),
+(4, 'Signage', 'Are high voltage areas properly marked?', 1, 'checkbox', NULL),
+
+-- Zoning Clearance (ID 5)
+(5, 'Land Use', 'Is the business activity compliant with the designated zone classification?', 1, 'checkbox', NULL),
+(5, 'Parking', 'Number of available parking slots provided as per ordinance?', 1, 'number', NULL),
+(5, 'Setbacks', 'Does the building comply with the required front, side, and rear setbacks?', 1, 'checkbox', NULL),
+(5, 'Signage', 'Is the business signage compliant with local regulations (size, placement)?', 1, 'checkbox', NULL),
+(5, 'Easements', 'Are public easements free from encroachment?', 1, 'checkbox', NULL),
+
+-- Environmental Compliance (ID 6)
+(6, 'Waste Management', 'Is there a proper system for waste segregation (biodegradable, non-bio, recyclable)?', 1, 'checkbox', NULL),
+(6, 'Pollution Control', 'Is a functional grease trap installed? (for food establishments)', 0, 'checkbox', NULL),
+(6, 'Air Pollution', 'Are there measures to control smoke or fume emissions?', 0, 'checkbox', NULL),
+(6, 'Water Discharge', 'Is wastewater being discharged into the proper drainage system?', 1, 'checkbox', NULL),
+(6, 'Permits', 'Do you have a valid Discharge Permit?', 1, 'checkbox', NULL),
+(6, 'Permits', 'Do you have a Permit to Operate (for gensets/boilers)?', 0, 'checkbox', NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -168,6 +253,7 @@ CREATE TABLE `checklist_templates` (
 -- (From lgu_checklist_assessment.sql)
 --
 
+DROP TABLE IF EXISTS `inspection_responses`;
 CREATE TABLE `inspection_responses` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `inspection_id` int(11) NOT NULL,
@@ -328,3 +414,5 @@ CREATE TABLE `sessions` (
   KEY `user_id` (`user_id`),
   CONSTRAINT `fk_session_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+SET FOREIGN_KEY_CHECKS=1;

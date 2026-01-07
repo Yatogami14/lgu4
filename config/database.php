@@ -44,26 +44,16 @@ class Database {
             $stmt = $pdo->prepare($query);
 
             if (!empty($params)) {
-                // Check if it's an associative array (named parameters) or indexed (positional parameters)
-                if (array_keys($params) !== range(0, count($params) - 1)) {
-                    // Named parameters (e.g., [':id' => 1])
-                    foreach ($params as $key => $value) {
-                        $type = PDO::PARAM_STR;
-                        if (is_int($value)) $type = PDO::PARAM_INT;
-                        elseif (is_bool($value)) $type = PDO::PARAM_BOOL;
-                        elseif (is_null($value)) $type = PDO::PARAM_NULL;
-                        $stmt->bindValue($key, $value, $type);
-                    }
-                } else {
-                    // Positional parameters (e.g., [1, 'test'])
-                    foreach ($params as $key => $value) {
-                        $type = PDO::PARAM_STR;
-                        if (is_int($value)) $type = PDO::PARAM_INT;
-                        elseif (is_bool($value)) $type = PDO::PARAM_BOOL;
-                        elseif (is_null($value)) $type = PDO::PARAM_NULL;
-                        // PDO placeholders are 1-indexed
-                        $stmt->bindValue($key + 1, $value, $type);
-                    }
+                foreach ($params as $key => $value) {
+                    $type = PDO::PARAM_STR;
+                    if (is_int($value)) $type = PDO::PARAM_INT;
+                    elseif (is_bool($value)) $type = PDO::PARAM_BOOL;
+                    elseif (is_null($value)) $type = PDO::PARAM_NULL;
+
+                    // Handle 0-indexed positional parameters (convert to 1-indexed)
+                    // Named parameters (strings) are passed as-is
+                    $paramKey = is_int($key) ? $key + 1 : $key;
+                    $stmt->bindValue($paramKey, $value, $type);
                 }
             }
 

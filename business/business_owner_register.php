@@ -39,7 +39,7 @@ if ($is_edit_mode) {
     $existing_documents = $businessDocument->readByBusinessId($business_id_to_edit);
 
     // Security check: ensure the business belongs to the logged-in user and is actually rejected
-    if (!$existing_data || $existing_data['owner_id'] != $_SESSION['user_id'] || $existing_data['status'] !== 'rejected') {
+    if (!$existing_data || $existing_data['owner_id'] != $_SESSION['user_id'] || !in_array($existing_data['status'], ['rejected', 'needs_revision'])) {
         // Redirect to dashboard with an error if they are not authorized to edit
         $_SESSION['error_message'] = "You are not authorized to edit this application.";
         header('Location: index.php');
@@ -82,15 +82,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $business->representative_contact = $_POST['representative_contact'];
 
             if ($business->update()) {
-                // Re-handle document uploads: delete old, upload new
-                $businessDocument->deleteByBusinessId($business->id);
-
                 $document_types = [
-                    'building_permit', 'business_permit', 'waste_disposal_certificate', 'owner_id', 'tax_registration'
+                    'building_permit', 'business_permit', 'waste_disposal_certificate', 'owner_id', 'tax_registration', 'mayors_permit'
                 ];
                 $upload_success = true;
                 foreach ($document_types as $doc_type) {
                     if (isset($_FILES[$doc_type]) && $_FILES[$doc_type]['error'] == 0) {
+                        // New file uploaded - replace existing
+                        $businessDocument->deleteByBusinessIdAndType($business->id, $doc_type);
+                        
                         $file = $_FILES[$doc_type];
                         $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                         $new_filename = uniqid() . '_' . $doc_type . '.' . $file_extension;
@@ -114,9 +114,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             break;
                         }
                     } else {
-                        $error_message = "Missing required document: $doc_type.";
-                        $upload_success = false;
-                        break;
+                        // No new file uploaded. Check if we have an existing one.
+                        $has_existing = false;
+                        foreach ($existing_documents as $ex_doc) {
+                            if ($ex_doc['document_type'] === $doc_type) {
+                                $has_existing = true;
+                                break;
+                            }
+                        }
+                        if (!$has_existing) {
+                            $error_message = "Missing required document: $doc_type.";
+                            $upload_success = false;
+                            break;
+                        }
                     }
                 }
 
@@ -184,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                         // Handle document uploads
                         $document_types = [
-                            'building_permit', 'business_permit', 'waste_disposal_certificate', 'owner_id', 'tax_registration'
+                            'building_permit', 'business_permit', 'waste_disposal_certificate', 'owner_id', 'tax_registration', 'mayors_permit'
                         ];
                         $upload_success = true;
                         foreach ($document_types as $doc_type) {
@@ -486,47 +496,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="mb-6 p-4 bg-gray-100 border border-gray-200 rounded-lg">
                     <h4 class="font-semibold text-gray-800 mb-2">Currently Uploaded Documents:</h4>
                     <ul class="list-disc list-inside text-sm space-y-1">
-                        <?php foreach ($existing_documents as $doc): ?>
+                        <?php foreach ($existing_documents as $doc): 
+                            $docStatus = $doc['status'] ?? 'pending';
+                            $docFeedback = $doc['feedback'] ?? '';
+                            $statusColor = $docStatus === 'rejected' ? 'text-red-600' : 'text-green-600';
+                        ?>
                             <li>
                                 <a href="<?php echo $base_path . '/' . htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-blue-600 hover:underline">
                                     <?php echo htmlspecialchars($doc['file_name']); ?> (<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $doc['document_type']))); ?>)
                                 </a>
+                                <?php if ($docStatus === 'rejected'): ?>
+                                    <span class="ml-2 text-red-600 font-bold"><i class="fas fa-exclamation-circle"></i> Revision Requested</span>
+                                    <?php if ($docFeedback): ?>
+                                        <div class="ml-4 text-red-500 text-xs mt-1"><strong>Reason:</strong> <?php echo htmlspecialchars($docFeedback); ?></div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ul>
-                    <p class="text-xs text-gray-500 mt-3">Note: Resubmitting the form will replace all previously uploaded documents.</p>
+                    <p class="text-xs text-gray-500 mt-3">Note: Please upload new files for any documents marked for revision.</p>
                 </div>
                 <?php endif; ?>
 
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="building_permit">Building Permit</label>
-                        <input type="file" id="building_permit" name="building_permit" accept=".pdf,.jpg,.jpeg,.png" required class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
-                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. Required.</p>
+                        <input type="file" id="building_permit" name="building_permit" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
                     </div>
 
                     <div class="form-group">
                         <label for="business_permit">Business Permit</label>
-                        <input type="file" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png" required class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
-                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. Required.</p>
+                        <input type="file" id="business_permit" name="business_permit" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
                     </div>
 
                     <div class="form-group">
-                        <label for="waste_disposal_certificate">Waste Disposal Certificate</label>
-                        <input type="file" id="waste_disposal_certificate" name="waste_disposal_certificate" accept=".pdf,.jpg,.jpeg,.png" required class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
-                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. Required.</p>
+                        <label for="waste_disposal_certificate">Waste Disposal Permit</label>
+                        <input type="file" id="waste_disposal_certificate" name="waste_disposal_certificate" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
                     </div>
 
                     <div class="form-group">
                         <label for="owner_id">ID of Business Owner</label>
-                        <input type="file" id="owner_id" name="owner_id" accept=".pdf,.jpg,.jpeg,.png" required class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
-                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Valid government ID. Required.</p>
+                        <input type="file" id="owner_id" name="owner_id" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">Valid government ID. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
                     </div>
 
-                    <div class="form-group col-span-2">
+                    <div class="form-group">
                         <label for="tax_registration">Tax Registration Certificate</label>
-                        <input type="file" id="tax_registration" name="tax_registration" accept=".pdf,.jpg,.jpeg,.png" required class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
-                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. Required.</p>
+                        <input type="file" id="tax_registration" name="tax_registration" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mayors_permit">Mayor's Permit</label>
+                        <input type="file" id="mayors_permit" name="mayors_permit" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?> class="form-control-file" style="padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 100%;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">PDF, JPG, PNG. <?php echo $is_edit_mode ? 'Upload to replace.' : 'Required.'; ?></p>
                     </div>
                 </div>
             </div>

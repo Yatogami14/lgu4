@@ -56,6 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Validate Mayor's Permit
+    if (empty($_FILES['mayors_permit']['name'])) {
+        $errors['mayors_permit'] = "Mayor's Permit file is required.";
+    } else {
+        $allowed_types = ['image/jpeg', 'image/png', 'application/pdf'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+        if (!in_array($_FILES['mayors_permit']['type'], $allowed_types)) {
+            $errors['mayors_permit'] = "Only JPG, PNG, and PDF files are allowed.";
+        } elseif ($_FILES['mayors_permit']['size'] > $max_size) {
+            $errors['mayors_permit'] = "File size must be less than 5MB.";
+        }
+    }
+
     // 4. Process Registration if No Errors
     if (empty($errors)) {
         $db->beginTransaction();
@@ -85,6 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!move_uploaded_file($_FILES['business_permit']['tmp_name'], $target_file)) {
                 throw new Exception("Failed to upload file. Please try again.");
+            }
+
+            // --- Handle Mayor's Permit Upload ---
+            $mp_file_extension = pathinfo($_FILES['mayors_permit']['name'], PATHINFO_EXTENSION);
+            $mp_file_name = uniqid('mayors_', true) . '.' . $mp_file_extension;
+            $mp_target_file = $upload_dir_for_move . $mp_file_name;
+            $mp_db_path = $upload_dir_for_db . $mp_file_name;
+            if (!move_uploaded_file($_FILES['mayors_permit']['tmp_name'], $mp_target_file)) {
+                throw new Exception("Failed to upload Mayor's Permit. Please try again.");
             }
 
             // --- Create Business Record ---
@@ -118,6 +140,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Failed to save business document record.');
             }
 
+            // --- Create Business Document Record (Mayor's Permit) ---
+            $businessDocument->business_id = $business_id;
+            $businessDocument->document_type = 'mayors_permit';
+            $businessDocument->file_path = $mp_db_path;
+            $businessDocument->file_name = $_FILES['mayors_permit']['name'];
+            $businessDocument->mime_type = $_FILES['mayors_permit']['type'];
+            $businessDocument->file_size = $_FILES['mayors_permit']['size'];
+            if (!$businessDocument->create()) {
+                throw new Exception('Failed to save Mayor\'s Permit document record.');
+            }
+
             // --- Notify Admins ---
             $adminUsers = $user->readByRole('admin');
             $superAdminUsers = $user->readByRole('super_admin');
@@ -140,6 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Delete uploaded file if it exists
             if (isset($target_file) && file_exists($target_file)) {
                 unlink($target_file);
+            }
+            if (isset($mp_target_file) && file_exists($mp_target_file)) {
+                unlink($mp_target_file);
             }
         }
     }
@@ -215,6 +251,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label>Upload Business Permit (PDF/Image)</label>
                     <input type="file" name="business_permit" accept=".pdf,.jpg,.jpeg,.png" required style="padding: 10px; border: 1px solid #ddd; width: 100%;">
                     <?php if (isset($errors['business_permit'])) echo "<div class='error-message'>{$errors['business_permit']}</div>"; ?>
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Mayor's Permit (PDF/Image)</label>
+                    <input type="file" name="mayors_permit" accept=".pdf,.jpg,.jpeg,.png" required style="padding: 10px; border: 1px solid #ddd; width: 100%;">
+                    <?php if (isset($errors['mayors_permit'])) echo "<div class='error-message'>{$errors['mayors_permit']}</div>"; ?>
                 </div>
 
                 <label><input type="checkbox" name="terms" required> I agree to the Terms & Conditions</label>

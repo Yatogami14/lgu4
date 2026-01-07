@@ -10,6 +10,8 @@ class BusinessDocument {
     public $file_name;
     public $mime_type;
     public $file_size;
+    public $status;
+    public $feedback;
 
     public function __construct(Database $database) {
         $this->database = $database;
@@ -66,6 +68,34 @@ class BusinessDocument {
             error_log("BusinessDocument deletion failed: " . $e->getMessage());
             return false;
         }
+    }
+
+    public function deleteByBusinessIdAndType($business_id, $document_type) {
+        // Get file path to delete from server
+        $select_query = "SELECT file_path FROM " . $this->table_name . " WHERE business_id = ? AND document_type = ?";
+        $row = $this->database->fetch($select_query, [$business_id, $document_type]);
+        
+        if ($row) {
+            $file_to_delete = '../' . $row['file_path'];
+            if (file_exists($file_to_delete)) {
+                unlink($file_to_delete);
+            }
+        }
+
+        $delete_query = "DELETE FROM " . $this->table_name . " WHERE business_id = ? AND document_type = ?";
+        try {
+            $this->database->query($delete_query, [$business_id, $document_type]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("BusinessDocument deletion failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateStatus($id, $status, $feedback = null) {
+        $query = "UPDATE " . $this->table_name . " SET status = :status, feedback = :feedback WHERE id = :id";
+        $params = [':status' => $status, ':feedback' => $feedback, ':id' => $id];
+        return $this->database->query($query, $params);
     }
 }
 ?>

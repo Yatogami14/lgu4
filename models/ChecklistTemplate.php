@@ -26,40 +26,14 @@ class ChecklistTemplate {
      * @return array
      */
     public function readAll() {
-        try {
-            // Step 1: Fetch all checklist templates from the checklist database.
-            $query = "SELECT *
-                      FROM " . $this->table_name . "
-                      ORDER BY inspection_type_id, category, id";
-            $templates = $this->database->fetchAll($query);
-
-            if (empty($templates)) {
-                return [];
-            }
-
-            // Step 2: Collect all unique inspection_type_ids.
-            $inspection_type_ids = array_unique(array_column($templates, 'inspection_type_id'));
-
-            // Step 3: Fetch the inspection type names from the core database.
-            $inspection_types = [];
-            if (!empty($inspection_type_ids)) {
-                $in_clause = implode(',', array_fill(0, count($inspection_type_ids), '?'));
-                $types_data = $this->database->fetchAll("SELECT id, name FROM inspection_types WHERE id IN ($in_clause)", $inspection_type_ids);
-                foreach ($types_data as $type) {
-                    $inspection_types[$type['id']] = $type['name'];
-                }
-            }
-
-            // Step 4: Combine the data in PHP.
-            foreach ($templates as &$template) {
-                $template['inspection_type_name'] = $inspection_types[$template['inspection_type_id']] ?? 'N/A';
-            }
-
-            return $templates;
-        } catch (Exception $e) {
-            error_log("Error in ChecklistTemplate::readAll(): " . $e->getMessage());
-            return [];
-        }
+        $query = "SELECT c.*, 
+                         i.name as inspection_type_name,
+                         i.department
+                  FROM " . $this->table_name . " c
+                  LEFT JOIN inspection_types i ON c.inspection_type_id = i.id
+                  ORDER BY i.name, c.category, c.id";
+        
+        return $this->database->fetchAll($query);
     }
 
     /**
@@ -121,8 +95,8 @@ class ChecklistTemplate {
 
         $params = [
             ':inspection_type_id' => $this->inspection_type_id,
-            ':category' => $this->category,
-            ':question' => $this->question,
+            ':category' => htmlspecialchars(strip_tags($this->category)),
+            ':question' => htmlspecialchars(strip_tags($this->question)),
             ':required' => $this->required ? 1 : 0,
             ':input_type' => $this->input_type,
             ':options' => !empty($this->options) ? $this->options : null
@@ -147,8 +121,8 @@ class ChecklistTemplate {
         $params = [':id' => $this->id];
 
         if ($this->inspection_type_id !== null) { $fields[] = "inspection_type_id=:inspection_type_id"; $params[':inspection_type_id'] = $this->inspection_type_id; }
-        if ($this->category !== null) { $fields[] = "category=:category"; $params[':category'] = $this->category; }
-        if ($this->question !== null) { $fields[] = "question=:question"; $params[':question'] = $this->question; }
+        if ($this->category !== null) { $fields[] = "category=:category"; $params[':category'] = htmlspecialchars(strip_tags($this->category)); }
+        if ($this->question !== null) { $fields[] = "question=:question"; $params[':question'] = htmlspecialchars(strip_tags($this->question)); }
         if ($this->required !== null) { $fields[] = "required=:required"; $params[':required'] = $this->required ? 1 : 0; }
         if ($this->input_type !== null) { $fields[] = "input_type=:input_type"; $params[':input_type'] = $this->input_type; }
         if ($this->options !== null) { $fields[] = "options=:options"; $params[':options'] = !empty($this->options) ? $this->options : null; }

@@ -29,6 +29,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['business_id'])) {
         $new_user_status = 'active'; // Allow user to log in and see the reason
         $rejection_reason = $_POST['rejection_reason'] ?? 'No reason provided.';
     }
+    elseif ($action === 'request_revision') {
+        $new_status = 'needs_revision';
+        $new_user_status = 'active'; // Allow user to log in to fix it
+        
+        // Handle individual document feedback
+        if (isset($_POST['doc_status']) && is_array($_POST['doc_status'])) {
+            require_once '../models/BusinessDocument.php';
+            $docModel = new BusinessDocument($database);
+            foreach ($_POST['doc_status'] as $doc_id => $status) {
+                $feedback = $_POST['doc_feedback'][$doc_id] ?? '';
+                // If rejected, set status to rejected and save feedback
+                if ($status === 'rejected') {
+                    $docModel->updateStatus($doc_id, 'rejected', $feedback);
+                } else {
+                    // Reset to pending or verified if needed
+                    $docModel->updateStatus($doc_id, 'pending', null);
+                }
+            }
+        }
+    }
 
     if ($new_status) {
         // First, find the business to get the owner's user_id
@@ -43,11 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['business_id'])) {
                 // Create a notification for the business owner
                 $business_name = $business_data['business_name'];
                 $status_text = ($new_status === 'verified') ? 'approved' : 'rejected';
+                if ($new_status === 'needs_revision') $status_text = 'flagged for revision';
+                
                 $message = "Your business application for \"{$business_name}\" has been {$status_text}.";
                 
                 // Append the reason to the notification message if rejected
                 if ($new_status === 'rejected' && !empty($rejection_reason)) {
                     $message .= " Reason: " . $rejection_reason;
+                } elseif ($new_status === 'needs_revision') {
+                    $message .= " Please check your documents and re-upload the requested files.";
                 }
 
                 $link = '/lgu4/business/index.php'; // Link to their dashboard
@@ -74,7 +98,9 @@ try {
             b.registration_number as license_number, b.business_type, b.address, b.created_at,
             u.name as user_name, b.owner_id as user_id,
             GROUP_CONCAT(bd.file_name SEPARATOR '||') as permit_files,
-            GROUP_CONCAT(bd.file_path SEPARATOR '||') as permit_paths
+            GROUP_CONCAT(bd.file_path SEPARATOR '||') as permit_paths,
+            GROUP_CONCAT(bd.document_type SEPARATOR '||') as permit_types,
+            GROUP_CONCAT(bd.id SEPARATOR '||') as permit_ids
         FROM 
             businesses b
         JOIN 
@@ -155,6 +181,9 @@ $root_path = str_replace('/admin', '', $base_path);
                                     <button type="button" onclick="openRejectModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>')" class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">
                                         <i class="fas fa-times mr-1"></i> Reject
                                     </button>
+                                    <button type="button" onclick="openRevisionModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>', this)" class="px-4 py-2 bg-yellow-500 text-white text-sm font-semibold rounded-md hover:bg-yellow-600 transition-colors">
+                                        <i class="fas fa-edit mr-1"></i> Request Revision
+                                    </button>
                                 </div>
                             </div>
                             <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
@@ -170,10 +199,19 @@ $root_path = str_replace('/admin', '', $base_path);
                                         <?php
                                         $files = $business['permit_files'] ? explode('||', $business['permit_files']) : [];
                                         $paths = $business['permit_paths'] ? explode('||', $business['permit_paths']) : [];
+                                        $types = $business['permit_types'] ? explode('||', $business['permit_types']) : [];
+                                        $ids = $business['permit_ids'] ? explode('||', $business['permit_ids']) : [];
+                                        
                                         if (!empty($files[0])) {
                                             foreach ($files as $index => $file) {
+                                                $typeLabel = 'Document';
+                                                if (isset($types[$index])) {
+                                                    $typeLabel = ($types[$index] === 'mayors_permit') ? "Mayor's Permit" : ucwords(str_replace('_', ' ', $types[$index]));
+                                                }
                                                 // Use the root path to construct the correct URL
-                                                echo '<li><a href="' . $root_path . '/' . $paths[$index] . '" target="_blank" class="text-blue-600 hover:underline">' . htmlspecialchars($file) . '</a></li>';
+                                                $filePath = htmlspecialchars($root_path . '/' . $paths[$index], ENT_QUOTES, 'UTF-8');
+                                                $fileTitle = htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8');
+                                                echo '<li data-id="'.$ids[$index].'" data-type="'.$typeLabel.'"><a href="#" onclick="openDocumentViewer(\''.$filePath.'\', \''.$fileTitle.'\', event)" class="text-blue-600 hover:underline">' . htmlspecialchars($typeLabel) . '</a> <span class="text-gray-500 text-xs">(' . htmlspecialchars($file) . ')</span></li>';
                                             }
                                         } else {
                                             echo '<li>No documents uploaded.</li>';
@@ -214,15 +252,83 @@ $root_path = str_replace('/admin', '', $base_path);
         </div>
     </div>
 
+    <!-- Revision Modal -->
+    <div id="revisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900">Request Document Revision</h3>
+                <p class="text-sm text-gray-600 mt-1">For business: <span id="revisionBusinessName" class="font-bold"></span></p>
+                
+                <form id="revisionForm" method="POST" class="mt-4 space-y-4">
+                    <input type="hidden" name="action" value="request_revision">
+                    <input type="hidden" name="business_id" id="revision_business_id">
+                    
+                    <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border rounded">
+                        <!-- Documents will be populated here -->
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Send Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div id="documentViewerModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full z-[60]">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-xl font-medium text-gray-900" id="documentViewerTitle">Document Viewer</h3>
+                <button onclick="closeModal('documentViewerModal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div class="mt-4" id="documentViewerContent" style="height: 80vh;">
+                <!-- Content (iframe or img) will be injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/application_actions.js"></script>
     <script>
-        function openRejectModal(businessId, businessName) {
-            document.getElementById('reject_business_id').value = businessId;
-            document.getElementById('rejectBusinessName').textContent = businessName;
-            document.getElementById('rejectModal').classList.remove('hidden');
+        function openDocumentViewer(filePath, fileTitle, event) {
+            event.preventDefault();
+            const viewerContent = document.getElementById('documentViewerContent');
+            const viewerTitle = document.getElementById('documentViewerTitle');
+            
+            viewerTitle.textContent = fileTitle;
+            
+            const fileExtension = filePath.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'pdf') {
+                viewerContent.innerHTML = `<iframe src="${filePath}" class="w-full h-full" frameborder="0"></iframe>`;
+            } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
+                viewerContent.innerHTML = `<div class="flex justify-center items-center h-full"><img src="${filePath}" class="max-w-full max-h-full object-contain"></div>`;
+            } else {
+                viewerContent.innerHTML = `<div class="text-center p-10"><p>Cannot preview this file type.</p><a href="${filePath}" target="_blank" class="text-blue-600 hover:underline mt-4 inline-block">Download file</a></div>`;
+            }
+
+            openModal('documentViewerModal');
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
+        function openRevisionModal(businessId, businessName, btn) {
+            // Find the UL containing documents in the same card
+            const card = btn.closest('.bg-white');
+            const listItems = card.querySelectorAll('ul.list-disc li');
+            const documents = [];
+            
+            listItems.forEach(li => {
+                const docId = li.getAttribute('data-id');
+                const docType = li.getAttribute('data-type');
+                if(docId) {
+                    documents.push({id: docId, type: docType});
+                }
+            });
+            
+            populateRevisionModal(businessId, businessName, documents);
+            openModal('revisionModal');
         }
     </script>
 </body>

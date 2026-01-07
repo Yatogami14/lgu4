@@ -40,6 +40,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $new_status = 'rejected';
             $new_user_status = 'active'; // Allow user to log in and see the reason
             $rejection_reason = $_POST['rejection_reason'] ?? 'No reason provided.';
+        } elseif ($action === 'request_revision') {
+            $new_status = 'needs_revision';
+            $new_user_status = 'active'; // Allow user to log in to fix it
+            
+            // Handle individual document feedback
+            if (isset($_POST['doc_status']) && is_array($_POST['doc_status'])) {
+                $docModel = new BusinessDocument($database);
+                foreach ($_POST['doc_status'] as $doc_id => $status) {
+                    $feedback = $_POST['doc_feedback'][$doc_id] ?? '';
+                    // If rejected, set status to rejected and save feedback
+                    if ($status === 'rejected') {
+                        $docModel->updateStatus($doc_id, 'rejected', $feedback);
+                    } else {
+                        // Reset to pending or verified if needed
+                        $docModel->updateStatus($doc_id, 'pending', null);
+                    }
+                }
+            }
         }
 
         if ($new_status) {
@@ -56,11 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Create a notification for the business owner
                     $business_name = $business_data['business_name'];
                     $status_text = ($new_status === 'verified') ? 'approved' : 'rejected';
+                    if ($new_status === 'needs_revision') $status_text = 'flagged for revision';
+
                     $notification_message = "Your business application for \"{$business_name}\" has been {$status_text}.";
                     
                     // Append the reason to the notification message if rejected
                     if ($new_status === 'rejected' && !empty($rejection_reason)) {
                         $notification_message .= " Reason: " . $rejection_reason;
+                    } elseif ($new_status === 'needs_revision') {
+                        $notification_message .= " Please check your documents and re-upload the requested files.";
                     }
 
                     $link = '/lgu4/business/index.php'; // Link to their dashboard
@@ -122,7 +144,8 @@ $total_pages = ceil($total_records / $records_per_page);
 $query = "SELECT b.id, b.name as business_name, b.address, b.business_type, b.registration_number, b.email as contact_email, b.contact_number, b.created_at, u.name as owner_name, u.email as owner_email,
            GROUP_CONCAT(bd.file_name SEPARATOR '||') as document_names,
            GROUP_CONCAT(bd.file_path SEPARATOR '||') as document_paths,
-           GROUP_CONCAT(bd.document_type SEPARATOR '||') as document_types
+           GROUP_CONCAT(bd.document_type SEPARATOR '||') as document_types,
+           GROUP_CONCAT(bd.id SEPARATOR '||') as document_ids
            " . $base_query . "
            GROUP BY b.id 
            ORDER BY $sort_by $sort_order
@@ -260,6 +283,9 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                             <button type="button" onclick="openRejectModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>')" class="btn btn-reject text-xs">
                                 <i class="fas fa-times mr-1"></i> Reject
                             </button>
+                            <button type="button" onclick="openRevisionModal(this)" class="btn bg-yellow-500 hover:bg-yellow-600 text-xs">
+                                <i class="fas fa-edit mr-1"></i> Revision
+                            </button>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -362,6 +388,30 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
     </div>
 </div>
 
+<!-- Revision Modal -->
+<div id="revisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900">Request Document Revision</h3>
+            <p class="text-sm text-gray-600 mt-1">For business: <span id="revisionBusinessName" class="font-bold"></span></p>
+            
+            <form id="revisionForm" method="POST" class="mt-4 space-y-4">
+                <input type="hidden" name="action" value="request_revision">
+                <input type="hidden" name="business_id" id="revision_business_id">
+                
+                <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border rounded">
+                    <!-- Documents will be populated here by JS -->
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function openDetailsModal(button) {
         const row = button.closest('tr');
@@ -376,10 +426,21 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         if (doc_names.length > 0 && doc_names[0]) {
             documentsHtml = '<ul class="list-disc list-inside space-y-1">';
             doc_names.forEach((name, index) => {
-                const docTypeFormatted = doc_types[index].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                let docTypeFormatted = 'Document';
+                if (doc_types[index]) {
+                    if (doc_types[index] === 'mayors_permit') {
+                        docTypeFormatted = "Mayor's Permit";
+                    } else {
+                        docTypeFormatted = doc_types[index].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    }
+                }
+                const filePath = '<?php echo $base_path; ?>/' + doc_paths[index];
+                // Escape special characters to prevent breaking the onclick HTML attribute
+                const safeFilePath = filePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const safeDocType = docTypeFormatted.replace(/'/g, "\\'");
                 documentsHtml += `
                     <li>
-                        <a href="#" onclick="openDocumentViewer('<?php echo $base_path; ?>/${doc_paths[index]}', '${docTypeFormatted}', event)" class="text-blue-600 hover:underline">
+                        <a href="#" onclick="openDocumentViewer('${safeFilePath}', '${safeDocType}', event)" class="text-blue-600 hover:underline">
                             ${docTypeFormatted}
                         </a>
                     </li>`;
@@ -417,24 +478,23 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         document.getElementById('detailsModal').classList.remove('hidden');
     }
 
-    function openRejectModal(businessId, businessName) {
-        document.getElementById('reject_business_id').value = businessId;
-        document.getElementById('rejectBusinessName').textContent = businessName;
-        document.getElementById('rejectModal').classList.remove('hidden');
-    }
+    function openRevisionModal(button) {
+        const row = button.closest('tr');
+        const details = JSON.parse(row.dataset.details);
 
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        modal.classList.add('hidden');
+        const doc_ids = details.document_ids ? details.document_ids.split('||') : [];
+        const doc_types = details.document_types ? details.document_types.split('||') : [];
 
-        // If closing the document viewer, clear its content to stop videos/PDFs
-        if (modalId === 'documentViewerModal') {
-            document.getElementById('documentViewerContent').innerHTML = '';
+        const documents = [];
+        if (doc_ids.length > 0 && doc_ids[0]) {
+            doc_ids.forEach((docId, index) => {
+                const docType = doc_types[index] ? doc_types[index].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Document';
+                documents.push({id: docId, type: docType});
+            });
         }
-    }
-
-    function openModal(modalId) {
-        document.getElementById(modalId).classList.remove('hidden');
+        
+        populateRevisionModal(details.id, details.business_name, documents);
+        openModal('revisionModal');
     }
 
     function openDocumentViewer(filePath, fileTitle, event) {
@@ -455,6 +515,61 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         }
 
         openModal('documentViewerModal');
+    }
+
+    // --- Shared Modal Functions ---
+    
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        // Clear content if it's the document viewer to stop videos/iframes
+        if (modalId === 'documentViewerModal') {
+            const viewerContent = document.getElementById('documentViewerContent');
+            if (viewerContent) viewerContent.innerHTML = '';
+        }
+    }
+
+    function openRejectModal(businessId, businessName) {
+        document.getElementById('reject_business_id').value = businessId;
+        document.getElementById('rejectBusinessName').textContent = businessName;
+        openModal('rejectModal');
+    }
+
+    function populateRevisionModal(businessId, businessName, documents) {
+        document.getElementById('revision_business_id').value = businessId;
+        document.getElementById('revisionBusinessName').textContent = businessName;
+        
+        const docList = document.getElementById('documentList');
+        docList.innerHTML = '';
+        
+        if (documents && documents.length > 0) {
+            documents.forEach(doc => {
+                const html = `
+                    <div class="border-b pb-2">
+                        <div class="flex items-center justify-between">
+                            <label class="font-medium text-sm text-gray-700">${doc.type}</label>
+                            <select name="doc_status[${doc.id}]" class="text-sm border-gray-300 rounded" onchange="this.nextElementSibling.classList.toggle('hidden', this.value !== 'rejected')">
+                                <option value="pending">OK</option>
+                                <option value="rejected">Reject / Request Revision</option>
+                            </select>
+                        </div>
+                        <textarea name="doc_feedback[${doc.id}]" placeholder="Reason for rejection..." class="mt-2 w-full text-sm border-gray-300 rounded hidden" rows="2"></textarea>
+                    </div>
+                `;
+                docList.insertAdjacentHTML('beforeend', html);
+            });
+        } else {
+            docList.innerHTML = '<p class="text-center text-gray-500">No documents found for this application.</p>';
+        }
     }
 </script>
 
