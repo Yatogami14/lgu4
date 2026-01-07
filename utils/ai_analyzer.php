@@ -2,12 +2,13 @@
 
 class GeminiAnalyzer {
     private $apiKey;
-    private $textModel = 'gemini-1.5-flash'; // Stable model for text generation
-    private $visionModel = 'gemini-1.5-flash'; // Stable model for vision/multimodal tasks
+    private $textModel = 'gemini-1.5-flash'; // Default fallback
+    private $visionModel = 'gemini-1.5-flash'; // Default fallback
     private $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
  
     public function __construct($apiKey) {
         $this->apiKey = $apiKey;
+        $this->discoverBestModel();
     }
 
     public function analyzeText($text) {
@@ -17,41 +18,45 @@ class GeminiAnalyzer {
 
         $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following inspector's observation notes. Based on the text, determine the compliance status. The status must be one of: 'compliant', 'non_compliant', or 'needs_review'. Also provide a confidence score for your assessment (from 0.0 to 1.0) and up to two brief suggestions for the inspector.\n\nReturn your analysis ONLY as a valid JSON object with the keys: 'compliance', 'confidence', 'suggestions' (which should be an array of strings).\n\nInspector's notes: \"{$text}\"";
 
-        $data = ['contents' => [['parts' => [['text' => $prompt]]]]];
+        $data = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt]
+                    ]
+                ]
+            ]
+        ];
+        
         $url = $this->baseUrl . $this->textModel . ':generateContent?key=' . $this->apiKey;
 
         $response = $this->makeApiCall($url, $data);
 
         if (isset($response['error'])) {
-            $apiError = $response['error']['message'];
-            $statusCode = $response['error']['code'];
-            error_log("Gemini API call failed (Code: {$statusCode}): " . $apiError);
+            error_log("Gemini API Error: " . json_encode($response['error']));
             
-            $suggestion = "API Error (Code: {$statusCode}).";
-            if (strpos($apiError, 'API key not valid') !== false) {
-                $suggestion = 'The configured API key is not valid.';
-            } else if ($statusCode === 400) {
-                $suggestion = 'API request is malformed. (Code: 400)';
-            }
-            return ['compliance' => 'error', 'confidence' => 0.0, 'suggestions' => [$suggestion]];
+            // Fallback analysis without AI
+            return $this->fallbackTextAnalysis($text);
         }
 
         $json_string = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
         
         if ($json_string) {
+            // Clean up JSON response
             $json_string = preg_replace('/^```json\s*|\s*```$/', '', trim($json_string));
+            $json_string = preg_replace('/^```\s*|\s*```$/', '', $json_string);
         }
 
         $analysis = json_decode($json_string, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("Gemini API returned invalid JSON: " . json_last_error_msg() . " | Raw response: " . $json_string);
-            return ['compliance' => 'error', 'confidence' => 0.0, 'suggestions' => ['AI analysis returned an invalid format.']];
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($analysis)) {
+            error_log("Gemini API JSON parse error. Raw: " . substr($json_string, 0, 200));
+            return $this->fallbackTextAnalysis($text);
         }
 
         return [
             'compliance' => $analysis['compliance'] ?? 'needs_review', 
-            'confidence' => $analysis['confidence'] ?? 0.5, 
+            'confidence' => floatval($analysis['confidence'] ?? 0.5), 
             'suggestions' => $analysis['suggestions'] ?? ['No suggestions provided.']
         ];
     }
@@ -66,102 +71,220 @@ class GeminiAnalyzer {
             ];
         }
 
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return [
+                'compliance' => 'error',
+                'confidence' => 0.0,
+                'hazards' => ['File not found or not readable.'],
+                'positive_observations' => []
+            ];
+        }
+
         $fileData = base64_encode(file_get_contents($filePath));
         $mimeType = mime_content_type($filePath);
+        
+        // Check file size (Gemini has limits)
+        $fileSize = filesize($filePath);
+        if ($fileSize > 20 * 1024 * 1024) { // 20MB limit
+            return [
+                'compliance' => 'error',
+                'confidence' => 0.0,
+                'hazards' => ['File too large. Maximum size is 20MB.'],
+                'positive_observations' => []
+            ];
+        }
 
-        $prompt = "You are an AI assistant for a health and safety inspection platform. Your task is to provide a balanced analysis of the provided image, looking for both safety hazards and positive compliance observations.
+        $prompt = "Analyze this safety inspection image. Return JSON with: positive_observations (array), hazards (array), compliance ('compliant','non_compliant','needs_review'), confidence (0-1).";
 
-1.  **Positive Observations (Crucial):** First, identify up to two positive compliance observations. It is very important to find positive aspects. If no obvious positive actions are visible, comment on things that are correctly in place (e.g., 'Floor appears clean and dry', 'Area is well-lit', 'No visible obstructions').
-2.  **Detected Hazards:** Next, identify up to three specific safety hazards. Examples include 'blocked fire exit', 'spill on floor', 'improperly stored chemicals', 'missing safety gear', 'exposed wiring'.
-3.  **Overall Assessment:** Based on your findings, determine a general compliance status ('compliant', 'non_compliant', or 'needs_review') and a confidence score (0.0 to 1.0).
+        $data = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inline_data' => [
+                                'mime_type' => $mimeType,
+                                'data' => $fileData
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'generationConfig' => [
+                'temperature' => 0.1,
+                'maxOutputTokens' => 500,
+            ]
+        ];
 
-Return your analysis ONLY as a valid JSON object with the following keys:
-- 'positive_observations': An array of strings for detected positive compliance signs. This key MUST be present. If no positive items are found, return an empty array.
-- 'hazards': An array of strings for detected hazards. If no hazards are found, return an empty array.
-- 'compliance': The status string ('compliant', 'non_compliant', or 'needs_review').
-- 'confidence': a score from 0.0 to 1.0 for the overall assessment.
-
-Image for analysis is provided.";
-        $data = ['contents' => [['parts' => [['text' => $prompt], ['inline_data' => ['mime_type' => $mimeType, 'data' => $fileData]]]]]];
         $url = $this->baseUrl . $this->visionModel . ':generateContent?key=' . $this->apiKey;
+        
+        error_log("Calling Gemini Vision API: " . $this->visionModel);
 
         $response = $this->makeApiCall($url, $data);
 
         if (isset($response['error'])) {
-            $apiError = $response['error']['message'];
-            $statusCode = $response['error']['code'];
-            error_log("Gemini Vision API call failed (Code: {$statusCode}): " . $apiError);
-
-            $errorMessage = "API Error (Code: {$statusCode}).";
-            if (strpos($apiError, 'API key not valid') !== false) {
-                $errorMessage = 'The configured API key is not valid.';
-            } else if ($statusCode === 400) {
-                $errorMessage = 'API request is malformed. (Code: 400)';
-            }
+            $error = $response['error'];
+            error_log("Vision API Error: " . json_encode($error));
+            
             return [
                 'compliance' => 'error',
                 'confidence' => 0.0,
-                'hazards' => ['AI Vision API Error: ' . $errorMessage],
+                'hazards' => ['API Error: ' . ($error['message'] ?? 'Unknown error')],
                 'positive_observations' => []
             ];
         }
 
         $json_string = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        if ($json_string) {
-            $json_string = preg_replace('/^```json\s*|\s*```$/', '', trim($json_string));
-        }
-        $analysis = json_decode($json_string, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("Gemini Vision API returned invalid JSON: " . json_last_error_msg() . " | Raw response: " . $json_string);
+        
+        if (!$json_string) {
             return [
                 'compliance' => 'error',
                 'confidence' => 0.0,
-                'hazards' => ['AI analysis returned an invalid format.'],
+                'hazards' => ['No response from AI.'],
                 'positive_observations' => []
+            ];
+        }
+
+        // Clean JSON response
+        $json_string = preg_replace('/^```json\s*|\s*```$/', '', trim($json_string));
+        $json_string = preg_replace('/^```\s*|\s*```$/', '', $json_string);
+        
+        $analysis = json_decode($json_string, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("JSON Parse Error: " . json_last_error_msg() . " | Response: " . substr($json_string, 0, 200));
+            
+            // Try to extract JSON if it's wrapped in text
+            if (preg_match('/\{.*\}/s', $json_string, $matches)) {
+                $analysis = json_decode($matches[0], true);
+            }
+        }
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($analysis)) {
+            return [
+                'compliance' => 'needs_review',
+                'confidence' => 0.5,
+                'hazards' => ['AI analysis format issue.'],
+                'positive_observations' => ['Unable to parse AI response.']
             ];
         }
 
         return [
             'hazards' => $analysis['hazards'] ?? [],
             'positive_observations' => $analysis['positive_observations'] ?? [],
-            'confidence' => $analysis['confidence'] ?? 0.5,
+            'confidence' => floatval($analysis['confidence'] ?? 0.5),
             'compliance' => $analysis['compliance'] ?? 'needs_review'
         ];
     }
 
-    private function makeApiCall($url, $data) {
+    private function makeApiCall($url, $data = null, $method = 'POST') {
         $ch = curl_init($url);
+        
         if ($ch === false) {
             return ['error' => ['message' => "Failed to initialize cURL", 'code' => 'INIT_FAILED']];
         }
-
+        
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For local dev only. Set to true in production.
-        curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Set a 60-second timeout
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        if ($method === 'POST') {
+            curl_setopt($ch, CURLOPT_POST, true);
+            if ($data !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+            }
+        } elseif ($method === 'GET') {
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
+        }
 
-        $response_body = curl_exec($ch);
+        $response = curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curl_error = curl_error($ch);
+        
         curl_close($ch);
 
         if ($curl_error) {
-            return ['error' => ['message' => "cURL Error: " . $curl_error, 'code' => 'cURL']];
+            return ['error' => ['message' => "cURL Error: " . $curl_error, 'code' => 'CURL']];
         }
 
-        $response_data = json_decode($response_body, true);
+        $response_data = json_decode($response, true);
 
         if ($httpcode !== 200) {
-            // Try to get a more specific error message from Google's response
-            $error_message = "API call failed with status code: " . $httpcode;
+            $error_msg = "HTTP {$httpcode}";
             if (isset($response_data['error']['message'])) {
-                $error_message = $response_data['error']['message'];
+                $error_msg = $response_data['error']['message'];
             }
-            return ['error' => ['message' => $error_message, 'code' => $httpcode]];
+            return ['error' => ['message' => $error_msg, 'code' => $httpcode]];
         }
 
         return $response_data;
+    }
+
+    private function fallbackTextAnalysis($text) {
+        // Simple keyword-based fallback when API fails
+        $keywords_compliant = ['good', 'clean', 'safe', 'proper', 'correct', 'adequate'];
+        $keywords_non_compliant = ['broken', 'missing', 'unsafe', 'hazard', 'danger', 'violation'];
+        
+        $text_lower = strtolower($text);
+        $score = 0;
+        
+        foreach ($keywords_compliant as $word) {
+            if (strpos($text_lower, $word) !== false) $score++;
+        }
+        foreach ($keywords_non_compliant as $word) {
+            if (strpos($text_lower, $word) !== false) $score--;
+        }
+        
+        if ($score > 0) $compliance = 'compliant';
+        elseif ($score < 0) $compliance = 'non_compliant';
+        else $compliance = 'needs_review';
+        
+        return [
+            'compliance' => $compliance,
+            'confidence' => 0.6,
+            'suggestions' => ['Using fallback analysis. Check API configuration.']
+        ];
+    }
+
+    private function discoverBestModel() {
+        if (empty($this->apiKey) || $this->apiKey === 'YOUR_GEMINI_API_KEY') {
+            return;
+        }
+
+        // URL to list models
+        $url = "https://generativelanguage.googleapis.com/v1beta/models?key=" . $this->apiKey;
+        
+        $response = $this->makeApiCall($url, null, 'GET');
+
+        if (isset($response['models'])) {
+            $models = [];
+            foreach ($response['models'] as $m) {
+                // Strip 'models/' prefix to get clean name (e.g., 'gemini-1.5-flash')
+                $models[] = str_replace('models/', '', $m['name']);
+            }
+
+            // Priority list for models (Flash > Pro > 1.0)
+            $priorities = [
+                'gemini-1.5-flash',
+                'gemini-1.5-flash-latest',
+                'gemini-1.5-pro',
+                'gemini-1.5-pro-latest',
+                'gemini-pro',
+                'gemini-pro-vision'
+            ];
+
+            // Find best available model
+            foreach ($priorities as $p) {
+                if (in_array($p, $models)) {
+                    $this->textModel = $p;
+                    // For vision, we prefer the same model if it's 1.5 (multimodal), otherwise fallback to pro-vision
+                    if (strpos($p, '1.5') !== false || $p === 'gemini-pro-vision') {
+                        $this->visionModel = $p;
+                    }
+                    break;
+                }
+            }
+        }
     }
 }
