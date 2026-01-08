@@ -8,12 +8,12 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 
     <style>
         html { scroll-behavior: smooth; }
         #home.hero-section {
-            background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(254, 240, 138, 0.8) 100%), url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=2832&auto=format&fit=crop');
+            background-image: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 77, 64, 0.8) 100%), url('https://images.unsplash.com/photo-1607968547831-6c24827c1a52?q=80&w=2832&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed; /* Fallback for no-JS */
@@ -63,7 +63,7 @@
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-image: linear-gradient(to right, #ca8a04, #854d0e);
+            background-image: linear-gradient(to right, #80CBC4, #E0F2F1);
         }
 
         /* Styles for shrinking header */
@@ -92,20 +92,88 @@
             visibility: visible;
             transform: translateY(0);
         }
+
+        /* Transparent Header Styles */
+        #header {
+            background-color: transparent;
+            border-bottom: 1px solid transparent;
+        }
+        #header:not(.header-scrolled) .text-gray-900 { color: white; }
+        #header:not(.header-scrolled) .text-gray-600 { color: rgba(255,255,255,0.9); }
+        #header:not(.header-scrolled) .text-brand-600 { color: #80CBC4; } /* Light teal */
+        #header:not(.header-scrolled) .hover\:text-indigo-600:hover { color: white; }
+        #header:not(.header-scrolled) .hover\:text-brand-600:hover { color: white; }
+        #header:not(.header-scrolled) #mobile-menu-button { color: white; }
+        #header:not(.header-scrolled) #mobile-menu-button:hover { background-color: rgba(255,255,255,0.1); }
+
+        /* Scrolled Header Styles */
+        #header.header-scrolled {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom-color: #f3f4f6;
+        }
+        #header.header-scrolled .text-gray-900 { color: #111827; }
+        #header.header-scrolled .text-gray-600 { color: #4b5563; }
+        #header.header-scrolled .text-brand-600 { color: #009688; }
+        #header.header-scrolled .hover\:text-indigo-600:hover { color: #4f46e5; }
+        #header.header-scrolled .hover\:text-brand-600:hover { color: #00897B; }
+        #header.header-scrolled #mobile-menu-button { color: #4b5563; }
+        #header.header-scrolled #mobile-menu-button:hover { background-color: #f3f4f6; }
+
+        /* Hero Headline Shadow */
+        .hero-text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        /* Ripple Effect */
+        .ripple-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        span.ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 1.2s linear;
+            background-color: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
     </style>
     <script>
-        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand': {
+                            '100': '#E0F2F1',
+                            '200': '#B2DFDB',
+                            '400': '#4DB6AC',
+                            '500': '#009688',
+                            '600': '#00897B',
+                            '700': '#00796B',
+                            '800': '#00695C',
+                            '900': '#004D40',
+                        },
+                    },
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif']
+                    }
+                }
+            }
+        }
     </script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-yellow-200 selection:text-yellow-900">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-brand-200 selection:text-brand-900">
 
     <!-- Header -->
-    <header id="header" class="sticky top-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header id="header" class="fixed w-full top-0 z-50 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="header-content flex justify-between items-center">
                 <a href="index.html" class="flex items-center space-x-3" title="Go to Homepage">
                     <img src="logo/logo.jpeg?v=4" alt="Logo" class="logo-img h-9 w-auto rounded-full shadow-sm">
-                    <span class="text-xl font-bold text-gray-900 tracking-tight">HSI-QC <span class="text-yellow-600">Protektado</span></span>
+                    <span class="text-xl font-bold text-gray-900 tracking-tight">HSI-QC <span class="text-brand-600">Protektado</span></span>
                 </a>
                 <!-- Desktop Menu -->
                 <nav id="desktop-nav" class="hidden md:flex space-x-8">
@@ -114,10 +182,10 @@
                     <a href="#about" class="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors duration-200">About Us</a>
                 </nav>
                 <div class="hidden md:flex items-center space-x-2">
-                    <a href="main_login.php" class="text-sm font-semibold text-gray-600 hover:text-yellow-600 px-4 py-2 rounded-full transition-colors">
+                    <a href="main_login.php" class="text-sm font-semibold text-gray-600 hover:text-brand-600 px-4 py-2 rounded-full transition-colors">
                         Login
                     </a>
-                    <a href="register_options.php" class="text-sm font-semibold bg-yellow-500 text-white px-5 py-2.5 rounded-full hover:bg-yellow-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    <a href="register_options.php" class="text-sm font-semibold bg-brand-700 text-white px-5 py-2.5 rounded-full hover:bg-brand-800 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                         Sign Up
                     </a>
                 </div>
@@ -147,18 +215,18 @@
         <!-- Hero Section -->
         <section id="home" class="hero-section py-32 sm:py-40 relative overflow-hidden">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10" id="hero-content">
-                <span class="inline-block py-1 px-3 rounded-full bg-yellow-100 text-yellow-800 text-sm font-semibold mb-6 animate-on-load animate-headline">Official Inspection Platform</span>
-                <h1 class="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 leading-tight animate-on-load animate-headline mb-6">
+                <span class="inline-block py-1 px-3 rounded-full bg-brand-100 text-brand-800 text-sm font-semibold mb-6 animate-on-load animate-headline">Official Inspection Platform</span>
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-serif font-black text-white leading-tight animate-on-load animate-headline mb-6 hero-text-shadow">
                     Ensuring <span class="text-gradient">Safer Communities</span>
                 </h1>
-                <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-600 animate-on-load animate-subheadline leading-relaxed">
+                <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-200 animate-on-load animate-subheadline leading-relaxed">
                     A modern digital platform for health and safety inspections, powered by AI for smarter, faster, and more transparent compliance across Quezon City.
                 </p>
                 <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4 animate-on-load animate-buttons">
-                    <a href="main_login.php" class="bg-yellow-500 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-yellow-600 transition-all transform hover:scale-105 shadow-lg hover:shadow-yellow-500/30 animate-pulse-gentle">
+                    <a href="main_login.php" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-brand-700/30 animate-pulse-gentle">
                         Get Started
                     </a>
-                    <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-yellow-400 hover:text-yellow-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
+                    <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-brand-400 hover:text-brand-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
                         Learn More
                     </a>
                 </div>
@@ -169,20 +237,20 @@
         <section id="services" class="py-24 bg-white relative">
             <!-- Decorative background blob -->
             <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 opacity-30">
-                <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-yellow-200 blur-3xl"></div>
+                <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-brand-200 blur-3xl"></div>
                 <div class="absolute top-1/2 -left-24 w-72 h-72 rounded-full bg-blue-100 blur-3xl"></div>
             </div>
 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16 max-w-3xl mx-auto">
-                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">Features</h2>
+                    <h2 class="text-base text-brand-600 font-bold tracking-wide uppercase mb-2">Features</h2>
                     <h2 class="text-4xl font-extrabold tracking-tight text-gray-900 mb-4">Our Core Capabilities</h2>
                     <p class="text-xl text-gray-500">Everything you need for modern, efficient safety inspections.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-gray-800">
                     <!-- Feature 1 -->
                     <div class="group flex flex-col p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 fade-in-element">
-                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-yellow-100 text-yellow-600 mb-6 group-hover:bg-yellow-500 group-hover:text-white transition-colors duration-300">
+                        <div class="flex items-center justify-center h-16 w-16 rounded-2xl bg-brand-100 text-brand-600 mb-6 group-hover:bg-brand-500 group-hover:text-white transition-colors duration-300">
                             <i class="fas fa-bolt text-2xl"></i>
                         </div>
                         <h3 class="text-xl font-bold mb-3 text-gray-900">AI-Powered Analysis</h3>
@@ -219,7 +287,7 @@
                         <p class="text-gray-500 leading-relaxed flex-grow">
                             Easily search for any registered business to view their latest public compliance score and promote transparency.
                         </p>
-                        <a href="public_compliance_search.php" class="text-yellow-600 hover:text-yellow-700 mt-4 inline-flex items-center font-semibold group-hover:translate-x-1 transition-transform">Search Now <i class="fas fa-arrow-right ml-2"></i></a>
+                        <a href="public_compliance_search.php" class="text-brand-600 hover:text-brand-700 mt-4 inline-flex items-center font-semibold group-hover:translate-x-1 transition-transform">Search Now <i class="fas fa-arrow-right ml-2"></i></a>
                     </div>
                 </div>
             </div>
@@ -229,7 +297,7 @@
         <section class="py-24 bg-gray-50 border-t border-gray-200">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 fade-in-element">
                 <div class="text-center mb-16 max-w-3xl mx-auto">
-                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">Workflow</h2>
+                    <h2 class="text-base text-brand-600 font-bold tracking-wide uppercase mb-2">Workflow</h2>
                     <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">A Simple, Effective Process</h2>
                     <p class="mt-4 text-lg text-gray-500">Streamlining inspections from start to finish.</p>
                 </div>
@@ -241,21 +309,21 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
                         <!-- Step 1 -->
                         <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
-                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">1</div>
+                            <div class="w-16 h-16 mx-auto bg-brand-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-brand-100">1</div>
                             <h4 class="text-xl font-bold mb-3 text-gray-900">Schedule</h4>
                             <p class="text-gray-500">Admins schedule inspections, or businesses request them directly through the portal.</p>
                         </div>
                         
                         <!-- Step 2 -->
                         <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
-                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">2</div>
+                            <div class="w-16 h-16 mx-auto bg-brand-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-brand-100">2</div>
                             <h4 class="text-xl font-bold mb-3 text-gray-900">Inspect</h4>
                             <p class="text-gray-500">Inspectors perform evaluations on-site using AI-assisted tools to identify hazards.</p>
                         </div>
                         
                         <!-- Step 3 -->
                         <div class="bg-white p-8 rounded-2xl shadow-md text-center transform transition-transform hover:-translate-y-2">
-                            <div class="w-16 h-16 mx-auto bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-yellow-100">3</div>
+                            <div class="w-16 h-16 mx-auto bg-brand-500 text-white rounded-full flex items-center justify-center text-2xl font-bold mb-6 shadow-lg ring-4 ring-brand-100">3</div>
                             <h4 class="text-xl font-bold mb-3 text-gray-900">Resolve</h4>
                             <p class="text-gray-500">View detailed reports, track violations, and ensure compliance for a safer community.</p>
                         </div>
@@ -268,7 +336,7 @@
         <section id="about" class="py-24 bg-white">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 fade-in-element">
                 <div class="lg:text-center">
-                    <h2 class="text-base text-yellow-600 font-bold tracking-wide uppercase mb-2">About Us</h2>
+                    <h2 class="text-base text-brand-600 font-bold tracking-wide uppercase mb-2">About Us</h2>
                     <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
                         A Commitment to Public Safety
                     </p>
@@ -281,7 +349,7 @@
                     <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-12 md:gap-y-12">
                         <div class="relative bg-gray-50 p-8 rounded-2xl border border-gray-100">
                             <dt>
-                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-yellow-500 text-white shadow-lg">
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-brand-500 text-white shadow-lg">
                                     <i class="fas fa-bullseye"></i>
                                 </div>
                                 <p class="ml-16 text-xl leading-6 font-bold text-gray-900">Our Mission</p>
@@ -293,7 +361,7 @@
 
                         <div class="relative bg-gray-50 p-8 rounded-2xl border border-gray-100">
                             <dt>
-                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-yellow-500 text-white shadow-lg">
+                                <div class="absolute flex items-center justify-center h-12 w-12 rounded-xl bg-brand-500 text-white shadow-lg">
                                     <i class="fas fa-eye"></i>
                                 </div>
                                 <p class="ml-16 text-xl leading-6 font-bold text-gray-900">Our Vision</p>
@@ -308,7 +376,7 @@
         </section>
 
         <!-- Call to Action -->
-        <section class="bg-gradient-to-r from-yellow-500 to-yellow-600 relative overflow-hidden">
+        <section class="bg-gradient-to-r from-brand-500 to-brand-600 relative overflow-hidden">
             <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
                 <h2 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                     <span class="block text-gray-900">Ready to enhance community safety?</span>
@@ -316,7 +384,7 @@
                 </h2>
                 <div class="mt-8 flex lg:mt-0 lg:flex-shrink-0">
                     <div class="inline-flex rounded-md shadow-lg">
-                        <a href="main_login.php" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-yellow-600 bg-white hover:bg-gray-50 transition-all transform hover:scale-105 shadow-xl">
+                        <a href="main_login.php" class="inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-brand-600 bg-white hover:bg-gray-50 transition-all transform hover:scale-105 shadow-xl">
                             Login or Register
                         </a>
                     </div>
@@ -327,7 +395,7 @@
     </main>
 
     <!-- Back to Top Button -->
-    <button id="back-to-top-button" class="fixed bottom-8 right-8 bg-gray-900 text-white p-4 rounded-full shadow-xl hover:bg-yellow-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 z-50 transition-all duration-300" title="Back to top">
+    <button id="back-to-top-button" class="fixed bottom-8 right-8 bg-gray-900 text-white p-4 rounded-full shadow-xl hover:bg-brand-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 z-50 transition-all duration-300" title="Back to top">
         <i class="fas fa-arrow-up"></i>
     </button>
 
@@ -354,7 +422,7 @@
                 <div>
                     <h3 class="text-sm font-semibold tracking-wider uppercase text-gray-400">Contact</h3>
                     <ul class="mt-4 space-y-4 text-base text-gray-300">
-                        <li class="flex items-start"><i class="fas fa-envelope mt-1 mr-3 text-yellow-400"></i><a href="mailto:healthsafetyinspection@gmail.com" class="hover:text-white">healthsafetyinspection@gmail.com</a></li>
+                        <li class="flex items-start"><i class="fas fa-envelope mt-1 mr-3 text-brand-400"></i><a href="mailto:healthsafetyinspection@gmail.com" class="hover:text-white">healthsafetyinspection@gmail.com</a></li>
                     </ul>
                 </div>
                 <div>
@@ -439,10 +507,10 @@
                     if (entry.isIntersecting) {
                         const sectionId = entry.target.getAttribute('id');
                         navLinks.forEach(link => {
-                            link.classList.remove('text-yellow-600', 'font-bold');
+                            link.classList.remove('text-brand-600', 'font-bold');
                             link.classList.add('text-gray-600', 'font-medium');
                             if (link.getAttribute('href') === `#${sectionId}`) {
-                                link.classList.add('text-yellow-600', 'font-bold');
+                                link.classList.add('text-brand-600', 'font-bold');
                                 link.classList.remove('text-gray-600', 'font-medium');
                             }
                         });
@@ -453,6 +521,24 @@
             sections.forEach(section => {
                 navObserver.observe(section);
             });
+
+            // Ripple Effect
+            function createRipple(event) {
+                const button = event.currentTarget;
+                const circle = document.createElement("span");
+                const diameter = Math.max(button.clientWidth, button.clientHeight);
+                const radius = diameter / 2;
+
+                circle.style.width = circle.style.height = `${diameter}px`;
+                circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+                circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+                circle.classList.add("ripple");
+
+                const ripple = button.getElementsByClassName("ripple")[0];
+                if (ripple) ripple.remove();
+                button.appendChild(circle);
+            }
+            document.querySelectorAll(".ripple-btn").forEach(btn => btn.addEventListener("click", createRipple));
         });
     </script>
 </body>

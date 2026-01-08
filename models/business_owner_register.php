@@ -5,6 +5,7 @@ require_once '../models/User.php';
 require_once '../models/Business.php';
 require_once '../models/BusinessDocument.php';
 require_once '../models/Notification.php';
+require_once '../includes/functions.php';
 require_once '../ValidationService.php';
 
 // Determine base path for assets
@@ -114,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $business->owner_id = $user_id;
             $business->address = $_POST['address'] ?? 'Not Provided';
             $business->email = $data['email'];
-            $business->status = 'pending';
+            $business->status = 'pending'; // Business requires admin approval before becoming active
             // Set other required fields to placeholders since the form is simple
             $business->contact_number = 'N/A';
             $business->business_type = 'N/A';

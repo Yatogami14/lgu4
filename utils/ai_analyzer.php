@@ -1,290 +1,191 @@
 <?php
-
 class GeminiAnalyzer {
     private $apiKey;
-    private $textModel = 'gemini-1.5-flash'; // Default fallback
-    private $visionModel = 'gemini-1.5-flash'; // Default fallback
+    private $textModel = 'gemini-2.5-flash';
+    private $visionModel = 'gemini-2.5-flash';
     private $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
- 
+    private $useFallback = false;
+
     public function __construct($apiKey) {
         $this->apiKey = $apiKey;
-        $this->discoverBestModel();
+    }
+
+    public function getTextModel() {
+        return $this->textModel;
+    }
+
+    public function getVisionModel() {
+        return $this->visionModel;
     }
 
     public function analyzeText($text) {
-        if (empty($this->apiKey) || $this->apiKey === 'YOUR_GEMINI_API_KEY') {
-            return ['compliance' => 'needs_review', 'confidence' => 0.75, 'suggestions' => ['Set Gemini API key to enable AI analysis.']];
-        }
-
         $prompt = "You are an AI assistant for a health and safety inspection platform. Analyze the following inspector's observation notes. Based on the text, determine the compliance status. The status must be one of: 'compliant', 'non_compliant', or 'needs_review'. Also provide a confidence score for your assessment (from 0.0 to 1.0) and up to two brief suggestions for the inspector.\n\nReturn your analysis ONLY as a valid JSON object with the keys: 'compliance', 'confidence', 'suggestions' (which should be an array of strings).\n\nInspector's notes: \"{$text}\"";
+        $parts = [['text' => $prompt]];
+        return $this->_generateContent($parts, $this->textModel);
+    }
 
-        $data = [
-            'contents' => [
+    public function analyzeMedia($imagePath) {
+        // Log the start of media analysis
+        error_log("Starting media analysis for: " . $imagePath);
+
+        if (!file_exists($imagePath)) {
+            error_log("Image file not found: " . $imagePath);
+            return $this->createResponse('error', 0.0, ['Image file not found: ' . $imagePath], []);
+        }
+
+        if ($this->useFallback) {
+            error_log("Using fallback analysis for: " . $imagePath);
+            return $this->fallbackMediaAnalysis($imagePath);
+        }
+
+        try {
+            $imageData = base64_encode(file_get_contents($imagePath));
+            $mimeType = mime_content_type($imagePath);
+
+            // Enhanced prompt for better photo analysis
+            $prompt = "You are an expert Health and Safety Inspector analyzing workplace photos for compliance with safety regulations.
+
+Analyze the provided image carefully and provide a structured JSON response with the following keys:
+- 'compliance': Your overall assessment. Must be one of 'compliant', 'non_compliant', or 'needs_review'. Use 'needs_review' if the image is unclear, not workplace-related, or you cannot determine compliance.
+- 'confidence': A score from 0.0 to 1.0 indicating your confidence in the compliance assessment. Be conservative - use lower scores for unclear images.
+- 'hazards': An array of strings, each describing a specific safety hazard you've identified. Be specific and detailed (e.g., 'Exposed electrical wiring without proper insulation', 'Missing guard rails on elevated platform', 'Improper storage of flammable materials'). List up to 5 major hazards. If none visible, return an empty array.
+- 'positive_observations': An array of strings, each describing good safety practices you've observed. Be specific (e.g., 'All personnel wearing appropriate PPE including hard hats and safety vests', 'Emergency exit signs are clearly visible and unobstructed', 'Fire extinguishers are properly mounted and accessible'). List up to 5 positive observations. If none visible, return an empty array.
+
+Focus on:
+- Personal Protective Equipment (PPE) usage
+- Workplace organization and housekeeping
+- Electrical safety
+- Fire safety equipment
+- Fall protection
+- Hazardous material storage
+- Emergency exits and signage
+- Equipment guarding and maintenance
+
+Return ONLY the valid JSON object. If you're unsure about any aspect, reflect that in your confidence score.";
+
+            $parts = [
+                ['text' => $prompt],
                 [
-                    'parts' => [
-                        ['text' => $prompt]
+                    'inline_data' => [
+                        'mime_type' => $mimeType,
+                        'data' => $imageData
                     ]
                 ]
-            ]
-        ];
-        
-        $url = $this->baseUrl . $this->textModel . ':generateContent?key=' . $this->apiKey;
+            ];
 
-        $response = $this->makeApiCall($url, $data);
+            error_log("Calling Gemini API for media analysis with model: " . $this->visionModel);
+            $result = $this->_generateContent($parts, $this->visionModel);
 
-        if (isset($response['error'])) {
-            error_log("Gemini API Error: " . json_encode($response['error']));
-            
-            // Fallback analysis without AI
-            return $this->fallbackTextAnalysis($text);
+            if (isset($result['error'])) {
+                error_log("Gemini API Error in analyzeMedia: " . $result['error'] . (isset($result['raw']) ? ' - Raw: ' . json_encode($result['raw']) : ''));
+                return $this->createResponse('needs_review', 0.0, ['AI analysis failed: ' . $result['error'] . '. Please review manually.'], []);
+            }
+
+            error_log("Successfully analyzed media: " . $imagePath);
+            return $this->formatMediaResponse($result);
+
+        } catch (Exception $e) {
+            error_log("Gemini Analyzer Exception in analyzeMedia: " . $e->getMessage() . " for file: " . $imagePath);
+            return $this->createResponse('needs_review', 0.0, ['Analysis error: ' . $e->getMessage() . '. Please review manually.'], []);
         }
-
-        $json_string = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
-        
-        if ($json_string) {
-            // Clean up JSON response
-            $json_string = preg_replace('/^```json\s*|\s*```$/', '', trim($json_string));
-            $json_string = preg_replace('/^```\s*|\s*```$/', '', $json_string);
-        }
-
-        $analysis = json_decode($json_string, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($analysis)) {
-            error_log("Gemini API JSON parse error. Raw: " . substr($json_string, 0, 200));
-            return $this->fallbackTextAnalysis($text);
-        }
-
-        return [
-            'compliance' => $analysis['compliance'] ?? 'needs_review', 
-            'confidence' => floatval($analysis['confidence'] ?? 0.5), 
-            'suggestions' => $analysis['suggestions'] ?? ['No suggestions provided.']
-        ];
     }
 
-    public function analyzeMedia($filePath) {
-        if (empty($this->apiKey) || $this->apiKey === 'YOUR_GEMINI_API_KEY') {
-            return [
-                'compliance' => 'error',
-                'confidence' => 0.0,
-                'hazards' => ['AI Vision analysis is not configured. Please set a valid Gemini API key.'],
-                'positive_observations' => []
-            ];
-        }
-
-        if (!file_exists($filePath) || !is_readable($filePath)) {
-            return [
-                'compliance' => 'error',
-                'confidence' => 0.0,
-                'hazards' => ['File not found or not readable.'],
-                'positive_observations' => []
-            ];
-        }
-
-        $fileData = base64_encode(file_get_contents($filePath));
-        $mimeType = mime_content_type($filePath);
-        
-        // Check file size (Gemini has limits)
-        $fileSize = filesize($filePath);
-        if ($fileSize > 20 * 1024 * 1024) { // 20MB limit
-            return [
-                'compliance' => 'error',
-                'confidence' => 0.0,
-                'hazards' => ['File too large. Maximum size is 20MB.'],
-                'positive_observations' => []
-            ];
-        }
-
-        $prompt = "Analyze this safety inspection image. Return JSON with: positive_observations (array), hazards (array), compliance ('compliant','non_compliant','needs_review'), confidence (0-1).";
-
+    private function _generateContent(array $parts, string $model) {
         $data = [
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt],
-                        [
-                            'inline_data' => [
-                                'mime_type' => $mimeType,
-                                'data' => $fileData
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature' => 0.1,
-                'maxOutputTokens' => 500,
-            ]
+            'contents' => [['parts' => $parts]],
+            'generationConfig' => ['responseMimeType' => 'application/json']
         ];
 
-        $url = $this->baseUrl . $this->visionModel . ':generateContent?key=' . $this->apiKey;
+        $url = $this->baseUrl . $model . ':generateContent?key=' . $this->apiKey;
+
+        $maxRetries = 3;
+        $attempt = 0;
+        $response = null;
+        $httpCode = 0;
+        $error = null;
+
+        do {
+            $attempt++;
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_POSTFIELDS => json_encode($data),
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            // If rate limited (429), wait and retry
+            if ($httpCode == 429 && $attempt < $maxRetries) {
+                sleep(2); // Wait 2 seconds before retrying
+                continue;
+            }
+            break;
+        } while ($attempt < $maxRetries);
         
-        error_log("Calling Gemini Vision API: " . $this->visionModel);
-
-        $response = $this->makeApiCall($url, $data);
-
-        if (isset($response['error'])) {
-            $error = $response['error'];
-            error_log("Vision API Error: " . json_encode($error));
-            
-            return [
-                'compliance' => 'error',
-                'confidence' => 0.0,
-                'hazards' => ['API Error: ' . ($error['message'] ?? 'Unknown error')],
-                'positive_observations' => []
-            ];
+        if ($error) {
+            return ['error' => 'cURL Error: ' . $error];
+        }
+        if ($httpCode != 200) {
+            return ['error' => "HTTP Error $httpCode", 'raw' => $response];
         }
 
-        $json_string = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
+        $responseData = json_decode($response, true);
         
-        if (!$json_string) {
-            return [
-                'compliance' => 'error',
-                'confidence' => 0.0,
-                'hazards' => ['No response from AI.'],
-                'positive_observations' => []
-            ];
+        if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+            if (isset($responseData['candidates'][0]['finishReason']) && $responseData['candidates'][0]['finishReason'] === 'SAFETY') {
+                return ['error' => 'Content blocked due to safety settings.'];
+            }
+            return ['error' => 'Invalid API response structure', 'raw' => $responseData];
         }
 
-        // Clean JSON response
-        $json_string = preg_replace('/^```json\s*|\s*```$/', '', trim($json_string));
-        $json_string = preg_replace('/^```\s*|\s*```$/', '', $json_string);
-        
-        $analysis = json_decode($json_string, true);
+        $jsonString = $responseData['candidates'][0]['content']['parts'][0]['text'];
+        $decoded = json_decode($jsonString, true);
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("JSON Parse Error: " . json_last_error_msg() . " | Response: " . substr($json_string, 0, 200));
-            
-            // Try to extract JSON if it's wrapped in text
-            if (preg_match('/\{.*\}/s', $json_string, $matches)) {
-                $analysis = json_decode($matches[0], true);
+        return (json_last_error() === JSON_ERROR_NONE) ? $decoded : $this->parseGeminiResponse($jsonString);
+    }
+
+    private function parseGeminiResponse($text) {
+        if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $text, $matches)) {
+            $decoded = json_decode($matches[1], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
             }
         }
+        return ['error' => 'Failed to parse JSON response', 'raw' => $text];
+    }
 
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($analysis)) {
-            return [
-                'compliance' => 'needs_review',
-                'confidence' => 0.5,
-                'hazards' => ['AI analysis format issue.'],
-                'positive_observations' => ['Unable to parse AI response.']
-            ];
-        }
+    private function formatMediaResponse($data) {
+        $hazards = $data['hazards'] ?? [];
+        $positive = $data['positive_observations'] ?? [];
+        $status = $data['compliance'] ?? 'needs_review';
+        $confidence = floatval($data['confidence'] ?? 0.1);
+        
+        return $this->createResponse($status, $confidence, $hazards, $positive);
+    }
 
+    private function createResponse($status, $confidence, $hazards, $positive) {
         return [
-            'hazards' => $analysis['hazards'] ?? [],
-            'positive_observations' => $analysis['positive_observations'] ?? [],
-            'confidence' => floatval($analysis['confidence'] ?? 0.5),
-            'compliance' => $analysis['compliance'] ?? 'needs_review'
+            'compliance' => $status,
+            'confidence' => $confidence,
+            'hazards' => (array)$hazards,
+            'positive_observations' => (array)$positive
         ];
     }
 
-    private function makeApiCall($url, $data = null, $method = 'POST') {
-        $ch = curl_init($url);
-        
-        if ($ch === false) {
-            return ['error' => ['message' => "Failed to initialize cURL", 'code' => 'INIT_FAILED']];
-        }
-        
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        
-        if ($method === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, true);
-            if ($data !== null) {
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-            }
-        } elseif ($method === 'GET') {
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-        }
-
-        $response = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curl_error = curl_error($ch);
-        
-        curl_close($ch);
-
-        if ($curl_error) {
-            return ['error' => ['message' => "cURL Error: " . $curl_error, 'code' => 'CURL']];
-        }
-
-        $response_data = json_decode($response, true);
-
-        if ($httpcode !== 200) {
-            $error_msg = "HTTP {$httpcode}";
-            if (isset($response_data['error']['message'])) {
-                $error_msg = $response_data['error']['message'];
-            }
-            return ['error' => ['message' => $error_msg, 'code' => $httpcode]];
-        }
-
-        return $response_data;
-    }
-
-    private function fallbackTextAnalysis($text) {
-        // Simple keyword-based fallback when API fails
-        $keywords_compliant = ['good', 'clean', 'safe', 'proper', 'correct', 'adequate'];
-        $keywords_non_compliant = ['broken', 'missing', 'unsafe', 'hazard', 'danger', 'violation'];
-        
-        $text_lower = strtolower($text);
-        $score = 0;
-        
-        foreach ($keywords_compliant as $word) {
-            if (strpos($text_lower, $word) !== false) $score++;
-        }
-        foreach ($keywords_non_compliant as $word) {
-            if (strpos($text_lower, $word) !== false) $score--;
-        }
-        
-        if ($score > 0) $compliance = 'compliant';
-        elseif ($score < 0) $compliance = 'non_compliant';
-        else $compliance = 'needs_review';
-        
-        return [
-            'compliance' => $compliance,
-            'confidence' => 0.6,
-            'suggestions' => ['Using fallback analysis. Check API configuration.']
-        ];
-    }
-
-    private function discoverBestModel() {
-        if (empty($this->apiKey) || $this->apiKey === 'YOUR_GEMINI_API_KEY') {
-            return;
-        }
-
-        // URL to list models
-        $url = "https://generativelanguage.googleapis.com/v1beta/models?key=" . $this->apiKey;
-        
-        $response = $this->makeApiCall($url, null, 'GET');
-
-        if (isset($response['models'])) {
-            $models = [];
-            foreach ($response['models'] as $m) {
-                // Strip 'models/' prefix to get clean name (e.g., 'gemini-1.5-flash')
-                $models[] = str_replace('models/', '', $m['name']);
-            }
-
-            // Priority list for models (Flash > Pro > 1.0)
-            $priorities = [
-                'gemini-1.5-flash',
-                'gemini-1.5-flash-latest',
-                'gemini-1.5-pro',
-                'gemini-1.5-pro-latest',
-                'gemini-pro',
-                'gemini-pro-vision'
-            ];
-
-            // Find best available model
-            foreach ($priorities as $p) {
-                if (in_array($p, $models)) {
-                    $this->textModel = $p;
-                    // For vision, we prefer the same model if it's 1.5 (multimodal), otherwise fallback to pro-vision
-                    if (strpos($p, '1.5') !== false || $p === 'gemini-pro-vision') {
-                        $this->visionModel = $p;
-                    }
-                    break;
-                }
-            }
-        }
+    private function fallbackMediaAnalysis($imagePath) {
+        $hazards = ['AI analysis is currently unavailable. Please review manually.'];
+        $positive = [];
+        $status = 'needs_review';
+        $confidence = 0.0;
+        return $this->createResponse($status, $confidence, $hazards, $positive);
     }
 }
+?>

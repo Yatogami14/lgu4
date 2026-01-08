@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($business_id && $action) {
         $new_status = '';
         if ($action === 'approve') {
-            $new_status = 'verified';
+            $new_status = 'active';
             $new_user_status = 'active';
         } elseif ($action === 'reject') {
             $new_status = 'rejected';

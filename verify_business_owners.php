@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($business_id && $action) {
         $new_status = '';
         if ($action === 'approve') {
-            $new_status = 'verified';
+            $new_status = 'active';
             $new_user_status = 'active';
         } elseif ($action === 'reject') {
             $new_status = 'rejected';
@@ -50,12 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $owner_id = $business_data['user_id'];
                 // Pass the rejection reason to the updateStatus method
                 if ($businessModel->updateStatus($business_id, $new_status, $rejection_reason ?? null) && $userModel->updateStatus($owner_id, $new_user_status)) {
-                    $message = "Business application has been successfully " . ($new_status === 'verified' ? 'approved.' : 'rejected.');
+                    $message = "Business application has been successfully " . ($new_status === 'active' ? 'approved.' : 'rejected.');
                     $messageType = 'success';
 
                     // Create a notification for the business owner
                     $business_name = $business_data['business_name'];
-                    $status_text = ($new_status === 'verified') ? 'approved' : 'rejected';
+                    $status_text = ($new_status === 'active') ? 'approved' : 'rejected';
                     $notification_message = "Your business application for \"{$business_name}\" has been {$status_text}.";
                     
                     // Append the reason to the notification message if rejected

@@ -256,417 +256,293 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $is_edit_mode ? 'Edit Application' : 'Business Registration'; ?> - HSI-QC Protektado</title>
     <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    animation: {
-                        'blob': 'blob 7s infinite',
-                    },
-                    keyframes: {
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/business_register.css">
 </head>
-<body class="bg-gray-50 font-sans text-gray-900 h-full">
+<body>
 
-    <div class="min-h-screen flex">
-        
-        <!-- Left Side - Branding (Hidden on mobile) -->
-        <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-yellow-400 to-yellow-600 relative overflow-hidden items-center justify-center">
-            <!-- Decorative Background Elements -->
-            <div class="absolute top-0 left-0 w-full h-full bg-yellow-500 opacity-10 pattern-grid-lg"></div>
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-            
-            <div class="relative z-10 text-center px-12">
-                <div class="bg-white/20 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/20">
-                    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Logo" class="h-32 w-32 mx-auto rounded-full shadow-lg mb-6 border-4 border-white/50">
-                    <h1 class="text-4xl font-black text-white mb-2 tracking-tight drop-shadow-sm">Business Partner</h1>
-                    <p class="text-yellow-50 text-lg font-medium max-w-md mx-auto leading-relaxed">
-                        Register your establishment to ensure compliance and safety for the community.
-                    </p>
-                </div>
-            </div>
+    <div class="bg-decoration bg-decoration-1"></div>
+    <div class="bg-decoration bg-decoration-2"></div>
+    <div class="bg-decoration bg-decoration-3"></div>
+    <div class="bg-decoration bg-decoration-4"></div>
+
+    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Watermark" class="watermark-logo">
+
+    <a href="<?php echo $base_path; ?>/register_options.php" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Options
+    </a>
+
+    <div class="main-content-wrapper">
+        <div class="logo-left">
+            <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Logo">
+            <h1>HSI-QC Protektado</h1>
+            <p class="tagline">Register your establishment to ensure compliance and safety for the community.</p>
         </div>
 
-        <!-- Right Side - Registration Form -->
-        <div class="w-full lg:w-1/2 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-white relative">
-            
-            <!-- Back Button -->
-            <a href="<?php echo $base_path; ?>/register_options.php" class="absolute top-6 left-6 inline-flex items-center text-sm font-medium text-gray-500 hover:text-yellow-600 transition-colors group">
-                <i class="fas fa-arrow-left mr-2 transform group-hover:-translate-x-1 transition-transform"></i>
-                Back to Options
-            </a>
+        <div class="register-container">
 
-            <div class="mx-auto w-full max-w-2xl">
-                <div class="text-center lg:text-left">
-                    <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Logo" class="h-16 w-16 mx-auto lg:hidden mb-6 rounded-full shadow-md">
-                    <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight"><?php echo $is_edit_mode ? 'Edit Application' : 'Business Registration'; ?></h2>
-                    <p class="mt-2 text-sm text-gray-600">
-                        <?php echo $is_edit_mode ? 'Update your details and re-upload documents.' : 'Complete the form below to register your business.'; ?>
-                    </p>
-                </div>
+            <div class="register-header">
+                <h2><?php echo $is_edit_mode ? 'Edit Application' : 'Business Registration'; ?></h2>
+                <p><?php echo $is_edit_mode ? 'Update your details and re-upload documents.' : 'Complete the form below to register your business.'; ?></p>
+            </div>
 
-                <!-- Progress Bar -->
-                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-8 mt-4">
-                    <div id="progress-bar" class="bg-yellow-500 h-2.5 rounded-full transition-all duration-500" style="width: 25%"></div>
-                </div>
-
-                <div class="mt-8">
-                    <?php if (isset($error_message)): ?>
-                        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md animate-pulse">
-                            <div class="flex">
-                                <div class="flex-shrink-0"><i class="fas fa-exclamation-circle text-red-500"></i></div>
-                                <div class="ml-3"><p class="text-sm text-red-700 font-medium"><?php echo $error_message; ?></p></div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (isset($success_message)) : ?>
-                        <div class="mb-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-md">
-                            <div class="flex">
-                                <div class="flex-shrink-0"><i class="fas fa-check-circle text-green-500"></i></div>
-                                <div class="ml-3"><p class="text-sm text-green-700 font-medium"><?php echo $success_message; ?></p></div>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <form id="registerForm" method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?><?php echo $is_edit_mode ? '?edit_id=' . $business_id_to_edit : ''; ?>" enctype="multipart/form-data">
-                        <?php if ($is_edit_mode): ?>
-                            <input type="hidden" name="edit_id" value="<?php echo $business_id_to_edit; ?>">
-                        <?php endif; ?>
-                        
-                        <?php if (!$is_edit_mode): ?>
-                        <!-- Step 1 -->
-                        <div id="step-1" class="form-step space-y-8">
-                            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                    <span class="bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                                    Account Details
-                                </h3>
-                                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="name" class="block text-sm font-medium text-gray-700">Owner's Full Name</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-user text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($existing_data['owner_name'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Enter your full name">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-envelope text-gray-400"></i>
-                                            </div>
-                                            <input type="email" id="email" name="email" required value="<?php echo htmlspecialchars($existing_data['email'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Enter your email">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-lock text-gray-400"></i>
-                                            </div>
-                                            <input type="password" id="password" name="password" required minlength="6"
-                                                class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Create a strong password">
-                                            <button type="button" id="passwordToggle" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                        <p class="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-lock text-gray-400"></i>
-                                            </div>
-                                            <input type="password" id="confirm_password" name="confirm_password" required
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Confirm your password">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-end mt-8">
-                                <button type="button" class="next-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all">Next <i class="fas fa-arrow-right ml-2"></i></button>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-
-                        <!-- Step 2 -->
-                        <div id="step-2" class="form-step <?php if (!$is_edit_mode) echo 'hidden'; ?> space-y-8">
-                            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                    <span class="bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">2</span>
-                                    Business Details
-                                </h3>
-                                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="business_name" class="block text-sm font-medium text-gray-700">Business Name</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-store text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="business_name" name="business_name" required value="<?php echo htmlspecialchars($existing_data['name'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Official business name">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="registration_number" class="block text-sm font-medium text-gray-700">Registration Number</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-id-card text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="registration_number" name="registration_number" required value="<?php echo htmlspecialchars($existing_data['registration_number'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Registration No.">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2">
-                                        <label for="address" class="block text-sm font-medium text-gray-700">Business Address</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-map-marker-alt text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="address" name="address" required value="<?php echo htmlspecialchars($existing_data['address'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Full business address">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="contact_phone" class="block text-sm font-medium text-gray-700">Contact Phone</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-phone text-gray-400"></i>
-                                            </div>
-                                            <input type="tel" id="contact_phone" name="contact_phone" required value="<?php echo htmlspecialchars($existing_data['contact_number'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Business phone">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="business_email" class="block text-sm font-medium text-gray-700">Business Email</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-envelope text-gray-400"></i>
-                                            </div>
-                                            <input type="email" id="business_email" name="business_email" required value="<?php echo htmlspecialchars($existing_data['email'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Business email">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="business_type" class="block text-sm font-medium text-gray-700">Business Type</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-briefcase text-gray-400"></i>
-                                            </div>
-                                            <select id="business_type" name="business_type" required
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out">
-                                                <option value="">Select Business Type</option>
-                                                <option value="Restaurant" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Restaurant') ? 'selected' : ''; ?>>Restaurant</option>
-                                                <option value="Food Establishment" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Food Establishment') ? 'selected' : ''; ?>>Food Establishment</option>
-                                                <option value="Hotel" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Hotel') ? 'selected' : ''; ?>>Hotel</option>
-                                                <option value="Hospital" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Hospital') ? 'selected' : ''; ?>>Hospital</option>
-                                                <option value="School" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'School') ? 'selected' : ''; ?>>School</option>
-                                                <option value="Factory" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Factory') ? 'selected' : ''; ?>>Factory</option>
-                                                <option value="Other" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Other') ? 'selected' : ''; ?>>Other</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="establishment_date" class="block text-sm font-medium text-gray-700">Establishment Date</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-calendar text-gray-400"></i>
-                                            </div>
-                                            <input type="date" id="establishment_date" name="establishment_date" required value="<?php echo htmlspecialchars($existing_data['establishment_date'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-between mt-8">
-                                <?php if (!$is_edit_mode): ?>
-                                <button type="button" class="prev-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-gray-300 rounded-full shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all"><i class="fas fa-arrow-left mr-2"></i> Previous</button>
-                                <?php endif; ?>
-                                <button type="button" class="next-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all">Next <i class="fas fa-arrow-right ml-2"></i></button>
-                            </div>
-                        </div>
-
-                        <!-- Step 3 -->
-                        <div id="step-3" class="form-step hidden space-y-8">
-                            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                    <span class="bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">3</span>
-                                    Representative Details
-                                </h3>
-                                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="representative_name" class="block text-sm font-medium text-gray-700">Representative Name</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-user-tie text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="representative_name" name="representative_name" required value="<?php echo htmlspecialchars($existing_data['representative_name'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Full name">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="representative_position" class="block text-sm font-medium text-gray-700">Position</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-briefcase text-gray-400"></i>
-                                            </div>
-                                            <input type="text" id="representative_position" name="representative_position" required value="<?php echo htmlspecialchars($existing_data['representative_position'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="e.g., Manager">
-                                        </div>
-                                    </div>
-
-                                    <div class="col-span-2">
-                                        <label for="representative_contact" class="block text-sm font-medium text-gray-700">Contact Number</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <i class="fas fa-phone text-gray-400"></i>
-                                            </div>
-                                            <input type="tel" id="representative_contact" name="representative_contact" required value="<?php echo htmlspecialchars($existing_data['representative_contact'] ?? ''); ?>"
-                                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out" 
-                                                placeholder="Representative's phone">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" class="prev-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-gray-300 rounded-full shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all"><i class="fas fa-arrow-left mr-2"></i> Previous</button>
-                                <button type="button" class="next-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all">Next <i class="fas fa-arrow-right ml-2"></i></button>
-                            </div>
-                        </div>
-
-                        <!-- Step 4 -->
-                        <div id="step-4" class="form-step hidden space-y-8">
-                            <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                                    <span class="bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">4</span>
-                                    Upload Documents
-                                </h3>
-                                <p class="text-sm text-gray-500 mb-6">
-                                    <?php echo $is_edit_mode ? 'Please re-upload all required documents to ensure they are up-to-date.' : 'Please upload the following required documents (PDF, JPG, PNG).'; ?>
-                                </p>
-
-                                <?php if ($is_edit_mode && !empty($existing_documents)): ?>
-                                <div class="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                                    <h4 class="font-semibold text-gray-800 mb-2 text-sm">Current Documents:</h4>
-                                    <ul class="list-disc list-inside text-xs space-y-1 text-gray-600">
-                                        <?php foreach ($existing_documents as $doc): 
-                                            $docStatus = $doc['status'] ?? 'pending';
-                                            $docFeedback = $doc['feedback'] ?? '';
-                                        ?>
-                                            <li>
-                                                <a href="<?php echo $base_path . '/' . htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-blue-600 hover:underline">
-                                                    <?php echo htmlspecialchars($doc['file_name']); ?> (<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $doc['document_type']))); ?>)
-                                                </a>
-                                                <?php if ($docStatus === 'rejected'): ?>
-                                                    <span class="ml-2 text-red-600 font-bold"><i class="fas fa-exclamation-circle"></i> Revision Requested</span>
-                                                    <?php if ($docFeedback): ?>
-                                                        <div class="ml-4 text-red-500 mt-1"><strong>Reason:</strong> <?php echo htmlspecialchars($docFeedback); ?></div>
-                                                    <?php endif; ?>
-                                                <?php endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </div>
-                                <?php endif; ?>
-
-                                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                                    <?php
-                                    $docs = [
-                                        'building_permit' => 'Building Permit',
-                                        'business_permit' => 'Business Permit',
-                                        'waste_disposal_certificate' => 'Waste Disposal Permit',
-                                        'owner_id' => 'ID of Business Owner',
-                                        'tax_registration' => 'Tax Registration',
-                                        'mayors_permit' => 'Mayor\'s Permit'
-                                    ];
-                                    foreach ($docs as $key => $label):
-                                    ?>
-                                    <div class="col-span-2 sm:col-span-1">
-                                        <label for="<?php echo $key; ?>" class="block text-sm font-medium text-gray-700"><?php echo $label; ?></label>
-                                        <input type="file" id="<?php echo $key; ?>" name="<?php echo $key; ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?>
-                                            class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 transition-colors">
-                                    </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                            <div class="flex justify-between mt-8">
-                                <button type="button" class="prev-btn w-full sm:w-auto flex justify-center py-3 px-8 border border-gray-300 rounded-full shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all"><i class="fas fa-arrow-left mr-2"></i> Previous</button>
-                                <button type="submit" id="registerButton" class="w-full sm:w-auto flex justify-center py-3 px-8 border border-transparent rounded-full shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all transform hover:scale-[1.02] shadow-lg">
-                                    <?php echo $is_edit_mode ? 'Update and Resubmit' : 'Submit Application'; ?>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-
-                    <div class="mt-6">
-                        <div class="relative">
-                            <div class="absolute inset-0 flex items-center">
-                                <div class="w-full border-t border-gray-300"></div>
-                            </div>
-                            <div class="relative flex justify-center text-sm">
-                                <span class="px-2 bg-white text-gray-500">
-                                    Already have an account?
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="mt-6">
-                            <a href="../main_login.php" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-full shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all">
-                                Sign In
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <p class="mt-8 text-center text-xs text-gray-500">
-                        &copy; <?php echo date('Y'); ?> HSI-QC Protektado. All Rights Reserved.
-                    </p>
+            <!-- Progress Bar -->
+            <div class="progress-wrapper">
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar" style="width: 25%"></div>
                 </div>
             </div>
+
+            <?php if (isset($error_message)): ?>
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i> <?php echo $error_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($success_message)) : ?>
+                <div class="success-message">
+                    <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+
+            <form id="registerForm" method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?><?php echo $is_edit_mode ? '?edit_id=' . $business_id_to_edit : ''; ?>" enctype="multipart/form-data">
+                <?php if ($is_edit_mode): ?>
+                    <input type="hidden" name="edit_id" value="<?php echo $business_id_to_edit; ?>">
+                <?php endif; ?>
+                
+                <?php if (!$is_edit_mode): ?>
+                <!-- Step 1 -->
+                <div id="step-1" class="form-step">
+                    <h3 class="step-title"><span class="step-number">1</span> Account Details</h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($existing_data['owner_name'] ?? ''); ?>" placeholder=" ">
+                                <label for="name">Owner's Full Name</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="email" name="email" required value="<?php echo htmlspecialchars($existing_data['email'] ?? ''); ?>" placeholder=" ">
+                                <label for="email">Email Address</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="password" name="password" required minlength="6" placeholder=" ">
+                                <button type="button" class="password-toggle" id="passwordToggle"></i></button>
+                                <label for="password">Password</label>
+                            </div>
+                            <p class="input-hint">Minimum 6 characters</p>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="confirm_password" name="confirm_password" required placeholder=" ">
+                                <label for="confirm_password">Confirm Password</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions right">
+                        <button type="button" class="btn-primary next-btn">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Step 2 -->
+                <div id="step-2" class="form-step" style="<?php if (!$is_edit_mode) echo 'display: none;'; ?>">
+                    <h3 class="step-title"><span class="step-number">2</span> Business Details</h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-store"></i>
+                                <input type="text" id="business_name" name="business_name" required value="<?php echo htmlspecialchars($existing_data['name'] ?? ''); ?>" placeholder=" ">
+                                <label for="business_name">Business Name</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-id-card"></i>
+                                <input type="text" id="registration_number" name="registration_number" required value="<?php echo htmlspecialchars($existing_data['registration_number'] ?? ''); ?>" placeholder=" ">
+                                <label for="registration_number">Registration Number</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <div class="input-wrapper">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" id="address" name="address" required value="<?php echo htmlspecialchars($existing_data['address'] ?? ''); ?>" placeholder=" ">
+                                <label for="address">Business Address</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone"></i>
+                                <input type="tel" id="contact_phone" name="contact_phone" required value="<?php echo htmlspecialchars($existing_data['contact_number'] ?? ''); ?>" placeholder=" ">
+                                <label for="contact_phone">Contact Phone</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="business_email" name="business_email" required value="<?php echo htmlspecialchars($existing_data['email'] ?? ''); ?>" placeholder=" ">
+                                <label for="business_email">Business Email</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-briefcase"></i>
+                                <select id="business_type" name="business_type" required>
+                                    <option value="" disabled selected hidden></option>
+                                    <option value="Restaurant" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Restaurant') ? 'selected' : ''; ?>>Restaurant</option>
+                                    <option value="Food Establishment" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Food Establishment') ? 'selected' : ''; ?>>Food Establishment</option>
+                                    <option value="Hotel" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Hotel') ? 'selected' : ''; ?>>Hotel</option>
+                                    <option value="Hospital" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Hospital') ? 'selected' : ''; ?>>Hospital</option>
+                                    <option value="School" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'School') ? 'selected' : ''; ?>>School</option>
+                                    <option value="Factory" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Factory') ? 'selected' : ''; ?>>Factory</option>
+                                    <option value="Other" <?php echo (isset($existing_data['business_type']) && $existing_data['business_type'] === 'Other') ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                                <label for="business_type">Business Type</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-calendar"></i>
+                                <input type="text" onfocus="(this.type='date')" onblur="(this.type='text')" id="establishment_date" name="establishment_date" required value="<?php echo htmlspecialchars($existing_data['establishment_date'] ?? ''); ?>" placeholder=" ">
+                                <label for="establishment_date">Establishment Date</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <?php if (!$is_edit_mode): ?>
+                        <button type="button" class="btn-secondary prev-btn"><i class="fas fa-arrow-left"></i> Previous</button>
+                        <?php endif; ?>
+                        <button type="button" class="btn-primary next-btn">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div id="step-3" class="form-step" style="display: none;">
+                    <h3 class="step-title"><span class="step-number">3</span> Representative Details</h3>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-user-tie"></i>
+                                <input type="text" id="representative_name" name="representative_name" required value="<?php echo htmlspecialchars($existing_data['representative_name'] ?? ''); ?>" placeholder=" ">
+                                <label for="representative_name">Representative Name</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <i class="fas fa-briefcase"></i>
+                                <input type="text" id="representative_position" name="representative_position" required value="<?php echo htmlspecialchars($existing_data['representative_position'] ?? ''); ?>" placeholder=" ">
+                                <label for="representative_position">Position</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone"></i>
+                                <input type="tel" id="representative_contact" name="representative_contact" required value="<?php echo htmlspecialchars($existing_data['representative_contact'] ?? ''); ?>" placeholder=" ">
+                                <label for="representative_contact">Contact Number</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary prev-btn"><i class="fas fa-arrow-left"></i> Previous</button>
+                        <button type="button" class="btn-primary next-btn">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div id="step-4" class="form-step" style="display: none;">
+                    <h3 class="step-title"><span class="step-number">4</span> Upload Documents</h3>
+                    <p class="step-desc">
+                        <?php echo $is_edit_mode ? 'Please re-upload all required documents to ensure they are up-to-date.' : 'Please upload the following required documents (PDF, JPG, PNG).'; ?>
+                    </p>
+
+                    <?php if ($is_edit_mode && !empty($existing_documents)): ?>
+                    <div class="existing-documents">
+                        <h4>Current Documents:</h4>
+                        <ul>
+                            <?php foreach ($existing_documents as $doc): 
+                                $docStatus = $doc['status'] ?? 'pending';
+                                $docFeedback = $doc['feedback'] ?? '';
+                            ?>
+                                <li>
+                                    <a href="<?php echo $base_path . '/' . htmlspecialchars($doc['file_path']); ?>" target="_blank">
+                                        <?php echo htmlspecialchars($doc['file_name']); ?> (<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $doc['document_type']))); ?>)
+                                    </a>
+                                    <?php if ($docStatus === 'rejected'): ?>
+                                        <span class="status-rejected"><i class="fas fa-exclamation-circle"></i> Revision Requested</span>
+                                        <?php if ($docFeedback): ?>
+                                            <div class="feedback"><strong>Reason:</strong> <?php echo htmlspecialchars($docFeedback); ?></div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="form-grid">
+                        <?php
+                        $docs = [
+                            'building_permit' => 'Building Permit',
+                            'business_permit' => 'Business Permit',
+                            'waste_disposal_certificate' => 'Waste Disposal Permit',
+                            'owner_id' => 'ID of Business Owner',
+                            'tax_registration' => 'Tax Registration',
+                            'mayors_permit' => 'Mayor\'s Permit'
+                        ];
+                        foreach ($docs as $key => $label):
+                        ?>
+                        <div class="form-group">
+                            <label for="<?php echo $key; ?>"><?php echo $label; ?></label>
+                            <div class="input-wrapper file-input">
+                                <i class="fas fa-file-upload"></i>
+                                <input type="file" id="<?php echo $key; ?>" name="<?php echo $key; ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?>>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary prev-btn"><i class="fas fa-arrow-left"></i> Previous</button>
+                        <button type="submit" id="registerButton" class="btn-primary">
+                            <?php echo $is_edit_mode ? 'Update and Resubmit' : 'Submit Application'; ?>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="login-link">
+                Already have an account? <a href="../main_login.php">Sign In</a>
+            </div>
+            
+            <p class="footer">
+                &copy; <?php echo date('Y'); ?> HSI-QC Protektado. All Rights Reserved.
+            </p>
         </div>
     </div>
 
@@ -676,71 +552,103 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             const nextButtons = document.querySelectorAll('.next-btn');
             const prevButtons = document.querySelectorAll('.prev-btn');
             const progressBar = document.getElementById('progress-bar');
+            const registerContainer = document.querySelector('.register-container');
 
-            let currentStepIndex = steps.findIndex(step => !step.classList.contains('hidden'));
+            let currentStepIndex = steps.findIndex(step => {
+                return window.getComputedStyle(step).display !== 'none';
+            });
             if (currentStepIndex === -1) currentStepIndex = 0;
 
             const totalSteps = steps.length;
 
             function updateProgressBar() {
-                const progress = ((currentStepIndex + 1) / totalSteps) * 100;
-                progressBar.style.width = `${progress}%`;
+                if (progressBar && totalSteps > 0) {
+                    const progress = ((currentStepIndex + 1) / totalSteps) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
             }
 
             nextButtons.forEach(button => {
                 button.addEventListener('click', () => {
-                    if (currentStepIndex < totalSteps - 1) {
-                        steps[currentStepIndex].classList.add('hidden');
-                        currentStepIndex++;
-                        steps[currentStepIndex].classList.remove('hidden');
+                    // Find the step containing this button
+                    const currentStep = button.closest('.form-step');
+                    const index = steps.indexOf(currentStep);
+
+                    if (index !== -1 && index < totalSteps - 1) {
+                        steps[index].style.display = 'none';
+                        currentStepIndex = index + 1;
+                        steps[currentStepIndex].style.display = 'block';
                         updateProgressBar();
-                        window.scrollTo(0, 0);
+                        if (registerContainer) registerContainer.scrollTo({ top: 0, behavior: 'smooth' }); else window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                 });
             });
 
             prevButtons.forEach(button => {
                 button.addEventListener('click', () => {
-                    if (currentStepIndex > 0) {
-                        steps[currentStepIndex].classList.add('hidden');
-                        currentStepIndex--;
-                        steps[currentStepIndex].classList.remove('hidden');
+                    const currentStep = button.closest('.form-step');
+                    const index = steps.indexOf(currentStep);
+
+                    if (index > 0) {
+                        steps[index].style.display = 'none';
+                        currentStepIndex = index - 1;
+                        steps[currentStepIndex].style.display = 'block';
                         updateProgressBar();
-                        window.scrollTo(0, 0);
+                        if (registerContainer) registerContainer.scrollTo({ top: 0, behavior: 'smooth' }); else window.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                 });
             });
 
             updateProgressBar();
-        });
 
-        // (JavaScript remains the same)
-        // Password confirmation validation
-        document.getElementById('registerForm')?.addEventListener('submit', function(e) {
-            const password = document.getElementById('password');
-            const confirmPassword = document.getElementById('confirm_password');
+            // Password toggle functionality
+            const passwordToggle = document.getElementById('passwordToggle');
+            if (passwordToggle) {
+                passwordToggle.addEventListener('click', function() {
+                    const passwordInput = document.getElementById('password');
+                    const icon = this.querySelector('i');
 
-            if (password.value !== confirmPassword.value) {
-                e.preventDefault();
-                alert('Passwords do not match!');
-                confirmPassword.focus();
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
             }
-        });
 
-        // Password toggle functionality
-        document.getElementById('passwordToggle')?.addEventListener('click', function() {
-            const password = document.getElementById('password');
-            const icon = this.querySelector('i');
+            // Password confirmation validation
+            document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+                const password = document.getElementById('password');
+                const confirmPassword = document.getElementById('confirm_password');
 
-            if (password.type === 'password') {
-                password.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                password.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                if (password && confirmPassword && password.value !== confirmPassword.value) {
+                    e.preventDefault();
+                    alert('Passwords do not match!');
+                    confirmPassword.focus();
+                }
+            });
+            
+            // Ripple Effect
+            function createRipple(event) {
+                const button = event.currentTarget;
+                const circle = document.createElement("span");
+                const diameter = Math.max(button.clientWidth, button.clientHeight);
+                const radius = diameter / 2;
+
+                circle.style.width = circle.style.height = `${diameter}px`;
+                circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+                circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+                circle.classList.add("ripple");
+
+                const ripple = button.getElementsByClassName("ripple")[0];
+                if (ripple) ripple.remove();
+                button.appendChild(circle);
             }
+            document.querySelectorAll(".btn-primary, .btn-secondary").forEach(btn => btn.addEventListener("click", createRipple));
         });
     </script>
 </body>

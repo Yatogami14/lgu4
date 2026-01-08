@@ -83,7 +83,7 @@ class User {
     public function readOne() {
         $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
-                  WHERE id = ? LIMIT 0,1";
+                  WHERE id = ? AND status != 'deleted' LIMIT 0,1";
 
         $row = $this->database->fetch($query, [$this->id]);
 
@@ -111,10 +111,10 @@ class User {
      */
     public function readAll($role = null, $limit = 1000, $offset = 0) {
         $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
-                  FROM " . $this->table_name;
+                  FROM " . $this->table_name . " WHERE status != 'deleted'";
         $params = [];
         if ($role) {
-            $query .= " WHERE role = :role";
+            $query .= " AND role = :role";
             $params[':role'] = $role;
         }
         $query .= " ORDER BY created_at DESC LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
@@ -194,14 +194,35 @@ class User {
     public function delete() {
         // Prevent deletion of super_admin accounts
         $check_query = "SELECT role FROM " . $this->table_name . " WHERE id = ? LIMIT 1";
-        $row = $this->database->fetch($check_query, [$this->id]);
-        if ($row && $row['role'] === 'super_admin') {
+        $user = $this->database->fetch($check_query, [$this->id]);
+
+        if ($user && $user['role'] === 'super_admin') {
+            error_log("Security: Attempt to delete super_admin user ID {$this->id} blocked.");
             return false;
         }
 
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = ?";
+        // Delete related sessions first to prevent foreign key constraint errors
         try {
-            $this->database->query($query, [$this->id]);
+            $this->database->query("DELETE FROM sessions WHERE user_id = :id", [':id' => $this->id]);
+        } catch (PDOException $e) {
+            // Continue if sessions table doesn't exist
+        }
+
+        // Delete related businesses to prevent foreign key constraint errors or orphaned records
+        try {
+            $this->database->query("DELETE FROM businesses WHERE user_id = :id", [':id' => $this->id]);
+        } catch (PDOException $e) {
+            // If user_id fails (e.g. column doesn't exist), try owner_id
+            try {
+                $this->database->query("DELETE FROM businesses WHERE owner_id = :id", [':id' => $this->id]);
+            } catch (PDOException $e2) {
+                // Continue if businesses table doesn't exist or neither column exists
+            }
+        }
+
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+        try {
+            $this->database->query($query, [':id' => $this->id]);
             return true;
         } catch (PDOException $e) {
             error_log("User deletion failed: " . $e->getMessage());
@@ -237,7 +258,7 @@ class User {
 
         $query = "SELECT id, name, email, password, role, status
                   FROM " . $this->table_name . "
-                  WHERE email = :identifier OR name = :identifier LIMIT 0,1";
+                  WHERE (email = :identifier OR name = :identifier) AND status != 'deleted' LIMIT 0,1";
 
         $row = $this->database->fetch($query, [':identifier' => $login_identifier]);
 
@@ -282,7 +303,7 @@ class User {
     public function readByRole($role) {
         $query = "SELECT id, name, email, role
                   FROM " . $this->table_name . "
-                  WHERE role = ?
+                  WHERE role = ? AND status != 'deleted'
                   ORDER BY name ASC";
 
         return $this->database->fetchAll($query, [$role]);
@@ -293,7 +314,7 @@ class User {
      * @return int
      */
     public function countAll() {
-        return $this->database->count($this->table_name);
+        return $this->database->count($this->table_name, "status != 'deleted'");
     }
 
     /**
@@ -304,7 +325,7 @@ class User {
     public function search($keywords) {
         $query = "SELECT id, name, email, role, status, department, certification, avatar, created_at, updated_at
                   FROM " . $this->table_name . "
-                  WHERE name LIKE ? OR email LIKE ?
+                  WHERE (name LIKE ? OR email LIKE ?) AND status != 'deleted'
                   ORDER BY name ASC";
 
         $keywords = "%" . htmlspecialchars(strip_tags($keywords)) . "%";
@@ -338,7 +359,7 @@ class User {
      * @return int
      */
     public function countActiveInspectors() {
-        return $this->database->count($this->table_name, "role = 'inspector'");
+        return $this->database->count($this->table_name, "role = 'inspector' AND status != 'deleted'");
     }
 
     /**

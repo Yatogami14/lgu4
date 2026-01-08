@@ -189,398 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login - Health & Safety Inspection System</title>
     <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        /* General Body and Font Setup */
-        :root {
-            --color-primary: #facc15; /* yellow-400 */
-            --color-primary-dark: #eab308; /* yellow-500 */
-            --color-primary-darker: #ca8a04; /* yellow-600 */
-            --color-bg: #f9fafb; /* gray-50 */
-            --color-text: #111827; /* gray-900 */
-            --color-text-muted: #6b7280; /* gray-500 */
-            --color-card-bg: #ffffff;
-            --color-border: #e5e7eb; /* gray-200 */
-            --font-sans: 'Inter', sans-serif;
-        }
-
-        html {
-            height: 100%;
-        }
-
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--color-bg);
-            color: var(--color-text);
-            margin: 0;
-            display: flex;
-            min-height: 100%;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Animated Gradient Background Decorations */
-        .bg-decoration {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            z-index: -1;
-            animation: blob-move 20s infinite alternate;
-        }
-        .bg-decoration-1 {
-            width: 400px; height: 400px;
-            top: -150px; left: -150px;
-            background-color: #fef08a; /* yellow-200 */
-        }
-        .bg-decoration-2 {
-            width: 300px; height: 300px;
-            bottom: -100px; right: -100px;
-            background-color: #fde047; /* yellow-300 */
-            animation-delay: -5s;
-        }
-        .bg-decoration-3 {
-            width: 250px; height: 250px;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fde047; /* yellow-300 */
-            animation-delay: -10s;
-        }
-        .bg-decoration-4 { display: none; } /* Hide the 4th one */
-
-        @keyframes blob-move {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(100px, -50px) scale(1.2); }
-            100% { transform: translate(-50px, 50px) scale(0.9); }
-        }
-
-        /* Hide watermark logo, it's distracting */
-        .watermark-logo {
-            display: none;
-        }
-
-        /* Main Layout: Split Screen */
-        .main-content-wrapper {
-            display: flex;
-            width: 100%;
-            flex-grow: 1;
-            align-items: stretch;
-        }
-
-        .logo-left {
-            width: 45%;
-            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-darker));
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo-left::before {
-            content: '';
-            position: absolute;
-            top: -50px; right: -50px;
-            width: 200px; height: 200px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            animation: blob-move 25s infinite alternate;
-            animation-delay: -3s;
-        }
-
-        .logo-left img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 4px solid rgba(255,255,255,0.5);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            margin-bottom: 24px;
-        }
-
-        .logo-left h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            margin: 0;
-            letter-spacing: 1px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .logo-left .tagline {
-            font-size: 1.1rem;
-            font-weight: 400;
-            opacity: 0.9;
-            margin-top: 8px;
-        }
-
-        .login-container {
-            width: 55%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            background-color: var(--color-card-bg);
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 992px) {
-            .logo-left {
-                display: none;
-            }
-            .login-container {
-                width: 100%;
-                max-width: 450px;
-                margin: auto;
-                background-color: transparent;
-            }
-            body {
-                background-color: var(--color-bg);
-            }
-        }
-
-        /* Form Container Elements */
-        .login-logo {
-            display: none; /* Hide this on desktop, it's redundant with the left panel */
-        }
-        @media (max-width: 992px) {
-            .login-logo {
-                display: block;
-                margin-bottom: 24px;
-            }
-            .login-logo img {
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            }
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .login-header h2 {
-            font-size: 2rem;
-            font-weight: 800;
-            margin: 0 0 8px 0;
-        }
-
-        .login-header p {
-            color: var(--color-text-muted);
-            margin: 0;
-        }
-
-        /* Form Styling */
-        #loginForm {
-            width: 100%;
-            max-width: 380px;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-wrapper i.fa-user,
-        .input-wrapper i.fa-lock {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af; /* gray-400 */
-        }
-
-        .input-wrapper input {
-            width: 100%;
-            padding: 14px 16px 14px 48px;
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            box-sizing: border-box;
-        }
-
-        .input-wrapper input:focus {
-            outline: none;
-            border-color: var(--color-primary-dark);
-            box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.3); /* yellow-400 with opacity */
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #9ca3af; /* gray-400 */
-            padding: 0;
-        }
-        .password-toggle:hover {
-            color: var(--color-text);
-        }
-
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.875rem;
-            margin-bottom: 24px;
-        }
-
-        .remember {
-            display: flex;
-            align-items: center;
-        }
-
-        .remember input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            border-radius: 4px;
-            border: 1px solid var(--color-border);
-            cursor: pointer;
-            accent-color: var(--color-primary-darker);
-        }
-
-        .remember label {
-            margin: 0 0 0 8px;
-            cursor: pointer;
-            color: var(--color-text-muted);
-        }
-
-        .forgot-password {
-            color: var(--color-primary-darker);
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .forgot-password:hover {
-            text-decoration: underline;
-        }
-
-        /* Buttons */
-        .btn-primary {
-            width: 100%;
-            padding: 16px;
-            border: none;
-            border-radius: 50px; /* Pill shape */
-            background: var(--color-primary-dark);
-            color: white;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(234, 179, 8, 0.2);
-        }
-
-        .btn-primary:hover {
-            background: var(--color-primary-darker);
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(234, 179, 8, 0.3);
-        }
-
-        .btn-primary:active {
-            transform: translateY(-1px);
-        }
-
-        /* Links and Footer */
-        .register-link {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 0.9rem;
-            color: var(--color-text-muted);
-        }
-
-        .register-link a {
-            color: var(--color-primary-darker);
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 48px;
-            font-size: 0.8rem;
-            color: #9ca3af; /* gray-400 */
-        }
-
-        /* Back Button */
-        .back-button {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(255,255,255,0.5);
-            backdrop-filter: blur(5px);
-            padding: 10px 15px;
-            border-radius: 50px;
-            text-decoration: none;
-            color: var(--color-text);
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            z-index: 10;
-        }
-        .back-button:hover {
-            background: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        @media (max-width: 992px) {
-            .back-button {
-                background: white;
-            }
-        }
-
-        /* Error and Success Messages */
-        .error-message, .success-message {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 500;
-            animation: fade-in 0.5s ease;
-        }
-
-        .error-message {
-            background-color: #fef2f2; /* red-50 */
-            color: #991b1b; /* red-800 */
-            border: 1px solid #fecaca; /* red-300 */
-        }
-
-        .success-message {
-            background-color: #f0fdf4; /* green-50 */
-            color: #166534; /* green-800 */
-            border: 1px solid #bbf7d0; /* green-300 */
-        }
-
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/login.css">
 </head>
 <body>
 
@@ -625,10 +235,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 
             <div class="form-group">
-                <label for="login_identifier">Email or Username</label>
                 <div class="input-wrapper">
                     <i class="fas fa-user"></i>
-                    <input type="text" id="login_identifier" name="login_identifier" placeholder="e.g., john.doe@example.com" value="<?php echo htmlspecialchars($login_identifier); ?>" required>
+                    <input type="text" id="login_identifier" name="login_identifier" placeholder=" " value="<?php echo htmlspecialchars($login_identifier); ?>" required>
+                    <label for="login_identifier">Email or Username</label>
                 </div>
                 <?php if (!empty($errors['login_identifier'])) : ?>
                     <div class="error-message" style="margin-top: 10px;"><?php echo $errors['login_identifier']; ?></div>
@@ -636,11 +246,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <input type="password" id="password" name="password" placeholder=" " required>
                     <button type="button" class="password-toggle" id="passwordToggle"><i class="fas fa-eye"></i></button>
+                    <label for="password">Password</label>
                 </div>
                 <?php if (!empty($errors['password'])) : ?>
                     <div class="error-message" style="margin-top: 10px;"><?php echo $errors['password']; ?></div>
@@ -680,6 +290,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 icon.classList.toggle('fa-eye');
                 icon.classList.toggle('fa-eye-slash');
             });
+
+            // Ripple Effect
+            function createRipple(event) {
+                const button = event.currentTarget;
+                const circle = document.createElement("span");
+                const diameter = Math.max(button.clientWidth, button.clientHeight);
+                const radius = diameter / 2;
+
+                circle.style.width = circle.style.height = `${diameter}px`;
+                circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+                circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+                circle.classList.add("ripple");
+
+                const ripple = button.getElementsByClassName("ripple")[0];
+                if (ripple) ripple.remove();
+                button.appendChild(circle);
+            }
+            document.querySelectorAll(".btn-primary").forEach(btn => btn.addEventListener("click", createRipple));
         });
     </script>
 </body>

@@ -1,4 +1,4 @@
-<?php
+A<?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
@@ -115,8 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get all businesses
-$businesses = $business->readAll();
+// Get all active businesses (only approved businesses appear in management)
+$businesses = $business->readAllActive();
 $businessStats = $business->getBusinessStats();
 
 // Get all business owners for the create modal

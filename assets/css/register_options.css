@@ -39,6 +39,10 @@
     --sidebar-bg: #1e293b;
 }
 
+html {
+height: 100%;
+}
+
 body {
     background: #ffffff;
     position: relative;
