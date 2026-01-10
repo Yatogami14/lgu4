@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login - Health & Safety Inspection System</title>
     <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/login.css">
 </head>
 <body>
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <img src="<?php echo $base_path; ?>/logo/logo.jpeg" alt="Health & Safety Inspection Watermark" class="watermark-logo">
 
-    <a href="<?php echo $base_path; ?>/index.html" class="back-button">
+    <a href="<?php echo $base_path; ?>/index.php" class="back-button">
         <i class="fas fa-arrow-left"></i>
         Back to Home Page
     </a>

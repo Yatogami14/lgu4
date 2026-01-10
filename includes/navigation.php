@@ -4,6 +4,47 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Include Tailwind config and dependencies
+?>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                colors: {
+                    'brand': {
+                        '100': '#E0F2F1',
+                        '200': '#B2DFDB',
+                        '400': '#4DB6AC',
+                        '500': '#009688',
+                        '600': '#00897B',
+                        '700': '#00796B',
+                        '800': '#00695C',
+                        '900': '#004D40',
+                    },
+                },
+                animation: {
+                    'fade-in': 'fadeIn 0.5s ease-out',
+                    'slide-up': 'slideUp 0.5s ease-out',
+                },
+                keyframes: {
+                    fadeIn: {
+                        '0%': { opacity: '0' },
+                        '100%': { opacity: '1' },
+                    },
+                    slideUp: {
+                        '0%': { transform: 'translateY(20px)', opacity: '0' },
+                        '100%': { transform: 'translateY(0)', opacity: '1' },
+                    }
+                }
+            }
+        }
+    }
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<?php
+
 // Use absolute paths to avoid issues when included from different directories
 $rootPath = dirname(__DIR__);
 require_once $rootPath . '/config/database.php';
@@ -108,7 +149,7 @@ if (isset($_SESSION['user_id'])) {
                 <i class="fas fa-bars text-xl"></i>
             </button>
 
-            <a href="<?php echo $base_path; ?>/index.html" class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 md:flex-none" title="Go to Homepage">
+            <a href="<?php echo $base_path; ?>/index.php" class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 md:flex-none" title="Go to Homepage">
                 <img src="<?php echo $base_path; ?>/logo/logo.jpeg?v=4" alt="Logo" class="h-8 w-auto">
                 <div class="min-w-0 flex-1 md:flex-none">
                     <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate antialiased">LGU Health & Safety</h1>
@@ -134,7 +175,7 @@ if (isset($_SESSION['user_id'])) {
                             <!-- Notifications will be dynamically inserted here -->
                         </div>
                         <div class="border-t">
-                            <a href="#" class="block px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 text-center" role="menuitem">
+                            <a href="#" class="block px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 text-center" role="menuitem">
                                 View All Notifications
                             </a>
                         </div>
@@ -144,7 +185,7 @@ if (isset($_SESSION['user_id'])) {
                 <div class="flex items-center space-x-2">
                     <div class="relative">
                         <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none p-1 rounded-md hover:bg-gray-100">
-                            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-gray-900 text-xs font-bold">
+                            <div class="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                                 <?php echo substr($user->name, 0, 1); ?>
                             </div>
                             <div class="hidden lg:block text-left">
@@ -168,7 +209,7 @@ if (isset($_SESSION['user_id'])) {
 
 
                 <?php else: ?>
-                <a href="public_login.php" class="bg-yellow-400 text-gray-900 rounded-md px-4 py-2 text-sm hover:bg-yellow-500">
+                <a href="public_login.php" class="bg-brand-500 text-white rounded-md px-4 py-2 text-sm hover:bg-brand-600">
                     Login
                 </a>
                 <?php endif; ?>
@@ -200,7 +241,7 @@ if (isset($_SESSION['user_id'])) {
 
                     // 5. Determine active state
                     $is_active = ($current_page == ($item['href'] ?? $permission . '.php'));
-                    $active_class = $is_active ? 'bg-yellow-400 text-gray-900' : 'text-gray-400 hover:bg-gray-700 hover:text-white';
+                    $active_class = $is_active ? 'bg-brand-500 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white';
                 ?>
                 <a href="<?php echo $href; ?>" class="flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium <?php echo $active_class; ?> antialiased">
                     <i class="fas <?php echo $icon; ?> text-lg w-6 text-center"></i>

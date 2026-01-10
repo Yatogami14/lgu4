@@ -11,8 +11,8 @@
 --color-text-muted: #6b7280; /* gray-500 */
 --color-card-bg: #ffffff;
 --color-border: #e5e7eb; /* gray-200 */
---font-sans: 'Inter', sans-serif;
---font-serif: 'Playfair Display', serif;
+--font-sans: 'Poppins', sans-serif;
+--font-serif: 'Poppins', sans-serif;
 }
 
 html {

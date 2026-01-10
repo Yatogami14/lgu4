@@ -42,5 +42,5 @@ $base_path = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
 if ($base_path === '/' || $base_path === '\\') $base_path = '';
 
 // Redirect to the main home page
-header('Location: ' . $base_path . '/index.html');
+header('Location: ' . $base_path . '/index.php');
 exit;

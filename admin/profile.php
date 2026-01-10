@@ -60,68 +60,55 @@ $unread_count = $notification->countUnread($user->id);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1" title="Go to Homepage">
-                    <i class="fas fa-shield-alt text-yellow-600 text-xl sm:text-2xl"></i>
-                    <div class="min-w-0 flex-1">
-                        <h1 class="text-sm sm:text-xl font-bold text-gray-900 truncate">LGU Health & Safety</h1>
-                        <p class="text-xs sm:text-sm text-gray-600 hidden sm:block">Digital Inspection Platform</p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center space-x-1 sm:space-x-4 flex-shrink-0">
-                    <a href="index.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
-                        <i class="fas fa-home"></i>
-                    </a>
-                    <a href="../logout.php" class="bg-white border border-gray-300 rounded-md px-3 py-2 text-sm">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
+    <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <h2 class="text-2xl font-bold mb-6">User Profile</h2>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">User Profile</h2>
+            <p class="text-sm text-gray-600 mt-1">Manage your account settings and view notifications</p>
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Profile Card -->
             <div class="lg:col-span-2">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-bold mb-4">Profile Information</h3>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Profile Information</h3>
                     
                     <?php if (isset($success_message)): ?>
-                        <div class="bg-green-100 text-green-700 p-3 rounded-md mb-4">
-                            <?php echo $success_message; ?>
+                        <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                <p><?php echo $success_message; ?></p>
+                            </div>
                         </div>
                     <?php endif; ?>
                     
                     <?php if (isset($error_message)): ?>
-                        <div class="bg-red-100 text-red-700 p-3 rounded-md mb-4">
-                            <?php echo $error_message; ?>
+                        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-circle mr-2"></i>
+                                <p><?php echo $error_message; ?></p>
+                            </div>
                         </div>
                     <?php endif; ?>
 
                     <form method="POST" class="space-y-4" enctype="multipart/form-data">
                         <div class="flex items-center space-x-4">
                             <img src="<?php echo !empty($user->avatar) ? '../' . htmlspecialchars($user->avatar) : 'https://via.placeholder.com/100'; ?>" 
-                                 alt="Avatar" class="w-24 h-24 rounded-full object-cover">
+                                 alt="Avatar" class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-sm">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Update Profile Photo</label>
                                 <input type="file" name="avatar" accept="image/*"
                                        class="mt-1 block w-full text-sm text-gray-500
-                                              file:mr-4 file:py-2 file:px-4
-                                              file:rounded-md file:border-0
+                                              file:mr-4 file:py-2.5 file:px-4
+                                              file:rounded-lg file:border-0
                                               file:text-sm file:font-semibold
-                                              file:bg-yellow-50 file:text-yellow-700
-                                              hover:file:bg-yellow-100">
+                                              file:bg-brand-50 file:text-brand-700
+                                              hover:file:bg-brand-100 transition-colors cursor-pointer">
                             </div>
                         </div>
 
@@ -129,12 +116,12 @@ $unread_count = $notification->countUnread($user->id);
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Full Name</label>
                                 <input type="text" name="name" value="<?php echo htmlspecialchars($user->name); ?>" 
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                       class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Email</label>
                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user->email); ?>" 
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                       class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                             </div>
                         </div>
                         
@@ -142,13 +129,13 @@ $unread_count = $notification->countUnread($user->id);
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Department</label>
                                 <input type="text" name="department" value="<?php echo htmlspecialchars($user->department); ?>"
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm <?php echo $user->role === 'inspector' ? 'bg-gray-100' : ''; ?>"
+                                       class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500 <?php echo $user->role === 'inspector' ? 'bg-gray-100 cursor-not-allowed' : ''; ?>"
                                        <?php echo $user->role === 'inspector' ? 'readonly' : ''; ?>>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Certification</label>
                                 <input type="text" name="certification" value="<?php echo htmlspecialchars($user->certification); ?>"
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm <?php echo $user->role === 'inspector' ? 'bg-gray-100' : ''; ?>"
+                                       class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500 <?php echo $user->role === 'inspector' ? 'bg-gray-100 cursor-not-allowed' : ''; ?>"
                                        <?php echo $user->role === 'inspector' ? 'readonly' : ''; ?>>
                             </div>
                         </div>
@@ -156,19 +143,19 @@ $unread_count = $notification->countUnread($user->id);
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Role</label>
                             <input type="text" value="<?php echo ucfirst($user->role); ?>" 
-                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
+                                   class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm bg-gray-100 cursor-not-allowed" readonly>
                         </div>
                         
-                        <div class="flex justify-end">
+                        <div class="flex justify-end pt-4">
                             <button type="submit" name="update_profile" 
-                                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
+                                    class="bg-brand-600 text-white px-6 py-2.5 rounded-lg hover:bg-brand-700 transition-colors shadow-sm font-medium">
                                 Update Profile
                             </button>
                         </div>
                     </form>
                 </div>
                 <?php if ($user->role === 'inspector'): ?>
-                <div class="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg text-sm">
+                <div class="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-xl text-sm flex items-start">
                     <i class="fas fa-info-circle mr-2"></i>Your department and certification can only be updated by an administrator.
                 </div>
                 <?php endif; ?>
@@ -176,9 +163,9 @@ $unread_count = $notification->countUnread($user->id);
 
             <!-- Notifications Card -->
             <div>
-                <div class="bg-white rounded-lg shadow p-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold">Notifications</h3>
+                        <h3 class="text-lg font-bold text-gray-900">Notifications</h3>
                         <?php if ($unread_count > 0): ?>
                             <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                                 <?php echo $unread_count; ?> unread
@@ -188,12 +175,15 @@ $unread_count = $notification->countUnread($user->id);
                     
                     <div class="space-y-3">
                         <?php if (empty($notifications)): ?>
-                            <p class="text-gray-500 text-sm">No notifications</p>
+                            <div class="text-center py-6">
+                                <i class="far fa-bell text-gray-300 text-3xl mb-2"></i>
+                                <p class="text-gray-500 text-sm">No notifications</p>
+                            </div>
                         <?php else: ?>
                             <?php foreach ($notifications as $note): ?>
                                 <div class="border-l-4 <?php echo $note['type'] == 'alert' ? 'border-red-500' : 
                                                          ($note['type'] == 'warning' ? 'border-yellow-500' : 
-                                                         ($note['type'] == 'success' ? 'border-green-500' : 'border-gray-500')); ?> pl-4 py-2">
+                                                         ($note['type'] == 'success' ? 'border-green-500' : 'border-brand-500')); ?> pl-4 py-2 bg-gray-50 rounded-r-lg">
                                     <p class="text-sm <?php echo $note['is_read'] == 0 ? 'font-medium text-gray-900' : 'text-gray-600'; ?>">
                                         <?php echo $note['message']; ?>
                                     </p>
@@ -206,31 +196,31 @@ $unread_count = $notification->countUnread($user->id);
                     </div>
                     
                     <div class="mt-4">
-                        <a href="#" class="text-yellow-600 text-sm hover:text-yellow-800">
+                        <a href="#" class="text-brand-600 text-sm hover:text-brand-800 font-medium flex items-center">
                             View all notifications →
                         </a>
                     </div>
                 </div>
 
                 <!-- Quick Stats -->
-                <div class="bg-white rounded-lg shadow p-6 mt-6">
-                    <h3 class="text-lg font-bold mb-4">Quick Stats</h3>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
                     <div class="space-y-3">
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <span class="text-sm text-gray-600">Inspections Completed</span>
-                            <span class="text-sm font-medium">12</span>
+                            <span class="text-sm font-bold text-gray-900">12</span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <span class="text-sm text-gray-600">Violations Reported</span>
-                            <span class="text-sm font-medium">8</span>
+                            <span class="text-sm font-bold text-gray-900">8</span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <span class="text-sm text-gray-600">Average Compliance</span>
-                            <span class="text-sm font-medium text-green-600">85%</span>
+                            <span class="text-sm font-bold text-green-600">85%</span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <span class="text-sm text-gray-600">Member Since</span>
-                            <span class="text-sm font-medium"><?php echo date('M Y', strtotime($user->created_at)); ?></span>
+                            <span class="text-sm font-bold text-gray-900"><?php echo date('M Y', strtotime($user->created_at)); ?></span>
                         </div>
                     </div>
                 </div>

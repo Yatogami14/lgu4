@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health and Safety Inspections - Ensuring Safer Communities</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
         html { scroll-behavior: smooth; }
@@ -156,9 +156,9 @@
                             '900': '#004D40',
                         },
                     },
-                    fontFamily: { 
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif']
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        serif: ['Georgia', 'serif']
                     }
                 }
             }
@@ -171,17 +171,17 @@
     <header id="header" class="fixed w-full top-0 z-50 transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="header-content flex justify-between items-center">
-                <a href="index.html" class="flex items-center space-x-3" title="Go to Homepage">
+                <a href="index.php" class="flex items-center space-x-3" title="Go to Homepage">
                     <img src="logo/logo.jpeg?v=4" alt="Logo" class="logo-img h-9 w-auto rounded-full shadow-sm">
                     <span class="text-xl font-bold text-gray-900 tracking-tight">HSI-QC <span class="text-brand-600">Protektado</span></span>
                 </a>
                 <!-- Desktop Menu -->
                 <nav id="desktop-nav" class="hidden md:flex space-x-8">
-                    <a href="#home" class="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors duration-200">Home</a>
-                    <a href="#services" class="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors duration-200">Services</a>
-                    <a href="#about" class="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors duration-200">About Us</a>
+                    <a href="#home" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition-colors duration-200">Home</a>
+                    <a href="#services" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition-colors duration-200">Services</a>
+                    <a href="#about" class="text-sm font-medium text-gray-600 hover:text-brand-600 transition-colors duration-200">About Us</a>
                 </nav>
-                <div class="hidden md:flex items-center space-x-2">
+                <div id="auth-buttons-desktop" class="hidden md:flex items-center space-x-2">
                     <a href="main_login.php" class="text-sm font-semibold text-gray-600 hover:text-brand-600 px-4 py-2 rounded-full transition-colors">
                         Login
                     </a>
@@ -203,7 +203,7 @@
                 <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">Home</a>
                 <a href="#services" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">Services</a>
                 <a href="#about" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">About Us</a>
-                <div class="border-t mt-2 pt-2">
+                <div id="auth-buttons-mobile" class="border-t mt-2 pt-2">
                     <a href="main_login.php" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50">Login / Sign Up</a>
                 </div>
             </nav>
@@ -216,19 +216,26 @@
         <section id="home" class="hero-section py-32 sm:py-40 relative overflow-hidden">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10" id="hero-content">
                 <span class="inline-block py-1 px-3 rounded-full bg-brand-100 text-brand-800 text-sm font-semibold mb-6 animate-on-load animate-headline">Official Inspection Platform</span>
-                <h1 class="text-5xl sm:text-6xl md:text-7xl font-serif font-black text-white leading-tight animate-on-load animate-headline mb-6 hero-text-shadow">
+                <h1 class="text-5xl sm:text-6xl md:text-7xl font-sans font-black text-white leading-tight animate-on-load animate-headline mb-6 hero-text-shadow">
                     Ensuring <span class="text-gradient">Safer Communities</span>
                 </h1>
                 <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-200 animate-on-load animate-subheadline leading-relaxed">
                     A modern digital platform for health and safety inspections, powered by AI for smarter, faster, and more transparent compliance across Quezon City.
                 </p>
                 <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4 animate-on-load animate-buttons">
-                    <a href="main_login.php" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-brand-700/30 animate-pulse-gentle">
-                        Get Started
-                    </a>
-                    <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-brand-400 hover:text-brand-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
-                        Learn More
-                    </a>
+                    <div id="logged-in-buttons" class="hidden">
+                        <a id="back-to-panel-btn" href="#" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-brand-700/30 animate-pulse-gentle">
+                            Back to Admin Panel
+                        </a>
+                    </div>
+                    <div id="guest-buttons">
+                        <a href="main_login.php" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-brand-700/30 animate-pulse-gentle">
+                            Get Started
+                        </a>
+                        <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-brand-400 hover:text-brand-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
+                            Learn More
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>
@@ -539,6 +546,50 @@
                 button.appendChild(circle);
             }
             document.querySelectorAll(".ripple-btn").forEach(btn => btn.addEventListener("click", createRipple));
+
+            // Check session status
+            fetch('api/get_user_session.php?_=' + new Date().getTime())
+                .then(response => response.json())
+                .then(data => {
+                    if (data.logged_in) {
+                        // Update Desktop Header
+                        const desktopContainer = document.getElementById('auth-buttons-desktop');
+                        if (desktopContainer) {
+                            desktopContainer.innerHTML = `
+                                <span class="text-sm font-medium text-gray-600 mr-2">Hi, ${data.user_name}</span>
+                                <a href="${data.dashboard_url}" class="text-sm font-semibold bg-brand-700 text-white px-5 py-2.5 rounded-full hover:bg-brand-800 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 mr-2">
+                                    ${data.role_label}
+                                </a>
+                                <a href="logout.php" class="text-sm font-medium text-gray-600 hover:text-brand-600 px-3 py-2 rounded-full transition-colors">
+                                    Logout
+                                </a>
+                            `;
+                        }
+
+                        // Update Mobile Menu
+                        const mobileContainer = document.getElementById('auth-buttons-mobile');
+                        if (mobileContainer) {
+                            mobileContainer.innerHTML = `
+                                <div class="px-3 py-2 text-base font-medium text-gray-500">Signed in as ${data.user_name}</div>
+                                <a href="${data.dashboard_url}" class="block px-3 py-2 rounded-md text-base font-medium text-brand-600 hover:bg-gray-50 font-bold">
+                                    Go to ${data.role_label}
+                                </a>
+                            `;
+                        }
+
+                        // Show logged-in buttons in hero section
+                        const loggedInButtons = document.getElementById('logged-in-buttons');
+                        const guestButtons = document.getElementById('guest-buttons');
+                        const backToPanelBtn = document.getElementById('back-to-panel-btn');
+
+                        if (loggedInButtons && guestButtons && backToPanelBtn) {
+                            loggedInButtons.classList.remove('hidden');
+                            guestButtons.classList.add('hidden');
+                            backToPanelBtn.href = data.dashboard_url;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error checking session:', err));
         });
     </script>
 </body>

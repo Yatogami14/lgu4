@@ -1,6 +1,7 @@
 /* General Body and Font Setup */
 * {
     box-sizing: border-box;
+    font-family: var(--font-sans);
 }
 
 :root {
@@ -12,13 +13,12 @@
     --color-text-muted: #6b7280; /* gray-500 */
     --color-card-bg: #ffffff;
     --color-border: #e5e7eb; /* gray-200 */
-    --font-sans: 'Inter', sans-serif;
-    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Poppins', sans-serif;
+    --font-serif: 'Poppins', sans-serif;
 }
 
 html { height: 100%; }
 body {
-    font-family: var(--font-sans);
     background-color: var(--color-bg);
     color: var(--color-text);
     margin: 0;
@@ -26,6 +26,7 @@ body {
     height: 100vh;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
 }
 

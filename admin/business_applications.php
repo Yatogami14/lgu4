@@ -136,66 +136,120 @@ $root_path = str_replace('/admin', '', $base_path);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Applications Review</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50">
     <?php include '../includes/navigation.php'; ?>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Pending Business Applications</h1>
-            <p class="mt-1 text-sm text-gray-600">Review and approve or reject new business registrations.</p>
-        </header>
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Pending Business Applications</h2>
+            <p class="text-sm text-gray-600 mt-1">Review and approve or reject new business registrations.</p>
+        </div>
 
         <!-- Success/Error Messages -->
         <?php if ($success_message): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert"><p><?php echo $success_message; ?></p></div>
+        <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <p><?php echo $success_message; ?></p>
+            </div>
+        </div>
         <?php endif; ?>
         <?php if ($error_message): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert"><p><?php echo $error_message; ?></p></div>
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <p><?php echo $error_message; ?></p>
+            </div>
+        </div>
         <?php endif; ?>
 
         <div class="space-y-6">
             <?php if (empty($pending_businesses)): ?>
-                <div class="bg-white rounded-lg shadow p-8 text-center">
-                    <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                    <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-check text-2xl text-green-600"></i>
+                    </div>
                     <h3 class="text-lg font-medium text-gray-900">All Caught Up!</h3>
                     <p class="text-gray-500 mt-1">There are no pending business applications to review.</p>
                 </div>
             <?php else: ?>
                 <?php foreach ($pending_businesses as $business): ?>
-                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
                         <div class="p-6">
-                            <div class="flex justify-between items-start">
+                            <div class="flex flex-col md:flex-row justify-between items-start gap-4">
                                 <div>
-                                    <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($business['business_name']); ?></h3>
-                                    <p class="text-sm text-gray-600">Submitted by: <?php echo htmlspecialchars($business['user_name']); ?> on <?php echo date('F j, Y, g:i a', strtotime($business['created_at'])); ?></p>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center text-brand-600 font-bold text-lg">
+                                            <?php echo strtoupper(substr($business['business_name'], 0, 1)); ?>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-900"><?php echo htmlspecialchars($business['business_name']); ?></h3>
+                                            <p class="text-sm text-gray-500">Submitted by <span class="font-medium text-gray-700"><?php echo htmlspecialchars($business['user_name']); ?></span> on <?php echo date('M j, Y, g:i a', strtotime($business['created_at'])); ?></p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="flex space-x-2">
+                                <div class="flex flex-wrap gap-2 w-full md:w-auto">
                                     <form method="POST" onsubmit="return confirm('Are you sure you want to approve this business?');">
                                         <input type="hidden" name="business_id" value="<?php echo $business['id']; ?>">
-                                        <button type="submit" name="action" value="approve" class="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition-colors">
-                                            <i class="fas fa-check mr-1"></i> Approve
+                                        <button type="submit" name="action" value="approve" class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+                                            <i class="fas fa-check mr-2"></i> Approve
                                         </button>
                                     </form>
-                                    <button type="button" onclick="openRejectModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>')" class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-md hover:bg-red-600 transition-colors">
-                                        <i class="fas fa-times mr-1"></i> Reject
+                                    <button type="button" onclick="openRejectModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>')" class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                                        <i class="fas fa-times mr-2"></i> Reject
                                     </button>
-                                    <button type="button" onclick="openRevisionModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>', this)" class="px-4 py-2 bg-yellow-500 text-white text-sm font-semibold rounded-md hover:bg-yellow-600 transition-colors">
-                                        <i class="fas fa-edit mr-1"></i> Request Revision
+                                    <button type="button" onclick="openRevisionModal(<?php echo $business['id']; ?>, '<?php echo htmlspecialchars(addslashes($business['business_name'])); ?>', this)" class="inline-flex items-center px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-lg hover:bg-yellow-600 transition-colors shadow-sm">
+                                        <i class="fas fa-edit mr-2"></i> Request Revision
                                     </button>
                                 </div>
                             </div>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                                <p><strong>Owner/Contact:</strong> <?php echo htmlspecialchars($business['owner_name']); ?></p>
-                                <p><strong>License Number:</strong> <?php echo htmlspecialchars($business['license_number']); ?></p>
-                                <p><strong>Email:</strong> <?php echo htmlspecialchars($business['contact_email']); ?></p>
-                                <p><strong>Phone:</strong> <?php echo htmlspecialchars($business['contact_phone'] ?: 'N/A'); ?></p>
-                                <p class="md:col-span-2"><strong>Address:</strong> <?php echo htmlspecialchars($business['address']); ?></p>
-                                <p class="md:col-span-2"><strong>Business Type:</strong> <span class="capitalize"><?php echo htmlspecialchars(str_replace('_', ' ', $business['business_type'])); ?></span></p>
-                                <div>
-                                    <strong>Uploaded Documents:</strong>
-                                    <ul class="list-disc list-inside mt-1">
+                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                <div class="space-y-3">
+                                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Details</h4>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-user mt-1 text-gray-400 w-4"></i>
+                                        <div>
+                                            <span class="block text-gray-900 font-medium"><?php echo htmlspecialchars($business['owner_name']); ?></span>
+                                            <span class="text-gray-500">Owner</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-envelope mt-1 text-gray-400 w-4"></i>
+                                        <span class="text-gray-600"><?php echo htmlspecialchars($business['contact_email']); ?></span>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-phone mt-1 text-gray-400 w-4"></i>
+                                        <span class="text-gray-600"><?php echo htmlspecialchars($business['contact_phone'] ?: 'N/A'); ?></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Business Info</h4>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-id-card mt-1 text-gray-400 w-4"></i>
+                                        <div>
+                                            <span class="block text-gray-900 font-medium"><?php echo htmlspecialchars($business['license_number']); ?></span>
+                                            <span class="text-gray-500">License Number</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-store mt-1 text-gray-400 w-4"></i>
+                                        <span class="text-gray-600 capitalize"><?php echo htmlspecialchars(str_replace('_', ' ', $business['business_type'])); ?></span>
+                                    </div>
+                                    <div class="flex items-start gap-3 text-sm">
+                                        <i class="fas fa-map-marker-alt mt-1 text-gray-400 w-4"></i>
+                                        <span class="text-gray-600"><?php echo htmlspecialchars($business['address']); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                                    <i class="fas fa-folder-open text-brand-500 mr-2"></i> Uploaded Documents
+                                </h4>
+                                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <?php
                                         $files = $business['permit_files'] ? explode('||', $business['permit_files']) : [];
                                         $paths = $business['permit_paths'] ? explode('||', $business['permit_paths']) : [];
@@ -211,15 +265,28 @@ $root_path = str_replace('/admin', '', $base_path);
                                                 // Use the root path to construct the correct URL
                                                 $filePath = htmlspecialchars($root_path . '/' . $paths[$index], ENT_QUOTES, 'UTF-8');
                                                 $fileTitle = htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8');
-                                                echo '<li data-id="'.$ids[$index].'" data-type="'.$typeLabel.'"><a href="#" onclick="openDocumentViewer(\''.$filePath.'\', \''.$fileTitle.'\', event)" class="text-blue-600 hover:underline">' . htmlspecialchars($typeLabel) . '</a> <span class="text-gray-500 text-xs">(' . htmlspecialchars($file) . ')</span></li>';
+                                                ?>
+                                                <li data-id="<?php echo $ids[$index]; ?>" data-type="<?php echo $typeLabel; ?>" class="group">
+                                                    <a href="#" onclick="openDocumentViewer('<?php echo $filePath; ?>', '<?php echo $fileTitle; ?>', event)" class="flex items-center p-3 rounded-lg border border-gray-200 hover:border-brand-300 hover:bg-brand-50 transition-all">
+                                                        <div class="w-10 h-10 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center flex-shrink-0">
+                                                            <i class="fas fa-file-alt"></i>
+                                                        </div>
+                                                        <div class="ml-3 overflow-hidden">
+                                                            <p class="text-sm font-medium text-gray-900 group-hover:text-brand-700 truncate"><?php echo $typeLabel; ?></p>
+                                                            <p class="text-xs text-gray-500 truncate"><?php echo htmlspecialchars($file); ?></p>
+                                                        </div>
+                                                        <div class="ml-auto">
+                                                            <i class="fas fa-external-link-alt text-gray-400 group-hover:text-brand-500 text-sm"></i>
+                                                        </div>
+                                                    </a>
+                                                </li>
+                                                <?php
                                             }
                                         } else {
-                                            echo '<li>No documents uploaded.</li>';
+                                            echo '<li class="text-sm text-gray-500 italic col-span-2">No documents uploaded.</li>';
                                         }
                                         ?>
                                     </ul>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -228,24 +295,29 @@ $root_path = str_replace('/admin', '', $base_path);
     </div>
 
     <!-- Rejection Modal -->
-    <div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900">Reason for Rejection</h3>
-                <p class="text-sm text-gray-600 mt-1">For business: <span id="rejectBusinessName" class="font-bold"></span></p>
+    <div id="rejectModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
+        <div class="relative top-10 mx-auto p-0 border w-full max-w-lg shadow-xl rounded-xl bg-white transform transition-all">
+            <div class="bg-red-600 px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">Reason for Rejection</h3>
+                <button onclick="closeModal('rejectModal')" class="text-white hover:text-gray-200 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">For business: <span id="rejectBusinessName" class="font-bold text-gray-900"></span></p>
                 
                 <form id="rejectForm" method="POST" class="mt-4 space-y-4">
                     <input type="hidden" name="action" value="reject">
                     <input type="hidden" name="business_id" id="reject_business_id">
                     
                     <div>
-                        <label for="rejection_reason" class="block text-sm font-medium text-gray-700">Please provide a clear reason for rejecting this application.</label>
-                        <textarea name="rejection_reason" id="rejection_reason" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-red-500 focus:ring-red-500" placeholder="e.g., Missing building permit, incorrect registration number..."></textarea>
+                        <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-1">Please provide a clear reason for rejecting this application.</label>
+                        <textarea name="rejection_reason" id="rejection_reason" rows="4" required class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500" placeholder="e.g., Missing building permit, incorrect registration number..."></textarea>
                     </div>
                     
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm Rejection</button>
+                    <div class="flex justify-end space-x-3 pt-2">
+                        <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium shadow-sm">Confirm Rejection</button>
                     </div>
                 </form>
             </div>
@@ -253,23 +325,28 @@ $root_path = str_replace('/admin', '', $base_path);
     </div>
 
     <!-- Revision Modal -->
-    <div id="revisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900">Request Document Revision</h3>
-                <p class="text-sm text-gray-600 mt-1">For business: <span id="revisionBusinessName" class="font-bold"></span></p>
+    <div id="revisionModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
+        <div class="relative top-10 mx-auto p-0 border w-full max-w-lg shadow-xl rounded-xl bg-white transform transition-all">
+            <div class="bg-yellow-500 px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">Request Document Revision</h3>
+                <button onclick="closeModal('revisionModal')" class="text-white hover:text-yellow-100 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">For business: <span id="revisionBusinessName" class="font-bold text-gray-900"></span></p>
                 
                 <form id="revisionForm" method="POST" class="mt-4 space-y-4">
                     <input type="hidden" name="action" value="request_revision">
                     <input type="hidden" name="business_id" id="revision_business_id">
                     
-                    <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border rounded">
+                    <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-gray-50">
                         <!-- Documents will be populated here -->
                     </div>
                     
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Send Request</button>
+                    <div class="flex justify-end space-x-3 pt-2">
+                        <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors font-medium shadow-sm">Send Request</button>
                     </div>
                 </form>
             </div>
@@ -277,15 +354,15 @@ $root_path = str_replace('/admin', '', $base_path);
     </div>
 
     <!-- Document Viewer Modal -->
-    <div id="documentViewerModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full z-[60]">
-        <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-xl font-medium text-gray-900" id="documentViewerTitle">Document Viewer</h3>
-                <button onclick="closeModal('documentViewerModal')" class="text-gray-400 hover:text-gray-600">
+    <div id="documentViewerModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-[60] backdrop-blur-sm transition-opacity">
+        <div class="relative top-5 mx-auto p-0 border w-full max-w-5xl shadow-2xl rounded-xl bg-white transform transition-all h-[90vh] flex flex-col">
+            <div class="bg-gray-800 px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0">
+                <h3 class="text-lg font-bold text-white" id="documentViewerTitle">Document Viewer</h3>
+                <button onclick="closeModal('documentViewerModal')" class="text-gray-400 hover:text-white focus:outline-none transition-colors">
                     <i class="fas fa-times fa-lg"></i>
                 </button>
             </div>
-            <div class="mt-4" id="documentViewerContent" style="height: 80vh;">
+            <div class="flex-grow bg-gray-100 p-4 overflow-hidden relative" id="documentViewerContent">
                 <!-- Content (iframe or img) will be injected by JavaScript -->
             </div>
         </div>
@@ -303,11 +380,11 @@ $root_path = str_replace('/admin', '', $base_path);
             const fileExtension = filePath.split('.').pop().toLowerCase();
 
             if (fileExtension === 'pdf') {
-                viewerContent.innerHTML = `<iframe src="${filePath}" class="w-full h-full" frameborder="0"></iframe>`;
+                viewerContent.innerHTML = `<iframe src="${filePath}" class="w-full h-full border-0 rounded-lg" frameborder="0"></iframe>`;
             } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension)) {
-                viewerContent.innerHTML = `<div class="flex justify-center items-center h-full"><img src="${filePath}" class="max-w-full max-h-full object-contain"></div>`;
+                viewerContent.innerHTML = `<div class="flex justify-center items-center h-full"><img src="${filePath}" class="max-w-full max-h-full object-contain rounded-lg shadow-sm"></div>`;
             } else {
-                viewerContent.innerHTML = `<div class="text-center p-10"><p>Cannot preview this file type.</p><a href="${filePath}" target="_blank" class="text-blue-600 hover:underline mt-4 inline-block">Download file</a></div>`;
+                viewerContent.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-gray-500"><i class="fas fa-file-download text-4xl mb-4"></i><p>Cannot preview this file type.</p><a href="${filePath}" target="_blank" class="text-brand-600 hover:underline mt-4 font-medium">Download file</a></div>`;
             }
 
             openModal('documentViewerModal');
@@ -315,8 +392,8 @@ $root_path = str_replace('/admin', '', $base_path);
 
         function openRevisionModal(businessId, businessName, btn) {
             // Find the UL containing documents in the same card
-            const card = btn.closest('.bg-white');
-            const listItems = card.querySelectorAll('ul.list-disc li');
+            const card = btn.closest('.bg-white'); // This finds the card container
+            const listItems = card.querySelectorAll('ul li'); // Updated selector for the new list structure
             const documents = [];
             
             listItems.forEach(li => {

@@ -118,37 +118,51 @@ $userRoleCounts = $user->getUserCountByRole();
     <title>User Management - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Include Navigation -->
     <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:ml-64 pt-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <!-- Success/Error Messages -->
         <?php if (isset($_SESSION['success_message'])): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            <?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?>
+        <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <p><?php echo $_SESSION['success_message']; unset($_SESSION['success_message']); ?></p>
+            </div>
         </div>
         <?php endif; ?>
         
         <?php if (isset($_SESSION['error_message'])): ?>
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?>
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm animate-fade-in">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <p><?php echo $_SESSION['error_message']; unset($_SESSION['error_message']); ?></p>
+            </div>
         </div>
         <?php endif; ?>
 
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">User Management</h2>
-            <button onclick="openUserModal('create')"
-                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
-                <i class="fas fa-plus mr-2"></i>Add User
-            </button>
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">User Management</h2>
+                <p class="text-sm text-gray-600 mt-1">Manage system users and roles</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div class="relative">
+                    <input type="text" id="searchInput" onkeyup="filterUsers()" placeholder="Search users..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 w-full sm:w-64 text-sm">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                </div>
+                <button onclick="openUserModal('create')" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm flex items-center justify-center text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>Add User
+                </button>
+            </div>
         </div>
 
         <!-- User Roles Chart -->
-        <div class="mb-6 bg-white rounded-lg shadow p-6">
+        <div class="mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-bold mb-4">User Distribution by Role</h3>
             <div class="max-w-sm mx-auto">
                 <canvas id="userRolesChart"></canvas>
@@ -156,21 +170,20 @@ $userRoleCounts = $user->getUserCountByRole();
         </div>
 
         <!-- Users Table -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200 text-gray-900">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
+                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php foreach ($users as $userRow): ?>
-                    <tr
+                    <tr class="hover:bg-gray-50 transition-colors"
                         data-id="<?php echo htmlspecialchars($userRow['id']); ?>"
                         data-name="<?php echo htmlspecialchars($userRow['name']); ?>"
                         data-email="<?php echo htmlspecialchars($userRow['email']); ?>"
@@ -179,52 +192,68 @@ $userRoleCounts = $user->getUserCountByRole();
                     >
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center text-gray-900 text-sm font-bold mr-3">
+                                <div class="w-10 h-10 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
                                     <?php echo substr($userRow['name'], 0, 1); ?>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900"><?php echo $userRow['name']; ?></div>
+                                    <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($userRow['name']); ?></div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <?php echo $userRow['email']; ?>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <?php echo htmlspecialchars($userRow['email']); ?>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <?php echo ucwords(str_replace('_', ' ', $userRow['role'])) ?: 'N/A'; ?>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <?php echo ucwords(str_replace('_', ' ', $userRow['role'])) ?: 'N/A'; ?>
+                            </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                 <?php echo $userRow['status'] === 'active' ? 'bg-green-100 text-green-800' : 
                                        ($userRow['status'] === 'pending_approval' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'); ?>">
                                 <?php echo ucwords(str_replace('_', ' ', $userRow['status'])); ?>
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="editUser(<?php echo $userRow['id']; ?>)" class="text-green-600 hover:text-green-900 mr-3">
-                                <i class="fas fa-edit"></i> Edit
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="editUser(<?php echo $userRow['id']; ?>)" class="text-brand-600 hover:text-brand-900 mr-3 transition-colors" title="Edit">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="openResetPasswordModal(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" class="text-yellow-600 hover:text-yellow-800 mr-3">
-                                <i class="fas fa-key"></i> Reset Password
+                            <button onclick="openResetPasswordModal(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" class="text-yellow-600 hover:text-yellow-800 mr-3 transition-colors" title="Reset Password">
+                                <i class="fas fa-key"></i>
                             </button>
                             <button onclick="deleteUser(<?php echo $userRow['id']; ?>, '<?php echo addslashes($userRow['name']); ?>')" 
-                                    class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash"></i> Delete
+                                    class="text-red-500 hover:text-red-700 transition-colors" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php if (empty($users)): ?>
+                <div class="p-12 text-center text-gray-500">
+                    <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900">No users found</h3>
+                    <p class="mt-1 text-sm">Try adjusting your search or add a new user.</p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- User Modal (Create/Edit) -->
-    <div id="userModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 id="modalTitle" class="text-lg font-medium text-gray-900">Add New User</h3>
-                <form method="POST" class="mt-4 space-y-4">
+    <div id="userModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
+        <div class="relative top-10 mx-auto p-0 border w-full max-w-md shadow-xl rounded-xl bg-white transform transition-all">
+            <div class="bg-brand-600 px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 id="modalTitle" class="text-lg font-bold text-white">Add New User</h3>
+                <button onclick="closeModal('userModal')" class="text-white hover:text-gray-200 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form method="POST" class="space-y-4">
                     <input type="hidden" name="create_user" id="create_user" value="1">
                     <input type="hidden" name="update_user" id="update_user" value="0">
                     <input type="hidden" name="user_id" id="user_id" value="">
@@ -232,21 +261,21 @@ $userRoleCounts = $user->getUserCountByRole();
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Full Name</label>
                         <input type="text" name="name" id="name" placeholder="Enter full name" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" id="email" placeholder="Enter email address" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div id="passwordField">
                         <label class="block text-sm font-medium text-gray-700">Password</label>
                         <input type="password" name="password" id="password" placeholder="Enter password" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Role</label>
-                        <select name="role" id="role" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <select name="role" id="role" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                             <option value="">Select Role</option>
                             <option value="admin">Admin</option>
                             <option value="super_admin">Super Admin</option>
@@ -255,12 +284,11 @@ $userRoleCounts = $user->getUserCountByRole();
                             <option value="community_user">Community User</option>
                         </select>
                     </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="closeModal('userModal')" 
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="closeModal('userModal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                             Cancel
                         </button>
-                        <button type="submit" id="submitButton" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
+                        <button type="submit" id="submitButton" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium shadow-sm">
                             Add User
                         </button>
                     </div>
@@ -270,31 +298,36 @@ $userRoleCounts = $user->getUserCountByRole();
     </div>
 
     <!-- Reset Password Modal -->
-    <div id="resetPasswordModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900">Reset Password for <span id="resetUserName" class="font-bold"></span></h3>
-                <form method="POST" class="mt-4 space-y-4" id="resetPasswordForm">
+    <div id="resetPasswordModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 backdrop-blur-sm transition-opacity">
+        <div class="relative top-10 mx-auto p-0 border w-full max-w-md shadow-xl rounded-xl bg-white transform transition-all">
+            <div class="bg-brand-600 px-6 py-4 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white">Reset Password</h3>
+                <button onclick="closeModal('resetPasswordModal')" class="text-white hover:text-gray-200 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">Reset password for <span id="resetUserName" class="font-bold text-gray-900"></span></p>
+                <form method="POST" class="space-y-4" id="resetPasswordForm">
                     <input type="hidden" name="reset_password" value="1">
                     <input type="hidden" name="user_id" id="reset_user_id" value="">
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700">New Password</label>
                         <input type="password" name="new_password" id="new_password" placeholder="Enter new password" required minlength="6"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Confirm New Password</label>
                         <input type="password" name="confirm_new_password" id="confirm_new_password" placeholder="Confirm new password" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="closeModal('resetPasswordModal')" 
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="closeModal('resetPasswordModal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                             Cancel
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
+                        <button type="submit" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium shadow-sm">
                             Reset Password
                         </button>
                     </div>
@@ -304,6 +337,23 @@ $userRoleCounts = $user->getUserCountByRole();
     </div>
 
     <script>
+function filterUsers() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        const name = row.querySelector('td:nth-child(1)').innerText.toLowerCase();
+        const email = row.querySelector('td:nth-child(2)').innerText.toLowerCase();
+        const role = row.querySelector('td:nth-child(3)').innerText.toLowerCase();
+        
+        if (name.includes(search) || email.includes(search) || role.includes(search)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
 function openUserModal(mode) {
     // Reset form and set mode
     document.getElementById('modalTitle').textContent = mode === 'create' ? 'Add New User' : 'Edit User';
