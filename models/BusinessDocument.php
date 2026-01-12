@@ -19,8 +19,9 @@ class BusinessDocument {
 
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
-                  SET business_id=:business_id, document_type=:document_type, file_path=:file_path,
-                      file_name=:file_name, mime_type=:mime_type, file_size=:file_size";
+                  SET business_id=:business_id, document_type=:document_type, 
+                      file_path=:file_path, file_name=:file_name, mime_type=:mime_type, 
+                      file_size=:file_size, status='pending', feedback=NULL";
 
         $params = [
             ':business_id' => $this->business_id,

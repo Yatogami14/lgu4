@@ -228,11 +228,11 @@
                             Back to Admin Panel
                         </a>
                     </div>
-                    <div id="guest-buttons">
-                        <a href="main_login.php" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-105 shadow-lg hover:shadow-brand-700/30 animate-pulse-gentle">
+                    <div id="guest-buttons" class="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                        <a href="main_login.php" class="ripple-btn bg-brand-700 text-white px-8 py-4 rounded-full text-lg font-bold hover:bg-brand-800 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-brand-700/30">
                             Get Started
                         </a>
-                        <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-brand-400 hover:text-brand-600 transition-all transform hover:scale-105 shadow-md hover:shadow-lg">
+                        <a href="#services" class="bg-white text-gray-700 px-8 py-4 rounded-full text-lg font-bold border border-gray-200 hover:border-brand-400 hover:text-brand-600 transition-all transform hover:scale-[1.02] shadow-md hover:shadow-lg">
                             Learn More
                         </a>
                     </div>

@@ -112,7 +112,7 @@ class Business {
     }
 
     public function readAllActive() {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE status = 'active' ORDER BY name ASC";
+        $query = "SELECT * FROM " . $this->table_name . " WHERE status IN ('active', 'verified') ORDER BY name ASC";
         return $this->database->fetchAll($query);
     }
 
@@ -168,7 +168,7 @@ class Business {
     public function countAllWithCompliance($search = '') {
         $query = "SELECT COUNT(b.id) as total_records
                   FROM " . $this->table_name . " b
-                  WHERE b.status = 'active' AND (b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search)";
+                  WHERE b.status IN ('active', 'verified') AND (b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search)";
         $params = [':search' => "%{$search}%"];
         $row = $this->database->fetch($query, $params);
         return $row['total_records'] ?? 0;
@@ -177,7 +177,7 @@ class Business {
     public function readAllWithCompliance($search = '', $limit = 10, $offset = 0) {
         $query = "SELECT b.id, b.name, b.business_type, b.address, b.compliance_score
                   FROM " . $this->table_name . " b
-                  WHERE b.status = 'active' AND (b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search)
+                  WHERE b.status IN ('active', 'verified') AND (b.name LIKE :search OR b.address LIKE :search OR b.business_type LIKE :search)
                   ORDER BY b.compliance_score DESC, b.name ASC
                   LIMIT :limit OFFSET :offset";
         
@@ -208,7 +208,7 @@ class Business {
                     SUM(CASE WHEN compliance_score >= 50 AND compliance_score < 80 THEN 1 ELSE 0 END) as medium_risk,
                     SUM(CASE WHEN compliance_score >= 80 THEN 1 ELSE 0 END) as low_risk
                   FROM " . $this->table_name . "
-                  WHERE status = 'active'";
+                  WHERE status IN ('active', 'verified')";
         
         $stats = $this->database->fetch($query);
 
@@ -224,7 +224,7 @@ class Business {
     public function getBusinessCountByType() {
         $query = "SELECT business_type, COUNT(*) as count 
                   FROM " . $this->table_name . " 
-                  WHERE status = 'active'
+                  WHERE status IN ('active', 'verified')
                   GROUP BY business_type 
                   ORDER BY count DESC";
         

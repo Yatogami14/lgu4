@@ -45,6 +45,28 @@ $recent_inspections = $business->getRecentInspections($business_id, 5);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Details - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand': {
+                            '50': '#F2F9F9',
+                            '100': '#E0F2F1',
+                            '200': '#B2DFDB',
+                            '300': '#80CBC4',
+                            '400': '#4DB6AC',
+                            '500': '#009688',
+                            '600': '#00897B',
+                            '700': '#00796B',
+                            '800': '#00695C',
+                            '900': '#004D40',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50">
@@ -57,9 +79,17 @@ $recent_inspections = $business->getRecentInspections($business_id, 5);
                 <h2 class="text-2xl font-bold"><?php echo $business_data['name']; ?></h2>
                 <p class="text-gray-600">Business Details & Compliance History</p>
             </div>
-            <a href="businesses.php" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Businesses
-            </a>
+            <div class="flex space-x-3">
+                <a href="generate_business_pdf.php?id=<?php echo $business_id; ?>" target="_blank" class="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors shadow-sm flex items-center">
+                    <i class="fas fa-file-pdf mr-2"></i>Download PDF
+                </a>
+                <a href="print_business_report.php?id=<?php echo $business_id; ?>" target="_blank" class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors shadow-sm flex items-center">
+                    <i class="fas fa-print mr-2"></i>Print
+                </a>
+                <a href="businesses.php" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Businesses
+                </a>
+            </div>
         </div>
 
         <!-- Business Info -->

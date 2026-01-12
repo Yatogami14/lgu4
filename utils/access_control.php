@@ -18,9 +18,9 @@ if (session_status() === PHP_SESSION_NONE) {
 const ROLE_PERMISSIONS = [
     'super_admin' => ['*'],
     'admin' => [
-        'dashboard', 'inspections', 'businesses', 'user_management', 'analytics', 
-        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections', 
-        'checklist_management', 'inspection_types_management', 'inspectors'
+        'dashboard', 'inspections', 'businesses', 'user_management', 'analytics',
+        'violations', 'profile', 'schedule', 'active_sessions', 'assigned_inspections',
+        'checklist_management', 'inspection_types_management', 'inspectors', 'manage_applications'
     ],
     'inspector' => [
         'dashboard', 'assigned_inspections', 'profile', 'violations', 'inspections', 'businesses', 'inspectors'

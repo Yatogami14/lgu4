@@ -6,6 +6,7 @@ require_once '../models/Inspection.php';
 require_once '../models/InspectionType.php';
 require_once '../models/Violation.php';
 require_once '../models/Business.php';
+require_once '../models/Notification.php';
 require_once '../utils/access_control.php';
 
 requirePermission('dashboard');
@@ -20,6 +21,7 @@ $inspection = new Inspection($database);
 $business = new Business($database);
 $violation = new Violation($database);
 $inspectionTypeModel = new InspectionType($database);
+$notification = new Notification($database);
 
 // Handle form submissions for inspection request
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['request_inspection'])) {
@@ -59,6 +61,9 @@ if (!empty($business_ids)) {
     $compliance_trend = $inspection->getComplianceTrendForBusinesses($business_ids, 30);
 }
 
+// Get unread notifications count
+$unread_notifications = $notification->countUnread($_SESSION['user_id']);
+
 // Prepare data for the chart
 $chart_labels = json_encode(array_column($compliance_trend, 'inspection_date'));
 $chart_data = json_encode(array_column($compliance_trend, 'avg_score'));
@@ -97,8 +102,17 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div class="bg-gradient-to-r from-blue-600 to-purple-700 rounded-lg shadow-lg p-6 text-white flex-grow">
-                <h1 class="text-2xl font-bold">Welcome, <?php echo htmlspecialchars($user->name); ?>!</h1>
-                <p class="text-blue-100">This is your business portal dashboard.</p>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-2xl font-bold">Welcome, <?php echo htmlspecialchars($user->name); ?>!</h1>
+                        <p class="text-blue-100">This is your business portal dashboard.</p>
+                    </div>
+                    <?php if ($unread_notifications > 0): ?>
+                        <a href="profile.php" class="flex items-center bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold transition-all shadow-md transform hover:scale-105 animate-pulse">
+                            <i class="fas fa-bell mr-2"></i> <?php echo $unread_notifications; ?> New Notification<?php echo $unread_notifications > 1 ? 's' : ''; ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="mt-4 md:mt-0 md:ml-4 flex-shrink-0">
                 <button onclick="document.getElementById('requestModal').classList.remove('hidden')" 

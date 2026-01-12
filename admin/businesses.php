@@ -1,4 +1,4 @@
-A<?php
+<?php
 require_once '../utils/session_manager.php';
 require_once '../config/database.php';
 require_once '../models/User.php';
@@ -135,18 +135,47 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Businesses - Digital Health & Safety Inspection Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand': {
+                            '50': '#F2F9F9',
+                            '100': '#E0F2F1',
+                            '200': '#B2DFDB',
+                            '300': '#80CBC4',
+                            '400': '#4DB6AC',
+                            '500': '#009688',
+                            '600': '#00897B',
+                            '700': '#00796B',
+                            '800': '#00695C',
+                            '900': '#004D40',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
 </head>
-<body class="min-h-screen bg-gray-50">
+<body class="min-h-screen bg-gray-50 selection:bg-brand-200 selection:text-brand-900">
     <!-- Include Navigation -->
     <?php include '../includes/navigation.php'; ?>
 
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 md:ml-64 md:pt-24">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold">Business Management</h2>
+            <h2 class="text-2xl font-bold text-gray-900">Business Management</h2>
                 <button onclick="document.getElementById('createModal').classList.remove('hidden'); clearForm();"
-                    class="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-500">
+                    class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors shadow-sm font-medium">
                 <i class="fas fa-plus mr-2"></i>Add Business
             </button>
         </div>
@@ -166,43 +195,51 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Total Businesses</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['total'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-building text-3xl text-yellow-500"></i>
+                    <div class="p-3 bg-brand-50 rounded-full text-brand-600">
+                        <i class="fas fa-building text-xl"></i>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">High Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['high_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
+                    <div class="p-3 bg-red-50 rounded-full text-red-600">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Medium Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['medium_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-exclamation text-3xl text-yellow-600"></i>
+                    <div class="p-3 bg-yellow-50 rounded-full text-yellow-600">
+                        <i class="fas fa-exclamation text-xl"></i>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Low Risk</p>
                         <p class="text-2xl font-bold"><?php echo $businessStats['low_risk'] ?? 0; ?></p>
                     </div>
-                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                    <div class="p-3 bg-green-50 rounded-full text-green-600">
+                        <i class="fas fa-check-circle text-xl"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -214,7 +251,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2">
                         <span class="text-sm text-gray-600">Filter by type:</span>
-                        <select id="typeFilter" onchange="filterBusinesses()" class="text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                        <select id="typeFilter" onchange="filterBusinesses()" class="text-sm border-gray-300 rounded-lg focus:border-brand-500 focus:ring-brand-500">
                             <option value="">All Types</option>
                             <option value="Restaurant">Restaurant</option>
                             <option value="Retail">Retail Store</option>
@@ -226,7 +263,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </div>
                     <div class="flex items-center space-x-2">
                         <span class="text-sm text-gray-600">Sort by:</span>
-                        <select id="sortFilter" onchange="sortBusinesses()" class="text-sm border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                        <select id="sortFilter" onchange="sortBusinesses()" class="text-sm border-gray-300 rounded-lg focus:border-brand-500 focus:ring-brand-500">
                             <option value="name">Name</option>
                             <option value="compliance">Compliance</option>
                             <option value="last_inspection">Last Inspection</option>
@@ -245,7 +282,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <h3 class="text-lg font-medium text-gray-900 mb-2">No businesses found</h3>
                             <p class="text-gray-600 mb-6">Get started by adding your first business.</p>
                             <button onclick="document.getElementById('createModal').classList.remove('hidden'); clearForm();"
-                                    class="inline-flex items-center px-4 py-2 bg-yellow-400 text-gray-900 rounded-lg hover:bg-yellow-500 transition-colors duration-200">
+                                    class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors duration-200 shadow-sm">
                                 <i class="fas fa-plus mr-2"></i>
                                 Add Business
                             </button>
@@ -259,7 +296,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                         $compliance_percentage = $stats['avg_compliance'];
                         $compliance_color = $compliance_percentage >= 80 ? 'green' : ($compliance_percentage >= 60 ? 'yellow' : 'red');
                     ?>
-                    <div class="business-card bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                    <div class="business-card bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-xl hover:border-brand-200 transition-all duration-300 transform hover:-translate-y-1"
                          data-type="<?php echo $business_row['business_type']; ?>"
                          data-compliance="<?php echo $compliance_percentage; ?>"
                          data-last-inspection="<?php echo $last_inspection_date ? strtotime($last_inspection_date) : 0; ?>">
@@ -279,7 +316,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                                 </div>
                                 <div class="flex flex-col items-end space-y-2">
                                     <!-- Business Type Badge -->
-                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-brand-50 text-brand-700 border border-brand-100">
                                         <i class="fas fa-building mr-1"></i>
                                         <?php echo htmlspecialchars($business_row['business_type'] ?: 'N/A'); ?>
                                     </span>
@@ -307,13 +344,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
                             <!-- Inspector Info -->
                             <div class="flex items-center text-sm text-gray-600 mb-3">
-                                <i class="fas fa-user mr-2 text-green-500"></i>
+                                <i class="fas fa-user mr-2 text-brand-500"></i>
                                 <span><?php echo $inspector ? htmlspecialchars($inspector['name']) : '<span class="text-gray-400">Unassigned</span>'; ?></span>
                             </div>
 
                             <!-- Last Inspection -->
                             <div class="flex items-center text-sm text-gray-600">
-                                <i class="fas fa-calendar-check mr-2 text-blue-500"></i>
+                                <i class="fas fa-calendar-check mr-2 text-brand-400"></i>
                                 <span>Last: <?php echo $last_inspection_date ? date('M j, Y', strtotime($last_inspection_date)) : '<span class="text-gray-400">Never</span>'; ?></span>
                             </div>
                         </div>
@@ -323,18 +360,18 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                             <div class="flex justify-between items-center">
                                 <div class="flex space-x-2">
                                     <a href="business_view.php?id=<?php echo $business_row['id']; ?>"
-                                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-yellow-700 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors duration-200">
+                                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-brand-600 transition-colors duration-200">
                                         <i class="fas fa-eye mr-1"></i>
                                         View
                                     </a>
                                     <button onclick="assignInspector(<?php echo $business_row['id']; ?>)"
-                                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200">
+                                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-brand-700 bg-brand-50 rounded-lg hover:bg-brand-100 transition-colors duration-200">
                                         <i class="fas fa-user-plus mr-1"></i>
                                         Assign
                                     </button>
                                 </div>
                                 <button onclick="editBusiness(<?php echo $business_row['id']; ?>)"
-                                        class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                                        class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 hover:text-brand-600 transition-colors duration-200">
                                     <i class="fas fa-edit mr-1"></i>
                                     Edit
                                 </button>
@@ -356,16 +393,16 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Name</label>
                         <input type="text" name="name" placeholder="Enter business name" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Address</label>
                         <textarea name="address" rows="3" placeholder="Enter full address" required
-                                  class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                                  class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Type</label>
-                        <select name="business_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        <select name="business_type" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500" required>
                             <option value="">Select type</option>
                             <option value="Restaurant">Restaurant</option>
                             <option value="Retail">Retail Store</option>
@@ -378,21 +415,21 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Registration Number</label>
                         <input type="text" name="registration_number" placeholder="Enter registration number" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Contact Number</label>
                         <input type="tel" name="contact_number" placeholder="Enter contact number" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" placeholder="Enter email address" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Assign Owner</label>
-                        <select name="owner_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <select name="owner_id" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                             <option value="">Select an Owner</option>
                             <?php foreach ($all_owners as $owner): ?>
                                 <option value="<?php echo $owner['id']; ?>"><?php echo htmlspecialchars($owner['name']); ?></option>
@@ -401,10 +438,10 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('createModal').classList.add('hidden')" 
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" name="create" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
+                        <button type="submit" name="create" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
                             Add Business
                         </button>
                     </div>
@@ -423,16 +460,16 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Name</label>
                         <input type="text" name="name" id="edit_name" placeholder="Enter business name" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Address</label>
                         <textarea name="address" id="edit_address" rows="3" placeholder="Enter full address" required
-                                  class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                                  class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500"></textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Business Type</label>
-                        <select name="business_type" id="edit_business_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        <select name="business_type" id="edit_business_type" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500" required>
                             <option value="">Select type</option>
                             <option value="Restaurant">Restaurant</option>
                             <option value="Retail">Retail Store</option>
@@ -445,24 +482,24 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Registration Number</label>
                         <input type="text" name="registration_number" id="edit_registration_number" placeholder="Enter registration number" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Contact Number</label>
                         <input type="tel" name="contact_number" id="edit_contact_number" placeholder="Enter contact number" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Email</label>
                         <input type="email" name="email" id="edit_email" placeholder="Enter email address" required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                               class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500">
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('editModal').classList.add('hidden')"
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" name="update" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
+                        <button type="submit" name="update" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
                             Update Business
                         </button>
                     </div>
@@ -480,17 +517,17 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
                     <input type="hidden" name="business_id" id="assign_business_id">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Select Inspector</label>
-                        <select name="inspector_id" id="inspector_select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        <select name="inspector_id" id="inspector_select" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-brand-500 focus:border-brand-500" required>
                             <option value="">Select inspector</option>
                             <!-- Inspectors will be loaded here -->
                         </select>
                     </div>
                     <div class="flex justify-end space-x-3">
                         <button type="button" onclick="document.getElementById('assignInspectorModal').classList.add('hidden')"
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" name="assign_inspector" class="px-4 py-2 bg-yellow-400 text-gray-900 rounded-md hover:bg-yellow-500">
+                        <button type="submit" name="assign_inspector" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm">
                             Assign Inspector
                         </button>
                     </div>

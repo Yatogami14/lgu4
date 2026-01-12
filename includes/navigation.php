@@ -133,8 +133,13 @@ if (isset($_SESSION['user_id'])) {
             'icon' => 'fa-users-cog'
         ],
         'active_sessions' => [
-            'label' => 'Active Sessions', 
+            'label' => 'Active Sessions',
             'icon' => 'fa-users-slash'
+        ],
+        'verify_business_owners' => [
+            'label' => 'Verify Business Owners',
+            'icon' => 'fa-user-check',
+            'roles' => ['admin', 'super_admin']
         ],
         'profile' => ['label' => 'Profile', 'icon' => 'fa-user-cog'],
     ];

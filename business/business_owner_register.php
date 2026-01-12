@@ -263,6 +263,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         body {
             font-family: 'Poppins', sans-serif;
         }
+        .existing-doc-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        .existing-doc-card.rejected {
+            background: #fff5f5;
+            border-color: #feb2b2;
+        }
+        .existing-doc-card.verified {
+            background: #f0fff4;
+            border-color: #9ae6b4;
+        }
+        .doc-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-badge.pending { background: #feebc8; color: #744210; }
+        .status-badge.verified { background: #c6f6d5; color: #22543d; }
+        .status-badge.rejected { background: #fed7d7; color: #822727; }
+        .doc-feedback {
+            color: #c53030;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -292,6 +328,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h2><?php echo $is_edit_mode ? 'Edit Application' : 'Business Registration'; ?></h2>
                 <p><?php echo $is_edit_mode ? 'Update your details and re-upload documents.' : 'Complete the form below to register your business.'; ?></p>
             </div>
+
+            <?php if ($is_edit_mode && !empty($existing_data['rejection_reason'])): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Application Feedback</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p><?php echo nl2br(htmlspecialchars($existing_data['rejection_reason'])); ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <!-- Progress Bar -->
             <div class="progress-wrapper">
@@ -483,32 +535,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div id="step-4" class="form-step" style="display: none;">
                     <h3 class="step-title"><span class="step-number">4</span> Upload Documents</h3>
                     <p class="step-desc">
-                        <?php echo $is_edit_mode ? 'Please re-upload all required documents to ensure they are up-to-date.' : 'Please upload the following required documents (PDF, JPG, PNG).'; ?>
+                        <?php echo $is_edit_mode ? 'Review your documents below. Please re-upload any documents marked as rejected.' : 'Please upload the following required documents (PDF, JPG, PNG).'; ?>
                     </p>
-
-                    <?php if ($is_edit_mode && !empty($existing_documents)): ?>
-                    <div class="existing-documents">
-                        <h4>Current Documents:</h4>
-                        <ul>
-                            <?php foreach ($existing_documents as $doc): 
-                                $docStatus = $doc['status'] ?? 'pending';
-                                $docFeedback = $doc['feedback'] ?? '';
-                            ?>
-                                <li>
-                                    <a href="<?php echo $base_path . '/' . htmlspecialchars($doc['file_path']); ?>" target="_blank">
-                                        <?php echo htmlspecialchars($doc['file_name']); ?> (<?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $doc['document_type']))); ?>)
-                                    </a>
-                                    <?php if ($docStatus === 'rejected'): ?>
-                                        <span class="status-rejected"><i class="fas fa-exclamation-circle"></i> Revision Requested</span>
-                                        <?php if ($docFeedback): ?>
-                                            <div class="feedback"><strong>Reason:</strong> <?php echo htmlspecialchars($docFeedback); ?></div>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                    <?php endif; ?>
 
                     <div class="form-grid">
                         <?php
@@ -520,13 +548,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             'tax_registration' => 'Tax Registration',
                             'mayors_permit' => 'Mayor\'s Permit'
                         ];
+
+                        // Helper to find doc by type
+                        $findDoc = function($type) use ($existing_documents) {
+                            foreach ($existing_documents as $doc) {
+                                if ($doc['document_type'] === $type) return $doc;
+                            }
+                            return null;
+                        };
+
                         foreach ($docs as $key => $label):
+                            $existingDoc = $is_edit_mode ? $findDoc($key) : null;
+                            $status = $existingDoc['status'] ?? 'pending';
+                            $isRejected = $status === 'rejected';
                         ?>
                         <div class="form-group">
                             <label for="<?php echo $key; ?>"><?php echo $label; ?></label>
+                            <?php if ($existingDoc): ?>
+                                <div class="existing-doc-card <?php echo $status; ?>">
+                                    <div class="doc-info">
+                                        <a href="<?php echo $base_path . '/' . htmlspecialchars($existingDoc['file_path']); ?>" target="_blank" class="text-blue-600 hover:underline"><i class="fas fa-paperclip"></i> <?php echo htmlspecialchars($existingDoc['file_name']); ?></a>
+                                        <span class="status-badge <?php echo $status; ?>"><?php echo ucfirst($status); ?></span>
+                                    </div>
+                                    <?php if ($isRejected && !empty($existingDoc['feedback'])): ?>
+                                        <div class="doc-feedback"><i class="fas fa-exclamation-circle"></i> <strong>Feedback:</strong> <?php echo htmlspecialchars($existingDoc['feedback']); ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                             <div class="input-wrapper file-input">
                                 <i class="fas fa-file-upload"></i>
-                                <input type="file" id="<?php echo $key; ?>" name="<?php echo $key; ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $is_edit_mode ? '' : 'required'; ?>>
+                                <input type="file" id="<?php echo $key; ?>" name="<?php echo $key; ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo ($is_edit_mode && $existingDoc) ? '' : 'required'; ?>>
                             </div>
                         </div>
                         <?php endforeach; ?>
