@@ -34,6 +34,7 @@ $messageType = '';
 
 // 2. Handle Approve / Reject Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
     $business_id = $_POST['business_id'] ?? null;
     $action = $_POST['action'] ?? null;
 
@@ -107,6 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'error';
         }
     }
+    echo json_encode(['success' => $messageType === 'success', 'message' => $message]);
+    exit;
 }
 
 // 3. Fetch Pending Business Owners with Filtering, Sorting, and Pagination
@@ -196,6 +199,106 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
     ];
     return '?' . http_build_query(array_filter($queryParams));
 }
+
+// AJAX Search Handler
+if (isset($_GET['ajax_search'])) {
+    ob_start();
+    if (count($pendingUsers) > 0):
+        foreach ($pendingUsers as $user):
+?>
+        <tr id="row-<?php echo $user['id']; ?>" data-details='<?php echo htmlspecialchars(json_encode($user), ENT_QUOTES, 'UTF-8'); ?>' class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($user['business_name']); ?></div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900"><?php echo htmlspecialchars($user['owner_name'] ?? 'N/A'); ?></div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800">
+                    <?php echo htmlspecialchars($user['business_type']); ?>
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <?php echo date('M j, Y', strtotime($user['created_at'])); ?>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex justify-start items-center space-x-2">
+                    <button type="button" onclick="openDetailsModal(this)" class="text-brand-600 hover:text-brand-900 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1.5 rounded-md transition-all shadow-sm flex items-center" title="View Details">
+                        <i class="fas fa-eye mr-1.5"></i> View
+                    </button>
+                    <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                    <form method="POST" onsubmit="return openApproveModal(this, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>');" class="inline-block">
+                        <input type="hidden" name="business_id" value="<?php echo $user['id']; ?>">
+                        <button type="submit" name="action" value="approve" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-1.5 rounded-md transition-all shadow-sm" title="Approve">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </form>
+                    <button type="button" onclick="openRejectModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>')" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-md transition-all shadow-sm" title="Reject">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button type="button" onclick="openRevisionModal(this)" class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 px-3 py-1.5 rounded-md transition-all shadow-sm" title="Request Revision">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+<?php
+        endforeach;
+    else:
+?>
+        <tr>
+            <td colspan="5" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center justify-center">
+                    <div class="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-inbox text-gray-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-sm font-medium text-gray-900 mb-1">No pending applications</h3>
+                    <p class="text-sm text-gray-500">All business applications have been reviewed.</p>
+                </div>
+            </td>
+        </tr>
+<?php
+    endif;
+    $tableContent = ob_get_clean();
+
+    ob_start();
+    if ($total_pages > 1):
+?>
+    <div class="bg-gray-50 px-6 py-4 border-t border-gray-100">
+        <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-700">
+                Showing <span class="font-medium"><?php echo $offset + 1; ?></span> to <span class="font-medium"><?php echo min($offset + $records_per_page, $total_records); ?></span> of <span class="font-medium"><?php echo $total_records; ?></span> results
+            </div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <a href="<?php echo getPageLink(max(1, $page - 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page <= 1) ? 'opacity-50 cursor-not-allowed' : ''; ?>" data-page="<?php echo max(1, $page - 1); ?>">
+                    <i class="fas fa-chevron-left h-4 w-4"></i>
+                    <span class="sr-only">Previous</span>
+                </a>
+
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                <a href="<?php echo getPageLink($i, $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors <?php echo ($i == $page) ? 'z-10 bg-brand-50 border-brand-500 text-brand-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>" data-page="<?php echo $i; ?>">
+                    <?php echo $i; ?>
+                </a>
+                <?php endfor; ?>
+
+                <a href="<?php echo getPageLink(min($total_pages, $page + 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page >= $total_pages) ? 'opacity-50 cursor-not-allowed' : ''; ?>" data-page="<?php echo min($total_pages, $page + 1); ?>">
+                    <i class="fas fa-chevron-right h-4 w-4"></i>
+                    <span class="sr-only">Next</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+<?php
+    endif;
+    $paginationContent = ob_get_clean();
+
+    echo json_encode([
+        'tableContent' => $tableContent,
+        'paginationContent' => $paginationContent,
+        'totalRecords' => $total_records
+    ]);
+    exit;
+}
 ?>
 <?php include '../includes/navigation.php'; ?>
 
@@ -210,6 +313,28 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-down {
+            animation: slideDown 0.4s ease-out forwards;
+        }
+        @keyframes checkmarkPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .checkmark-pop {
+            animation: checkmarkPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -233,7 +358,7 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Pending Applications</p>
-                            <p class="text-3xl font-bold text-brand-600 mt-1"><?php echo $total_records; ?></p>
+                            <p id="pendingCount" class="text-3xl font-bold text-brand-600 mt-1"><?php echo $total_records; ?></p>
                         </div>
                         <div class="h-12 w-12 bg-brand-50 rounded-full flex items-center justify-center text-brand-600">
                             <i class="fas fa-user-clock text-xl"></i>
@@ -253,11 +378,11 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
 
                 <!-- Filter and Sort Controls -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-                    <form method="GET" action="" class="flex flex-wrap items-center gap-4">
+                    <form method="GET" action="" id="searchForm" class="flex flex-wrap items-center gap-4">
                         <div class="flex-1 min-w-0">
-                            <input type="text" name="search" placeholder="Search name, business, email..." value="<?php echo htmlspecialchars($search); ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                            <input type="text" name="search" id="searchInput" placeholder="Search name, business, email..." value="<?php echo htmlspecialchars($search); ?>" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                         </div>
-                        <select name="filter_type" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
+                        <select name="filter_type" id="filterTypeInput" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                             <option value="">All Business Types</option>
                             <option value="Restaurant" <?php if($filter_type == 'Restaurant') echo 'selected'; ?>>Restaurant</option>
                             <option value="Food Establishment" <?php if($filter_type == 'Food Establishment') echo 'selected'; ?>>Food Establishment</option>
@@ -270,14 +395,22 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                         <button type="submit" class="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors">
                             <i class="fas fa-filter mr-2"></i> Filter
                         </button>
-                        <a href="verify_business_owners.php" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Clear</a>
+                        <button type="button" id="clearFiltersBtn" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Clear</button>
                     </form>
                 </div>
 
                 <!-- Applications Table -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+                    <!-- Loading Overlay -->
+                    <div id="tableLoadingOverlay" class="hidden absolute inset-0 bg-white bg-opacity-75 z-10 flex items-center justify-center backdrop-blur-sm transition-all duration-200">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-spinner fa-spin text-brand-600 text-4xl mb-3"></i>
+                            <p class="text-sm text-gray-500 font-medium animate-pulse">Loading applications...</p>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
-                        <table class="w-full">
+                        <table class="w-full" id="applicationsTable">
                             <thead class="bg-gray-50 border-b border-gray-100">
                                 <tr>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -302,10 +435,10 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-gray-100" id="tableBody">
                                 <?php if (count($pendingUsers) > 0): ?>
                                     <?php foreach ($pendingUsers as $user): ?>
-                                        <tr data-details='<?php echo htmlspecialchars(json_encode($user), ENT_QUOTES, 'UTF-8'); ?>' class="hover:bg-gray-50 transition-colors">
+                                        <tr id="row-<?php echo $user['id']; ?>" data-details='<?php echo htmlspecialchars(json_encode($user), ENT_QUOTES, 'UTF-8'); ?>' class="hover:bg-gray-50 transition-colors">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($user['business_name']); ?></div>
                                             </td>
@@ -326,7 +459,7 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                                                         <i class="fas fa-eye mr-1.5"></i> View
                                                     </button>
                                                     <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                                                    <form method="POST" onsubmit="return confirm('Are you sure you want to APPROVE this application?');" class="inline-block">
+                                            <form method="POST" onsubmit="return openApproveModal(this, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>');" class="inline-block">
                                                         <input type="hidden" name="business_id" value="<?php echo $user['id']; ?>">
                                                         <button type="submit" name="action" value="approve" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 border border-green-200 px-3 py-1.5 rounded-md transition-all shadow-sm" title="Approve">
                                                             <i class="fas fa-check"></i>
@@ -359,8 +492,9 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                         </table>
                     </div>
 
-                    <!-- Pagination Controls -->
-                    <?php if ($total_pages > 1): ?>
+                    <!-- Pagination Controls Container -->
+                    <div id="paginationContainer">
+                        <?php if ($total_pages > 1): ?>
                     <div class="bg-gray-50 px-6 py-4 border-t border-gray-100">
                         <div class="flex items-center justify-between">
                             <div class="text-sm text-gray-700">
@@ -368,26 +502,27 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                             </div>
                             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                                 <!-- Previous Button -->
-                                <a href="<?php echo getPageLink(max(1, $page - 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page <= 1) ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                                <a href="<?php echo getPageLink(max(1, $page - 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page <= 1) ? 'opacity-50 cursor-not-allowed' : ''; ?>" data-page="<?php echo max(1, $page - 1); ?>">
                                     <i class="fas fa-chevron-left h-4 w-4"></i>
                                     <span class="sr-only">Previous</span>
                                 </a>
 
                                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                <a href="<?php echo getPageLink($i, $search, $filter_type, $sort_by, $sort_order); ?>" class="relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors <?php echo ($i == $page) ? 'z-10 bg-brand-50 border-brand-500 text-brand-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>">
+                                <a href="<?php echo getPageLink($i, $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors <?php echo ($i == $page) ? 'z-10 bg-brand-50 border-brand-500 text-brand-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'; ?>" data-page="<?php echo $i; ?>">
                                     <?php echo $i; ?>
                                 </a>
                                 <?php endfor; ?>
 
                                 <!-- Next Button -->
-                                <a href="<?php echo getPageLink(min($total_pages, $page + 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page >= $total_pages) ? 'opacity-50 cursor-not-allowed' : ''; ?>">
+                                <a href="<?php echo getPageLink(min($total_pages, $page + 1), $search, $filter_type, $sort_by, $sort_order); ?>" class="pagination-link relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors <?php echo ($page >= $total_pages) ? 'opacity-50 cursor-not-allowed' : ''; ?>" data-page="<?php echo min($total_pages, $page + 1); ?>">
                                     <i class="fas fa-chevron-right h-4 w-4"></i>
                                     <span class="sr-only">Next</span>
                                 </a>
                             </nav>
                         </div>
                     </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -418,19 +553,19 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                 Application submitted on <span id="submissionDate" class="font-medium"></span>
             </div>
             <div class="flex space-x-3">
-                <button type="button" onclick="closeModal('detailsModal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">Close</button>
+                <button type="button" onclick="closeModal('detailsModal')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">Close</button>
                 <div class="flex space-x-2">
-                    <form method="POST" onsubmit="return confirm('Are you sure you want to APPROVE this application?');" class="inline-block">
+                    <form method="POST" id="modalApproveForm" class="inline-block">
                         <input type="hidden" name="business_id" id="modal_business_id">
-                        <button type="submit" name="action" value="approve" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                            <i class="fas fa-check mr-2"></i> Approve
+                        <button type="submit" name="action" value="approve" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                            <i class="fas fa-check mr-1.5"></i> Approve
                         </button>
                     </form>
-                    <button type="button" id="modalRejectBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                        <i class="fas fa-times mr-2"></i> Reject
+                    <button type="button" id="modalRejectBtn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <i class="fas fa-times mr-1.5"></i> Reject
                     </button>
-                    <button type="button" id="modalRevisionBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors">
-                        <i class="fas fa-edit mr-2"></i> Request Revision
+                    <button type="button" id="modalRevisionBtn" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors">
+                        <i class="fas fa-edit mr-1.5"></i> Request Revision
                     </button>
                 </div>
             </div>
@@ -455,23 +590,34 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
 
 <!-- Rejection Modal -->
 <div id="rejectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900">Reason for Rejection</h3>
-            <p class="text-sm text-gray-600 mt-1">For business: <span id="rejectBusinessName" class="font-bold"></span></p>
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-times text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Reject Application</h3>
+            <div class="mt-2 px-2">
+                <p class="text-sm text-gray-500">
+                    You are about to reject the application for <span id="rejectBusinessName" class="font-bold text-gray-800"></span>.
+                </p>
+            </div>
             
-            <form id="rejectForm" method="POST" class="mt-4 space-y-4">
+            <form id="rejectForm" method="POST" class="mt-4 text-left">
                 <input type="hidden" name="action" value="reject">
                 <input type="hidden" name="business_id" id="reject_business_id">
                 
-                <div>
-                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700">Please provide a clear reason for rejecting this application.</label>
-                    <textarea name="rejection_reason" id="rejection_reason" rows="4" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-red-500 focus:ring-red-500" placeholder="e.g., Missing building permit, incorrect registration number..."></textarea>
+                <div class="mb-4">
+                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection</label>
+                    <textarea name="rejection_reason" id="rejection_reason" rows="3" required class="w-full border-gray-300 rounded-md shadow-sm focus:border-red-500 focus:ring-red-500 text-sm" placeholder="Please provide a reason..."></textarea>
                 </div>
                 
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm Rejection</button>
+                <div class="flex justify-center gap-4 mt-4">
+                    <button type="button" onclick="closeModal('rejectModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        Confirm Reject
+                    </button>
                 </div>
             </form>
         </div>
@@ -481,23 +627,59 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
 <!-- Revision Modal -->
 <div id="revisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900">Request Document Revision</h3>
-            <p class="text-sm text-gray-600 mt-1">For business: <span id="revisionBusinessName" class="font-bold"></span></p>
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+                <i class="fas fa-edit text-yellow-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Request Document Revision</h3>
+            <div class="mt-2 px-2">
+                <p class="text-sm text-gray-500">
+                    Select documents to revise for <span id="revisionBusinessName" class="font-bold text-gray-800"></span>.
+                </p>
+            </div>
             
-            <form id="revisionForm" method="POST" class="mt-4 space-y-4">
+            <form id="revisionForm" method="POST" class="mt-4 text-left">
                 <input type="hidden" name="action" value="request_revision">
                 <input type="hidden" name="business_id" id="revision_business_id">
                 
-                <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border rounded">
+                <div id="documentList" class="space-y-3 max-h-60 overflow-y-auto p-2 border rounded mb-4">
                     <!-- Documents will be populated here by JS -->
                 </div>
                 
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Send Request</button>
+                <div class="flex justify-center gap-4 mt-4">
+                    <button type="button" onclick="closeModal('revisionModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        Send Request
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <i class="fas fa-check text-green-600 text-xl checkmark-pop"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Approve Application</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Are you sure you want to approve the application for <span id="approveBusinessName" class="font-bold text-gray-800"></span>?
+                </p>
+            </div>
+            <div class="flex justify-center gap-4 mt-4">
+                <button type="button" onclick="closeModal('approveModal')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancel
+                </button>
+                <button type="button" id="confirmApproveBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Confirm Approve
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -650,8 +832,15 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         // Add event listeners for modal buttons
         document.getElementById('modalRejectBtn').onclick = () => openRejectModal(details.id, details.business_name);
         document.getElementById('modalRevisionBtn').onclick = () => openRevisionModal(button);
+        
+        document.getElementById('modalApproveForm').onsubmit = function() {
+            return openApproveModal(this, details.business_name);
+        };
 
-        document.getElementById('detailsModal').classList.remove('hidden');
+        const modal = document.getElementById('detailsModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('fade-in');
+        modal.firstElementChild.classList.add('slide-down');
     }
 
     function openRevisionModal(button) {
@@ -699,6 +888,8 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.remove('hidden');
+            modal.classList.add('fade-in');
+            modal.firstElementChild.classList.add('slide-down');
         }
     }
 
@@ -706,12 +897,59 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.add('hidden');
+            modal.classList.remove('fade-in');
+            modal.firstElementChild.classList.remove('slide-down');
         }
         // Clear content if it's the document viewer to stop videos/iframes
         if (modalId === 'documentViewerModal') {
             const viewerContent = document.getElementById('documentViewerContent');
             if (viewerContent) viewerContent.innerHTML = '';
         }
+    }
+
+    let formToSubmit = null;
+
+    function openApproveModal(form, businessName) {
+        formToSubmit = form;
+        document.getElementById('approveBusinessName').textContent = businessName;
+        openModal('approveModal');
+        return false;
+    }
+
+    document.getElementById('confirmApproveBtn').addEventListener('click', function() {
+        if (formToSubmit) {
+            executeApprove(formToSubmit);
+            closeModal('approveModal');
+            formToSubmit = null;
+        }
+    });
+
+    function executeApprove(form) {
+        const btn = form.querySelector('button[type="submit"]');
+        
+        // Create hidden input for action since disabled button value won't submit
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'approve';
+        form.appendChild(actionInput);
+
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-90');
+        
+        // Change to success state (Green background, Check icon)
+        btn.classList.remove('bg-green-50', 'text-green-600', 'hover:bg-green-100', 'hover:text-green-900', 'border-green-200', 'border');
+        btn.classList.add('bg-green-600', 'text-white');
+
+        if (btn.innerText.trim().length > 0) {
+            btn.innerHTML = '<i class="fas fa-check-circle mr-1.5"></i> Approved';
+        } else {
+            btn.innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+        
+        // Submit via AJAX
+        const formData = new FormData(form);
+        submitAjaxAction(formData);
     }
 
     function openRejectModal(businessId, businessName) {
@@ -728,25 +966,226 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
         docList.innerHTML = '';
         
         if (documents && documents.length > 0) {
+            // Add Select All Checkbox
+            const selectAllHtml = `
+                <div class="flex items-center justify-end mb-3 pb-2 border-b border-gray-200">
+                    <label class="inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" id="selectAllDocs" class="form-checkbox h-4 w-4 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500 transition duration-150 ease-in-out">
+                        <span class="ml-2 text-sm text-gray-600 font-medium">Select All for Revision</span>
+                    </label>
+                </div>
+            `;
+            docList.insertAdjacentHTML('beforeend', selectAllHtml);
+
             documents.forEach(doc => {
                 const html = `
-                    <div class="border-b pb-2">
+                    <div class="border-b pb-2 doc-item">
                         <div class="flex items-center justify-between">
                             <label class="font-medium text-sm text-gray-700">${doc.type}</label>
-                            <select name="doc_status[${doc.id}]" class="text-sm border-gray-300 rounded" onchange="this.nextElementSibling.classList.toggle('hidden', this.value !== 'rejected')">
+                            <select name="doc_status[${doc.id}]" class="doc-status-select text-sm border-gray-300 rounded focus:ring-yellow-500 focus:border-yellow-500">
                                 <option value="pending">OK</option>
                                 <option value="rejected">Reject / Request Revision</option>
                             </select>
                         </div>
-                        <textarea name="doc_feedback[${doc.id}]" placeholder="Reason for rejection..." class="mt-2 w-full text-sm border-gray-300 rounded hidden" rows="2"></textarea>
+                        <textarea name="doc_feedback[${doc.id}]" placeholder="Reason for rejection..." class="doc-feedback mt-2 w-full text-sm border-gray-300 rounded hidden focus:ring-yellow-500 focus:border-yellow-500" rows="2"></textarea>
                     </div>
                 `;
                 docList.insertAdjacentHTML('beforeend', html);
+            });
+
+            // Event Listeners
+            const selectAllCheckbox = document.getElementById('selectAllDocs');
+            const statusSelects = docList.querySelectorAll('.doc-status-select');
+
+            // Handle individual select changes
+            statusSelects.forEach(select => {
+                select.addEventListener('change', function() {
+                    const textarea = this.closest('.doc-item').querySelector('.doc-feedback');
+                    if (this.value === 'rejected') {
+                        textarea.classList.remove('hidden');
+                        textarea.focus();
+                    } else {
+                        textarea.classList.add('hidden');
+                        textarea.value = ''; 
+                    }
+                    
+                    // Update "Select All" state based on individual selections
+                    const allRejected = Array.from(statusSelects).every(s => s.value === 'rejected');
+                    selectAllCheckbox.checked = allRejected;
+                    selectAllCheckbox.indeterminate = !allRejected && Array.from(statusSelects).some(s => s.value === 'rejected');
+                });
+            });
+
+            // Handle Select All change
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                statusSelects.forEach(select => {
+                    select.value = isChecked ? 'rejected' : 'pending';
+                    const textarea = select.closest('.doc-item').querySelector('.doc-feedback');
+                    if (isChecked) {
+                        textarea.classList.remove('hidden');
+                    } else {
+                        textarea.classList.add('hidden');
+                        textarea.value = '';
+                    }
+                });
             });
         } else {
             docList.innerHTML = '<p class="text-center text-gray-500">No documents found for this application.</p>';
         }
     }
+
+    // Add loading state to reject form submission
+    document.getElementById('rejectForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-90');
+        btn.innerHTML = '<i class="fas fa-times-circle mr-1.5"></i> Rejected';
+        
+        const formData = new FormData(this);
+        submitAjaxAction(formData);
+    });
+
+    // Add loading state to revision form submission
+    document.getElementById('revisionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-90');
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-1.5"></i> Sent';
+        
+        const formData = new FormData(this);
+        submitAjaxAction(formData);
+    });
+
+    function submitAjaxAction(formData) {
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message, 'success');
+                const businessId = formData.get('business_id');
+                const row = document.getElementById('row-' + businessId);
+                if (row) {
+                    row.remove();
+                    // Update pending count
+                    const countEl = document.getElementById('pendingCount');
+                    if (countEl) {
+                        let count = parseInt(countEl.innerText);
+                        if (!isNaN(count) && count > 0) countEl.innerText = count - 1;
+                    }
+                    // Check if table is empty
+                    const tbody = document.querySelector('tbody');
+                    if (tbody && tbody.children.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center"><div class="flex flex-col items-center justify-center"><div class="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-inbox text-gray-400 text-xl"></i></div><h3 class="text-sm font-medium text-gray-900 mb-1">No pending applications</h3><p class="text-sm text-gray-500">All business applications have been reviewed.</p></div></td></tr>`;
+                    }
+                }
+                closeModal('detailsModal');
+                closeModal('rejectModal');
+                closeModal('revisionModal');
+            } else {
+                showNotification(data.message, 'error');
+                setTimeout(() => location.reload(), 2000); // Reload on error to reset state
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An unexpected error occurred.', 'error');
+        });
+    }
+
+    function showNotification(message, type = 'success') {
+        const div = document.createElement('div');
+        div.className = `fixed top-5 right-5 px-6 py-4 rounded-lg shadow-lg text-white transform transition-all duration-500 z-[70] flex items-center ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-3 text-xl"></i><span class="font-medium">${message}</span>`;
+        document.body.appendChild(div);
+        setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 3000);
+    }
+
+    // AJAX Search & Filter
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const filterTypeInput = document.getElementById('filterTypeInput');
+        const tableBody = document.getElementById('tableBody');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const pendingCount = document.getElementById('pendingCount');
+        const searchForm = document.getElementById('searchForm');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const tableLoadingOverlay = document.getElementById('tableLoadingOverlay');
+
+        let debounceTimer;
+
+        function fetchResults(page = 1) {
+            const search = searchInput.value;
+            const filterType = filterTypeInput.value;
+            
+            // Show loading overlay
+            if (tableLoadingOverlay) tableLoadingOverlay.classList.remove('hidden');
+
+            const params = new URLSearchParams({
+                ajax_search: '1',
+                search: search,
+                filter_type: filterType,
+                page: page
+            });
+
+            fetch(window.location.pathname + '?' + params.toString())
+                .then(response => response.json())
+                .then(data => {
+                    tableBody.innerHTML = data.tableContent;
+                    paginationContainer.innerHTML = data.paginationContent;
+                    if (pendingCount) pendingCount.innerText = data.totalRecords;
+                    
+                    // Update URL without reload
+                    const newUrl = window.location.pathname + '?' + new URLSearchParams({
+                        search: search,
+                        filter_type: filterType,
+                        page: page
+                    }).toString();
+                    window.history.pushState({}, '', newUrl);
+                })
+                .catch(error => console.error('Error fetching results:', error))
+                .finally(() => {
+                    if (tableLoadingOverlay) tableLoadingOverlay.classList.add('hidden');
+                });
+        }
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchResults(1), 300);
+        });
+
+        filterTypeInput.addEventListener('change', () => fetchResults(1));
+
+        // Handle pagination clicks via delegation
+        paginationContainer.addEventListener('click', function(e) {
+            const link = e.target.closest('.pagination-link');
+            if (link && !link.classList.contains('cursor-not-allowed')) {
+                e.preventDefault();
+                const page = link.dataset.page;
+                fetchResults(page);
+            }
+        });
+        
+        // Prevent form submit
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            fetchResults(1);
+        });
+
+        // Clear filters
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                filterTypeInput.value = '';
+                fetchResults(1);
+            });
+        }
+    });
 </script>
 
 </body>

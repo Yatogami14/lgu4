@@ -374,17 +374,17 @@ function getPageLink($page, $current_search, $current_filter_type, $current_sort
                                         <span class="text-xs text-gray-400"><?php echo date('g:i A', strtotime($user['created_at'])); ?></span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex justify-end space-x-2">
-                                            <button type="button" onclick="openDetailsModal(this)" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors">
+                                        <div class="flex justify-end items-center space-x-2">
+                                            <button type="button" onclick="openDetailsModal(this)" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors" title="View Application Details">
                                                 <i class="fas fa-eye mr-1"></i> View
                                             </button>
-                                            <form method="POST" onsubmit="return confirm('Are you sure you want to APPROVE this application?');" class="inline-block">
+                                            <form method="POST" onsubmit="return confirm('Are you sure you want to APPROVE this application?');" class="contents">
                                                 <input type="hidden" name="business_id" value="<?php echo $user['id']; ?>">
-                                                <button type="submit" name="action" value="approve" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-md transition-colors">
+                                                <button type="submit" name="action" value="approve" class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-md transition-colors" title="Approve Application">
                                                     <i class="fas fa-check mr-1"></i> Approve
                                                 </button>
                                             </form>
-                                            <button type="button" onclick="openRejectModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>')" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors">
+                                            <button type="button" onclick="openRejectModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars(addslashes($user['business_name'])); ?>')" class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition-colors" title="Reject Application">
                                                 <i class="fas fa-times mr-1"></i> Reject
                                             </button>
                                         </div>
