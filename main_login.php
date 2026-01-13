@@ -56,8 +56,8 @@ if (isset($_COOKIE['remember_me']) && !isset($_SESSION['user_id'])) {
 // Security headers
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
-header("Referrer-Policy: strict-origin-when-cross-origin");
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;");
+
 
 // CSRF token generation
 if (empty($_SESSION['csrf_token'])) {
@@ -186,8 +186,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;">
     <title>Login - Health & Safety Inspection System</title>
-    <link rel="icon" type="image/png" href="<?php echo $base_path; ?>/logo/logo.jpeg">
+    <link rel="icon" type="image/jpeg" href="<?php echo $base_path; ?>/logo/logo.jpeg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/css/login.css">

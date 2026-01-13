@@ -8,10 +8,10 @@ class Database {
     public function __construct() {
         $this->config = [
             self::DB_UNIFIED => [
-                'host' =>  '153.92.15.81', 
-                'dbname' => 'u514031374_hsi', 
-                'username' => 'u514031374_hsi', 
-                'password' => 'hsiP@55w0rd', 
+                'host' =>  'localhost:3307', 
+                'dbname' => 'hsi_lgu_unified', 
+                'username' => 'root', 
+                'password' => '', 
             ]
         ];
     }

@@ -163,11 +163,12 @@ body {
 }
 
 .logo-left img {
-    width: 240px;
+    width: 300px;
     height: auto;
-    filter: drop-shadow(0 20px 50px rgba(0,0,0,0.5)) drop-shadow(0 0 30px rgba(255, 249, 196, 0.3));
+    background: transparent;
     margin-bottom: 35px;
     animation: pulse 4s ease-in-out infinite;
+    content: url('../img/logo.png');
 }
 
 .logo-left h1 {
@@ -387,10 +388,11 @@ body {
     margin-bottom: 25px;
 }
 .login-logo img {
-    width: 100px;
+    width: 150px;
     height: auto;
-    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.2)) drop-shadow(0 0 20px rgba(255, 249, 196, 0.2));
+    background: transparent;
     animation: bounce 3s ease-in-out infinite;
+    content: url('../img/logo.png');
 }
 @keyframes bounce {
     0%, 100% { transform: translateY(0); }
@@ -680,6 +682,8 @@ body {
 @media (max-width: 1024px) {
     body {
         display: block;
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
     }
     .main-content-wrapper {
         flex-direction: column;
@@ -767,4 +771,10 @@ body {
     body {
         display: block;
     }
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }

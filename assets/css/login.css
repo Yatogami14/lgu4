@@ -107,11 +107,9 @@ body {
 }
 
 .logo-left img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 4px solid rgba(255,255,255,0.5);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    width: 180px;
+    height: auto;
+    background: transparent;
     margin-bottom: 24px;
 }
 
@@ -150,11 +148,22 @@ body {
     .login-container {
         width: 100%;
         max-width: 450px;
-        margin: auto;
+        margin: 0 auto;
         background-color: transparent;
     }
     body {
-        background-color: var(--color-bg);
+        background: linear-gradient(-45deg, var(--color-bg), #e0f2f1, #b2dfdb, var(--color-bg));
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+    .main-content-wrapper {
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
 }
 
@@ -168,10 +177,9 @@ body {
         margin-bottom: 24px;
     }
     .login-logo img {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        width: 120px;
+        height: auto;
+        background: transparent;
     }
 }
 
@@ -206,13 +214,14 @@ body {
     position: relative;
 }
 
-.input-wrapper i.fa-user,
-.input-wrapper i.fa-lock {
+.input-wrapper > i {
     position: absolute;
     left: 16px;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af; /* gray-400 */
+    z-index: 10;
+    pointer-events: none;
 }
 
 .input-wrapper input {
@@ -463,3 +472,9 @@ span.ripple {
 .btn-primary { animation-delay: 0.5s; }
 .register-link { animation-delay: 0.6s; }
 .footer { animation-delay: 0.7s; }
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
